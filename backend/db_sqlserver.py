@@ -8,8 +8,8 @@ logger = logging.getLogger(__name__)
 
 def buscar_veiculo_por_placa(placa: str):
     """
-    Busca dados do veículo no SQL Server corporativo (referencia.dbo.Veiculos)
-    usando pymssql para compatibilidade com Vercel.
+    Busca dados do veículo no SQL Server corporativo.
+    Adicionado suporte a TDS 7.4 e Timeouts para nuvem.
     """
     host = os.getenv("SQLSERVER_HOST", "bi.bluefleet.com.br")
     port = int(os.getenv("SQLSERVER_PORT", "1433"))
@@ -17,40 +17,42 @@ def buscar_veiculo_por_placa(placa: str):
     password = os.getenv("SQLSERVER_PASSWORD", "JSoo2iS*hdfbs5f2gdsf")
     db = os.getenv("SQLSERVER_DB", "referencia")
 
-    # Normaliza placa para busca
+    # Normaliza placa
     placa_limpa = placa.replace("-", "").upper().strip()
     placa_hifen = f"{placa_limpa[:3]}-{placa_limpa[3:]}" if len(placa_limpa) == 7 else placa_limpa
 
+    logger.info(f"Iniciando busca SQL para placa: {placa_limpa}")
+
     try:
+        # Tenta conectar com parâmetros otimizados para nuvem
         conn = pymssql.connect(
             server=host,
-            port=port,
             user=user,
             password=password,
             database=db,
-            timeout=10
+            port=port,
+            login_timeout=15, # Tempo para o login
+            timeout=30        # Tempo para a query
         )
         
         cursor = conn.cursor(as_dict=True)
-        query = """
-            SELECT TOP 1
-                Placa as placa,
-                DescricaoModelo as modelo,
-                DescricaoFabricante as marca,
-                CodigoVeiculo as frota,
-                CASE 
-                    WHEN DescricaoModelo LIKE '%Bi%Truck%' THEN 'bitruck'
-                    ELSE 'simples'
-                END as tipo
-            FROM Veiculos
-            WHERE Placa = %s OR Placa = %s
-        """
+        # Usamos %s para pymssql
+        query = "SELECT TOP 1 Placa as placa, DescricaoModelo as modelo, DescricaoFabricante as marca, CodigoVeiculo as frota FROM Veiculos WHERE Placa = %s OR Placa = %s"
+        
         cursor.execute(query, (placa_limpa, placa_hifen))
         row = cursor.fetchone()
         
         conn.close()
-        return row
+        
+        if row:
+            logger.info(f"Veículo encontrado: {row['placa']}")
+            # Adiciona o campo 'tipo' baseado no modelo
+            row['tipo'] = 'bitruck' if 'BITRUCK' in str(row['modelo']).upper() else 'simples'
+            return row
+        else:
+            logger.warning(f"Nenhum veículo encontrado no SQL Server para {placa_limpa}")
+            return None
 
     except Exception as e:
-        logger.error(f"Erro ao consultar SQL Server via pymssql: {e}")
+        logger.error(f"FALHA CRÍTICA SQL SERVER: {str(e)}")
         return None
