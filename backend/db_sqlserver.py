@@ -54,5 +54,26 @@ def buscar_veiculo_por_placa(placa: str):
             return None
 
     except Exception as e:
-        logger.error(f"FALHA CRÍTICA SQL SERVER: {str(e)}")
-        return None
+        logger.error(f"SQL Server inacessível (provável Firewall): {e}. Tentando Supabase (Cache)...")
+        # --- PLANO B: BUSCAR NO SUPABASE ---
+        supa_url = os.getenv("SUPABASE_DB_URL")
+        if not supa_url:
+            return None
+            
+        try:
+            import psycopg2
+            from psycopg2.extras import RealDictCursor
+            conn = psycopg2.connect(supa_url, cursor_factory=RealDictCursor)
+            cursor = conn.cursor()
+            
+            query = "SELECT placa, modelo, marca, frota, tipo FROM veiculos_referencia WHERE UPPER(placa) = %s OR UPPER(placa) = %s"
+            cursor.execute(query, (placa_limpa, placa_hifen))
+            row = cursor.fetchone()
+            
+            conn.close()
+            if row:
+                logger.info("Dados recuperados com sucesso do cache no Supabase.")
+            return row
+        except Exception as se:
+            logger.error(f"Erro ao buscar no cache do Supabase: {se}")
+            return None

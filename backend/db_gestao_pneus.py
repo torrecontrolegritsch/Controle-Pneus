@@ -139,6 +139,14 @@ _STATEMENTS = [
         valor_pneu REAL DEFAULT 0,
         criado_em TEXT DEFAULT (datetime('now', 'localtime'))
     )""",
+    """CREATE TABLE IF NOT EXISTS veiculos_referencia (
+        placa TEXT PRIMARY KEY,
+        modelo TEXT,
+        marca TEXT,
+        frota TEXT,
+        tipo TEXT,
+        last_sync TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )""",
 ]
 
 def ensure_tables():
