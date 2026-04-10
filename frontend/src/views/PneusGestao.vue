@@ -1008,7 +1008,6 @@
     <div id="printable-lote" class="print-only" v-if="loteImpressao">
       <div class="print-header">
         <div class="print-logo-box">
-          <img src="../assets/transportes-gritsch (2).png" alt="Logo Gritsch" class="print-logo-img">
         </div>
         <div class="print-header-info">
           <strong>TRANSPORTES GRITSCH LTDA</strong><br>
