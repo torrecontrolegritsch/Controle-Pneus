@@ -1,8 +1,12 @@
 import logging
 import os
+import sys
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
+
+# Garante que o diretório 'backend' esteja no path para a Vercel encontrar os módulos
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 load_dotenv()
 
