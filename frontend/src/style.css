@@ -1,0 +1,50 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+:root {
+  --brand:      #C41230;
+  --brand-dark: #9E0E26;
+  --brand-bg:   #FDF2F4;
+  --brand-mid:  #FCCDD4;
+
+  --void:    #EAECF0;
+  --deep:    #FFFFFF;
+  --s1:      #FFFFFF;
+  --s2:      #E2E8F0;
+  --s3:      #F8FAFC;
+  --s4:      #CBD5E1;
+
+  --border:  rgba(0, 0, 0, 0.05);
+  --border2: rgba(0, 0, 0, 0.08);
+
+  --red:     #EF4444;
+  --red2:    #FEE2E2;
+  --red3:    #FECACA;
+
+  --yellow:  #F59E0B;
+  --yellow2: #FEF3C7;
+
+  --green:   #10B981;
+  --green2:  #D1FAE5;
+
+  --blue:    #3B82F6;
+  --blue2:   #DBEAFE;
+
+  --text:  #1E293B;
+  --text2: #475569;
+  --text3: #94A3B8;
+
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  --shadow-float: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--void);
+  color: var(--text);
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  min-height: 100vh;
+}
