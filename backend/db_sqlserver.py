@@ -37,7 +37,7 @@ def buscar_veiculo_por_placa(placa: str):
         
         cursor = conn.cursor(as_dict=True)
         # Usamos %s para pymssql
-        query = "SELECT TOP 1 Placa as placa, DescricaoModelo as modelo, DescricaoFabricante as marca, CodigoVeiculo as frota FROM Veiculos WHERE Placa = %s OR Placa = %s"
+        query = "SELECT TOP 1 Placa as placa, Modelo as modelo, Montadora as marca, CAST(IdVeiculo AS VARCHAR) as frota FROM Veiculos WHERE Placa = %s OR Placa = %s"
         
         cursor.execute(query, (placa_limpa, placa_hifen))
         row = cursor.fetchone()

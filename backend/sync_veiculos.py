@@ -31,11 +31,11 @@ def sync():
         sql_query = """
             SELECT 
                 Placa as placa,
-                DescricaoModelo as modelo,
-                DescricaoFabricante as marca,
-                CodigoVeiculo as frota,
+                Modelo as modelo,
+                Montadora as marca,
+                CAST(IdVeiculo AS VARCHAR) as frota,
                 CASE 
-                    WHEN DescricaoModelo LIKE '%Bi%Truck%' THEN 'bitruck'
+                    WHEN Modelo LIKE '%Bi%Truck%' THEN 'bitruck'
                     ELSE 'simples'
                 END as tipo
             FROM Veiculos
