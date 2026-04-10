@@ -13,6 +13,14 @@
   ],
   "rewrites": [
     {
+      "source": "/gestao-pneus/(.*)",
+      "destination": "backend/main.py"
+    },
+    {
+      "source": "/veiculos/(.*)",
+      "destination": "backend/main.py"
+    },
+    {
       "source": "/api/(.*)",
       "destination": "backend/main.py"
     },
