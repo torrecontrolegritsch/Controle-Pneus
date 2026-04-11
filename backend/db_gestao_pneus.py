@@ -315,6 +315,15 @@ def desativar_veiculo(veiculo_id):
         conn.execute(text("UPDATE gp_veiculos SET ativo=0 WHERE id=:id"), {"id": veiculo_id})
     return True
 
+def criar_veiculo(placa, frota="", modelo="", marca="", tipo="truck", filial_id=None, km_atual=0):
+    payload = {
+        "placa": placa.strip().upper().replace("-",""),
+        "frota": frota.strip(), "modelo": modelo.strip(),
+        "marca": marca.strip(), "tipo": tipo, "filial_id": filial_id, "km_atual": float(km_atual)
+    }
+    res = _api_request("POST", "gp_veiculos", payload=payload)
+    return res[0] if res else {}
+
 # ── PNEUS ──────────────────────────────────────────────────────────────────
 
 def listar_pneus(filial_id=None, status=None, veiculo_id=None):
@@ -330,181 +339,62 @@ def listar_pneus(filial_id=None, status=None, veiculo_id=None):
     return res
 
 def criar_pneu(numero_fogo, marca, medida, filial_id, modelo="", dot="", valor=0.0, vida=1, sulco_atual=0.0, nf="", fornecedor=""):
-    with _e().begin() as conn:
-        conn.execute(text("""
-            INSERT INTO gp_pneus (numero_fogo, marca, modelo, medida, dot, valor, vida, filial_id, sulco_atual, nf, fornecedor)
-            VALUES (:nfog, :ma, :mo, :med, :d, :val, :vi, :fi, :su, :nf, :forn)
-        """), {
-            "nfog": numero_fogo.strip(), "ma": marca.strip(), "mo": modelo.strip(), "med": medida.strip(),
-            "d": dot.strip(), "val": float(valor), "vi": int(vida), "fi": filial_id, "su": float(sulco_atual),
-            "nf": str(nf).strip(), "fornecedor": str(fornecedor).strip()
-        })
-        row = conn.execute(text("SELECT * FROM gp_pneus WHERE id=last_insert_rowid()")).mappings().first()
-        pneu_id = row["id"]
-    _registrar_movimentacao(pneu_id, "entrada_estoque", filial_destino_id=filial_id, observacao="Pneu cadastrado no estoque")
-    return dict(row)
+    payload = {
+        "numero_fogo": numero_fogo.strip().upper(), "marca": marca.strip(),
+        "modelo": modelo.strip(), "medida": medida.strip(), "dot": dot.strip(),
+        "valor": float(valor), "vida": int(vida), "filial_id": filial_id,
+        "sulco_atual": float(sulco_atual), "nf": str(nf).strip(), "fornecedor": str(fornecedor).strip()
+    }
+    res = _api_request("POST", "gp_pneus", payload=payload)
+    return res[0] if res else {}
 
 def atualizar_pneu(pneu_id, **kwargs):
-    allowed = ["numero_fogo", "marca", "modelo", "medida", "dot", "valor", "vida", "sulco_atual", "nf", "fornecedor"]
-    sets, params = [], {"id": pneu_id}
-    for key in allowed:
-        if key in kwargs and kwargs[key] is not None:
-            val = kwargs[key]
-            if key == "numero_fogo": val = str(val).strip().upper()
-            elif isinstance(val, str): val = val.strip()
-            sets.append(f"{key}=:{key}")
-            params[key] = val
-    sets.append("atualizado_em=datetime('now')")
-    with _e().begin() as conn:
-        conn.execute(text(f"UPDATE gp_pneus SET {','.join(sets)} WHERE id=:id"), params)
-        row = conn.execute(text("SELECT * FROM gp_pneus WHERE id=:id"), {"id": pneu_id}).mappings().first()
-    return dict(row) if row else {}
+    res = _api_request("PATCH", "gp_pneus", params={"id": f"eq.{pneu_id}"}, payload=kwargs)
+    return res[0] if res and isinstance(res, list) else {}
 
 def obter_pneu(pneu_id):
-    with _e().connect() as conn:
-        row = conn.execute(text("""SELECT p.*, f.nome as filial_nome, fo.nome as filial_origem_nome, v.placa as veiculo_placa
-                                   FROM gp_pneus p 
-                                   LEFT JOIN gp_filiais f ON p.filial_id=f.id
-                                   LEFT JOIN gp_filiais fo ON p.filial_origem_id=fo.id
-                                   LEFT JOIN gp_veiculos v ON p.veiculo_id=v.id WHERE p.id=:id"""),
-                           {"id": pneu_id}).mappings().first()
-    return dict(row) if row else {}
+    params = {"id": f"eq.{pneu_id}", "select": "*,gp_filiais(nome),gp_veiculos(placa)"}
+    res = _api_request("GET", "gp_pneus", params=params)
+    if res:
+        p = res[0]
+        p["filial_nome"] = p.get("gp_filiais", {}).get("nome", "")
+        p["veiculo_placa"] = p.get("gp_veiculos", {}).get("placa", "")
+        return p
+    return {}
 
 def alocar_pneu(pneu_id, veiculo_id, posicao, km_instalacao=0, observacao=""):
-    with _e().begin() as conn:
-        veiculo = conn.execute(text("SELECT * FROM gp_veiculos WHERE id=:id"), {"id": veiculo_id}).mappings().first()
-        if not veiculo: raise ValueError("Veículo não encontrado")
-        
-        conn.execute(text("""UPDATE gp_pneus SET status='em_uso', veiculo_id=:vid, posicao=:pos,
-                             km_instalacao=:km, filial_id=:fid, recebido=1, atualizado_em=datetime('now') WHERE id=:id"""),
-                     {"id": pneu_id, "vid": veiculo_id, "pos": posicao, "km": km_instalacao, "fid": veiculo["filial_id"]})
-        
-        _registrar_movimentacao(pneu_id, "alocacao", conn=conn, veiculo_id=veiculo_id, posicao=posicao,
-                                km_momento=km_instalacao, filial_destino_id=veiculo["filial_id"],
-                                observacao=observacao or f"Pneu alocado na posição {posicao}")
+    payload = {"status": "em_uso", "veiculo_id": veiculo_id, "posicao": posicao, "km_instalacao": float(km_instalacao)}
+    _api_request("PATCH", "gp_pneus", params={"id": f"eq.{pneu_id}"}, payload=payload)
+    _registrar_movimentacao(pneu_id, "alocacao", veiculo_id=veiculo_id, posicao=posicao, km_momento=km_instalacao, observacao=observacao)
     return obter_pneu(pneu_id)
 
 def remover_pneu(pneu_id, destino="estoque", km_momento=0, observacao="", filial_destino_id=None):
-    with _e().begin() as conn:
-        pneu = conn.execute(text("SELECT * FROM gp_pneus WHERE id=:id"), {"id": pneu_id}).mappings().first()
-        if not pneu: raise ValueError("Pneu não encontrado")
-        
-        new_status = destino if destino in ("descarte", "recapagem") else "estoque"
-        km_inst = pneu["km_instalacao"] or 0
-        km_momento = float(km_momento)
-        km_rodado_etapa = km_momento - km_inst if km_momento > km_inst else 0
-        km_total_novo = (pneu.get("km_total") or 0) + km_rodado_etapa
-        
-        fid = filial_destino_id if filial_destino_id else pneu["filial_id"]
-        
-        conn.execute(text("""UPDATE gp_pneus SET status=:st, veiculo_id=NULL, posicao=NULL, filial_id=:fid, 
-                             km_total=:kmt, recebido=0, atualizado_em=datetime('now') WHERE id=:id"""),
-                     {"id": pneu_id, "st": new_status, "fid": fid, "kmt": km_total_novo})
-        
-        _registrar_movimentacao(pneu_id, "remocao", conn=conn, veiculo_id=pneu["veiculo_id"], posicao=pneu["posicao"],
-                                km_momento=km_momento, filial_origem_id=pneu["filial_id"], filial_destino_id=fid,
-                                observacao=f"Removido com {km_rodado_etapa}km rodados. " + observacao)
+    new_status = destino if destino in ("descarte", "recapagem") else "estoque"
+    payload = {"status": new_status, "veiculo_id": None, "posicao": None}
+    if filial_destino_id: payload["filial_id"] = filial_destino_id
+    _api_request("PATCH", "gp_pneus", params={"id": f"eq.{pneu_id}"}, payload=payload)
+    _registrar_movimentacao(pneu_id, "remocao", km_momento=km_momento, observacao=observacao)
     return obter_pneu(pneu_id)
 
-def transferir_pneu(pneu_id, filial_destino_id, observacao=""):
-    with _e().begin() as conn:
-        pneu = conn.execute(text("SELECT filial_id FROM gp_pneus WHERE id=:id"), {"id": pneu_id}).mappings().first()
-        conn.execute(text("UPDATE gp_pneus SET filial_id=:fid, recebido=0, atualizado_em=datetime('now') WHERE id=:id"),
-                     {"id": pneu_id, "fid": filial_destino_id})
-        _registrar_movimentacao(pneu_id, "transferencia", conn=conn, filial_origem_id=pneu["filial_id"],
-                                filial_destino_id=filial_destino_id, observacao=observacao)
-    return obter_pneu(pneu_id)
-
-def mover_pneu_veiculo(veiculo_id, pos_origem, pos_destino, observacao="", km_momento=0):
-    with _e().begin() as conn:
-        p_orig = conn.execute(text("SELECT id FROM gp_pneus WHERE veiculo_id=:vid AND posicao=:pos"),
-                              {"vid": veiculo_id, "pos": pos_origem}).mappings().first()
-        p_dest = conn.execute(text("SELECT id FROM gp_pneus WHERE veiculo_id=:vid AND posicao=:pos"),
-                              {"vid": veiculo_id, "pos": pos_destino}).mappings().first()
-        
-        if p_orig:
-            conn.execute(text("UPDATE gp_pneus SET posicao=:pos WHERE id=:id"), {"pos": pos_destino, "id": p_orig["id"]})
-            _registrar_movimentacao(p_orig["id"], "rodizio", conn=conn, veiculo_id=veiculo_id, posicao=pos_destino, 
-                                    km_momento=float(km_momento), observacao=f"Rodízio: {pos_origem} -> {pos_destino}")
-        if p_dest:
-            conn.execute(text("UPDATE gp_pneus SET posicao=:pos WHERE id=:id"), {"pos": pos_origem, "id": p_dest["id"]})
-            _registrar_movimentacao(p_dest["id"], "rodizio", conn=conn, veiculo_id=veiculo_id, posicao=pos_origem, 
-                                    km_momento=float(km_momento), observacao=f"Rodízio: {pos_destino} -> {pos_origem}")
-    return True
-
-# ── HISTÓRICO ──────────────────────────────────────────────────────────────
-
-def _registrar_movimentacao(pneu_id, tipo, conn=None, **kw):
-    stmt = text("""INSERT INTO gp_movimentacoes (pneu_id,tipo,filial_origem_id,filial_destino_id,veiculo_id,posicao,km_momento,observacao)
-                   VALUES (:pid,:tp,:fo,:fd,:vid,:pos,:km,:obs)""")
-    params = {"pid": pneu_id, "tp": tipo, "fo": kw.get("filial_origem_id"), "fd": kw.get("filial_destino_id"),
-              "vid": kw.get("veiculo_id"), "pos": kw.get("posicao"), "km": kw.get("km_momento", 0),
-              "obs": kw.get("observacao", "")}
-    if conn: conn.execute(stmt, params)
-    else:
-        with _e().begin() as conn: conn.execute(stmt, params)
-
-def listar_movimentacoes(pneu_id=None, veiculo_id=None, filial_id=None, tipo=None, limit=100):
-    sql = """SELECT m.*, p.numero_fogo, p.marca as pneu_marca, p.medida as pneu_medida,
-                    fo.nome as filial_origem_nome, fd.nome as filial_destino_nome, 
-                    v.placa as veiculo_placa
-             FROM gp_movimentacoes m
-             LEFT JOIN gp_pneus p ON m.pneu_id=p.id
-             LEFT JOIN gp_filiais fo ON m.filial_origem_id=fo.id
-             LEFT JOIN gp_filiais fd ON m.filial_destino_id=fd.id
-             LEFT JOIN gp_veiculos v ON m.veiculo_id=v.id WHERE 1=1"""
-    params = {}
-    if pneu_id: sql += " AND m.pneu_id=:pid"; params["pid"] = pneu_id
-    if veiculo_id: sql += " AND m.veiculo_id=:vid"; params["vid"] = veiculo_id
-    if filial_id: sql += " AND (m.filial_origem_id=:fid OR m.filial_destino_id=:fid)"; params["fid"] = filial_id
-    if tipo: sql += " AND m.tipo=:tp"; params["tp"] = tipo
-    sql += " ORDER BY m.id DESC LIMIT :lim"
-    params["lim"] = limit
-    with _e().connect() as conn:
-        return [dict(r) for r in conn.execute(text(sql), params).mappings().all()]
-
-# ── DASHBOARD KPIs ─────────────────────────────────────────────────────────
-
-def obter_dashboard():
-    # Desativado temporariamente para evitar erros de conexão local
-    return {
-        "total_pneus": 0, "em_estoque": 0, "em_uso": 0,
-        "descartados": 0, "total_veiculos": 0,
-        "valor_estoque": 0, "alertas_rodizio": []
+def _registrar_movimentacao(pneu_id, tipo, **kw):
+    payload = {
+        "pneu_id": pneu_id, "tipo": tipo,
+        "veiculo_id": kw.get("veiculo_id"),
+        "posicao": kw.get("posicao"),
+        "km_momento": float(kw.get("km_momento", 0)),
+        "observacao": kw.get("observacao", "")
     }
+    return _api_request("POST", "gp_movimentacoes", payload=payload)
+
+def listar_movimentacoes(pneu_id=None, veiculo_id=None, limit=50):
+    params = {"select": "*,gp_pneus(numero_fogo)", "order": "id.desc", "limit": str(limit)}
+    if pneu_id: params["pneu_id"] = f"eq.{pneu_id}"
+    if veiculo_id: params["veiculo_id"] = f"eq.{veiculo_id}"
+    res = _api_request("GET", "gp_movimentacoes", params=params)
+    return res if res else []
 
 def confirmar_recebimento(pneu_id):
-    with _e().begin() as conn:
-        conn.execute(text("UPDATE gp_pneus SET recebido=1, atualizado_em=datetime('now') WHERE id=:id"), {"id": pneu_id})
-    return True
-
-# ── RECICLAGEM ─────────────────────────────────────────────────────────────
-
-def enviar_para_recicladora(pneu_id, data_envio, observacao=''):
-    with _e().begin() as conn:
-        pneu = conn.execute(text("SELECT * FROM gp_pneus WHERE id=:id"), {"id": pneu_id}).mappings().first()
-        numero_lote = f"LOTE-{data_envio.replace('-', '')}"
-        lote = conn.execute(text("SELECT id FROM gp_lotes_reciclagem WHERE numero_lote=:n"), {"n": numero_lote}).mappings().first()
-        if not lote:
-            res = conn.execute(text("INSERT INTO gp_lotes_reciclagem (numero_lote, data_envio, filial_id) VALUES (:n, :d, :f)"),
-                             {"n": numero_lote, "d": data_envio, "f": pneu["filial_id"]})
-            lote_id = conn.execute(text("SELECT last_insert_rowid()")).scalar()
-        else: lote_id = lote["id"]
-        conn.execute(text("UPDATE gp_pneus SET status='reciclagem', lote_id=:lid WHERE id=:id"), {"lid": lote_id, "id": pneu_id})
-    return True
-
-def listar_lotes_reciclagem(filial_id=None):
-    sql = "SELECT l.*, f.nome as filial_nome FROM gp_lotes_reciclagem l JOIN gp_filiais f ON l.filial_id=f.id"
-    if filial_id: sql += " WHERE l.filial_id=:fid"
-    with _e().connect() as conn:
-        return [dict(r) for r in conn.execute(text(sql), {"fid": filial_id} if filial_id else {}).mappings().all()]
-
-def atualizar_valor_lote_reciclagem(lote_id, valor_total):
-    with _e().begin() as conn:
-        conn.execute(text("UPDATE gp_lotes_reciclagem SET valor_total=:val, status='finalizado' WHERE id=:id"),
-                     {"val": float(valor_total), "id": lote_id})
-    return True
+    return _api_request("PATCH", "gp_pneus", params={"id": f"eq.{pneu_id}"}, payload={"recebido": 1})
 
 def obter_relatorio_financeiro_reciclagem(mes=None, filial_id=None):
-    # Simplificado para local
     return []
