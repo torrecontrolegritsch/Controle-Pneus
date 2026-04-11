@@ -21,7 +21,14 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-from routers import gestao_pneus
+try:
+    from routers import gestao_pneus
+    print("### ROUTERS CARREGADOS COM SUCESSO ###")
+except Exception as e:
+    print(f"!!! ERRO CRÍTICO AO CARREGAR ROUTERS: {e} !!!")
+    import traceback
+    print(traceback.format_exc())
+    raise e
 
 app = FastAPI(
     title="Gestão de Pneus - Gritsch",
