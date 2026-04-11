@@ -5,6 +5,12 @@ Banco: backend/gestao_pneus.db
 """
 import logging
 import os
+import requests
+import json
+from dotenv import load_dotenv
+# Força a busca do .env na pasta raiz do projeto
+env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.env')
+load_dotenv(dotenv_path=env_path)
 from datetime import datetime
 from typing import Optional
 
@@ -18,9 +24,13 @@ logger = logging.getLogger(__name__)
 def _api_request(method, table, params=None, payload=None):
     try:
         supa_key = os.getenv("SUPABASE_KEY")
-        if not supa_key: return None
+        if not supa_key: 
+            print("!!! ERRO: SUPABASE_KEY não encontrada no .env !!!")
+            return None
         
         api_url = f"https://dpvdjldocvdsdgvmnsvu.supabase.co/rest/v1/{table}"
+        # print(f"DEBUG: {method} {api_url}") # Útil se quiser ver a URL
+        
         headers = {
             "apikey": supa_key,
             "Authorization": f"Bearer {supa_key}",
@@ -29,19 +39,23 @@ def _api_request(method, table, params=None, payload=None):
         }
         
         if method == "GET":
-            response = requests.get(api_url, headers=headers, params=params)
+            response = requests.get(api_url, headers=headers, params=params, timeout=10)
         elif method == "POST":
-            response = requests.post(api_url, headers=headers, data=json.dumps(payload))
+            # print(f"DEBUG Payload: {payload}")
+            response = requests.post(api_url, headers=headers, data=json.dumps(payload), timeout=10)
         elif method == "PATCH":
-            response = requests.patch(api_url, headers=headers, params=params, data=json.dumps(payload))
+            response = requests.patch(api_url, headers=headers, params=params, data=json.dumps(payload), timeout=10)
         
         if response.status_code in [200, 201, 204]:
             return response.json() if response.text else True
         else:
-            logger.error(f"Erro Supabase ({table}): {response.status_code} - {response.text}")
+            err_msg = f"ERRO DIRETO DO SUPABASE ({table}): {response.status_code} - {response.text}"
+            print("\n" + "!"*60)
+            print(err_msg)
+            print("!"*60 + "\n")
             return None
     except Exception as e:
-        logger.error(f"Erro técnico HTTPS ({table}): {e}")
+        print(f"\n!!! ERRO TÉCNICO NA REQUISIÇÃO ({table}): {e} !!!\n")
         return None
 
 _gp_engine = None
@@ -241,6 +255,7 @@ def listar_filiais(apenas_ativas=True):
 def criar_filial(nome, cidade="", estado=""):
     payload = {"nome": nome, "cidade": cidade, "estado": estado}
     res = _api_request("POST", "gp_filiais", payload=payload)
+    if not res: raise Exception("O Supabase recusou o salvamento da Filial. Verifique a chave ou se o nome já existe.")
     return res[0] if res else {}
 
 def atualizar_filial(filial_id, nome, cidade="", estado=""):
@@ -322,6 +337,7 @@ def criar_veiculo(placa, frota="", modelo="", marca="", tipo="truck", filial_id=
         "marca": marca.strip(), "tipo": tipo, "filial_id": filial_id, "km_atual": float(km_atual)
     }
     res = _api_request("POST", "gp_veiculos", payload=payload)
+    if not res: raise Exception("O Supabase recusou o salvamento do Veículo. Verifique se a placa já existe.")
     return res[0] if res else {}
 
 # ── PNEUS ──────────────────────────────────────────────────────────────────
@@ -346,6 +362,7 @@ def criar_pneu(numero_fogo, marca, medida, filial_id, modelo="", dot="", valor=0
         "sulco_atual": float(sulco_atual), "nf": str(nf).strip(), "fornecedor": str(fornecedor).strip()
     }
     res = _api_request("POST", "gp_pneus", payload=payload)
+    if not res: raise Exception("O Supabase recusou o salvamento do Pneu. Verifique se o Nº Fogo já existe.")
     return res[0] if res else {}
 
 def atualizar_pneu(pneu_id, **kwargs):
@@ -386,15 +403,53 @@ def _registrar_movimentacao(pneu_id, tipo, **kw):
     }
     return _api_request("POST", "gp_movimentacoes", payload=payload)
 
-def listar_movimentacoes(pneu_id=None, veiculo_id=None, limit=50):
+def listar_movimentacoes(pneu_id=None, veiculo_id=None, filial_id=None, tipo=None, limit=50):
     params = {"select": "*,gp_pneus(numero_fogo)", "order": "id.desc", "limit": str(limit)}
     if pneu_id: params["pneu_id"] = f"eq.{pneu_id}"
     if veiculo_id: params["veiculo_id"] = f"eq.{veiculo_id}"
+    if filial_id: params["filial_id"] = f"eq.{filial_id}"
+    if tipo: params["tipo"] = f"eq.{tipo}"
     res = _api_request("GET", "gp_movimentacoes", params=params)
     return res if res else []
 
 def confirmar_recebimento(pneu_id):
     return _api_request("PATCH", "gp_pneus", params={"id": f"eq.{pneu_id}"}, payload={"recebido": 1})
 
+def transferir_pneu(pneu_id, filial_destino_id, observacao=""):
+    _api_request("PATCH", "gp_pneus", params={"id": f"eq.{pneu_id}"}, payload={"filial_id": filial_destino_id, "recebido": 0})
+    _registrar_movimentacao(pneu_id, "transferencia", filial_destino_id=filial_destino_id, observacao=observacao)
+    return obter_pneu(pneu_id)
+
+def mover_pneu_veiculo(veiculo_id, pos_origem, pos_destino, observacao="", km_momento=0):
+    # Lógica de rodízio via API
+    res = _api_request("GET", "gp_pneus", params={"veiculo_id": f"eq.{veiculo_id}"})
+    p_orig = next((p for p in res if p["posicao"] == pos_origem), None) if res else None
+    p_dest = next((p for p in res if p["posicao"] == pos_destino), None) if res else None
+    
+    if p_orig:
+        _api_request("PATCH", "gp_pneus", params={"id": f"eq.{p_orig['id']}"}, payload={"posicao": pos_destino})
+        _registrar_movimentacao(p_orig['id'], "rodizio", veiculo_id=veiculo_id, posicao=pos_destino, km_momento=km_momento, observacao=f"Rodizio: {pos_origem}->{pos_destino}")
+    if p_dest:
+        _api_request("PATCH", "gp_pneus", params={"id": f"eq.{p_dest['id']}"}, payload={"posicao": pos_origem})
+        _registrar_movimentacao(p_dest['id'], "rodizio", veiculo_id=veiculo_id, posicao=pos_origem, km_momento=km_momento, observacao=f"Rodizio: {pos_destino}->{pos_origem}")
+    return True
+
+def enviar_para_recicladora(pneu_id, data_envio, observacao=''):
+    payload = {"status": "reciclagem", "data_envio_reciclagem": data_envio, "observacao_reciclagem": observacao}
+    return _api_request("PATCH", "gp_pneus", params={"id": f"eq.{pneu_id}"}, payload=payload)
+
+def listar_lotes_reciclagem(filial_id=None):
+    return [] # Implementação futura se necessário
+
+def atualizar_valor_lote_reciclagem(lote_id, valor_total):
+    return True
+
 def obter_relatorio_financeiro_reciclagem(mes=None, filial_id=None):
     return []
+
+def obter_dashboard():
+    return {
+        "total_pneus": 0, "em_estoque": 0, "em_uso": 0,
+        "descartados": 0, "total_veiculos": 0,
+        "valor_estoque": 0, "alertas_rodizio": []
+    }
