@@ -8,17 +8,24 @@ from typing import Optional
 from fastapi import APIRouter, Query, HTTPException
 from pydantic import BaseModel
 
-from db_gestao_pneus import (
-    ensure_tables,
-    VEHICLE_CONFIGS,
-    listar_filiais, criar_filial, atualizar_filial, desativar_filial,
-    listar_veiculos, criar_veiculo, atualizar_veiculo, obter_veiculo_com_pneus, desativar_veiculo,
-    listar_pneus, criar_pneu, atualizar_pneu, obter_pneu,
-    alocar_pneu, remover_pneu, transferir_pneu, mover_pneu_veiculo,
-    listar_movimentacoes, obter_dashboard, confirmar_recebimento,
-    enviar_para_recicladora, listar_lotes_reciclagem,
-    atualizar_valor_lote_reciclagem, obter_relatorio_financeiro_reciclagem
-)
+try:
+    from backend.db_gestao_pneus import (
+        ensure_tables, VEHICLE_CONFIGS, listar_filiais, criar_filial, atualizar_filial, desativar_filial,
+        listar_veiculos, criar_veiculo, atualizar_veiculo, obter_veiculo_com_pneus, desativar_veiculo,
+        listar_pneus, criar_pneu, atualizar_pneu, obter_pneu, alocar_pneu, remover_pneu, transferir_pneu,
+        mover_pneu_veiculo, listar_movimentacoes, obter_dashboard, confirmar_recebimento,
+        enviar_para_recicladora, listar_lotes_reciclagem, atualizar_valor_lote_reciclagem,
+        obter_relatorio_financeiro_reciclagem
+    )
+except ImportError:
+    from db_gestao_pneus import (
+        ensure_tables, VEHICLE_CONFIGS, listar_filiais, criar_filial, atualizar_filial, desativar_filial,
+        listar_veiculos, criar_veiculo, atualizar_veiculo, obter_veiculo_com_pneus, desativar_veiculo,
+        listar_pneus, criar_pneu, atualizar_pneu, obter_pneu, alocar_pneu, remover_pneu, transferir_pneu,
+        mover_pneu_veiculo, listar_movimentacoes, obter_dashboard, confirmar_recebimento,
+        enviar_para_recicladora, listar_lotes_reciclagem, atualizar_valor_lote_reciclagem,
+        obter_relatorio_financeiro_reciclagem
+    )
 from db_sqlserver import buscar_veiculo_por_placa
 
 logger = logging.getLogger(__name__)

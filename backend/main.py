@@ -5,8 +5,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
-# Garante que o diretório 'backend' esteja no path para a Vercel encontrar os módulos
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+# Adiciona a raiz do projeto ao path para imports funcionarem em qualquer lugar
+root_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if root_path not in sys.path:
+    sys.path.append(root_path)
 
 load_dotenv()
 
@@ -22,7 +24,10 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 try:
-    from routers import gestao_pneus
+    try:
+        from backend.routers import gestao_pneus
+    except ImportError:
+        from routers import gestao_pneus
     print("### ROUTERS CARREGADOS COM SUCESSO ###")
 except Exception as e:
     print(f"!!! ERRO CRÍTICO AO CARREGAR ROUTERS: {e} !!!")
