@@ -10,6 +10,11 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 load_dotenv()
 
+print("\n" + "#"*60)
+print("### INICIANDO GESTÃO DE PNEUS - VERSÃO FIREWALL BYPASS ###")
+print(f"### PORTA: {os.getenv('PORT')} | CORS: {os.getenv('CORS_ORIGINS')} ###")
+print("#"*60 + "\n")
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
@@ -34,11 +39,21 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+from fastapi.staticfiles import StaticFiles
 app.include_router(gestao_pneus.router)
+
+# Monta o frontend (Caminho Absoluto)
+base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+dist_path = os.path.join(base_dir, "frontend", "dist")
+if os.path.exists(dist_path):
+    app.mount("/frontend", StaticFiles(directory=dist_path, html=True), name="frontend")
+else:
+    logger.warning(f"AVISO: Pasta dist não encontrada em {dist_path}")
 
 @app.get("/")
 def home():
-    return {"message": "Gestão de Pneus Online", "version": "1.1.0"}
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url="/frontend/")
 
 if __name__ == "__main__":
     import uvicorn

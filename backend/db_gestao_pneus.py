@@ -24,6 +24,9 @@ logger = logging.getLogger(__name__)
 def _api_request(method, table, params=None, payload=None):
     try:
         supa_key = os.getenv("SUPABASE_KEY")
+        print(f"DEBUG: Lendo .env de: {env_path}")
+        print(f"DEBUG: Chave encontrada? {'Sim (começa com ' + supa_key[:5] + '...)' if supa_key else 'Não (Nula)'}")
+        
         if not supa_key: 
             print("!!! ERRO: SUPABASE_KEY não encontrada no .env !!!")
             return None
@@ -41,7 +44,7 @@ def _api_request(method, table, params=None, payload=None):
         if method == "GET":
             response = requests.get(api_url, headers=headers, params=params, timeout=10)
         elif method == "POST":
-            # print(f"DEBUG Payload: {payload}")
+            print(f"DEBUG Payload: {payload}")
             response = requests.post(api_url, headers=headers, data=json.dumps(payload), timeout=10)
         elif method == "PATCH":
             response = requests.patch(api_url, headers=headers, params=params, data=json.dumps(payload), timeout=10)
@@ -53,10 +56,14 @@ def _api_request(method, table, params=None, payload=None):
             print("\n" + "!"*60)
             print(err_msg)
             print("!"*60 + "\n")
-            return None
+            from fastapi import HTTPException
+            raise HTTPException(status_code=400, detail=err_msg)
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"\n!!! ERRO TÉCNICO NA REQUISIÇÃO ({table}): {e} !!!\n")
-        return None
+        from fastapi import HTTPException
+        raise HTTPException(status_code=500, detail=str(e))
 
 _gp_engine = None
 
