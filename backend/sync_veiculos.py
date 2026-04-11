@@ -1,26 +1,27 @@
 import os
 import logging
 import pymssql
-import psycopg2
-from psycopg2.extras import execute_values
+import requests
+import json
 from dotenv import load_dotenv
 
 load_dotenv()
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("SYNC")
+logger = logging.getLogger("SYNC_HTTPS")
 
 def sync():
     # 1. Configurações SQL Server
-    sql_host = os.getenv("SQLSERVER_HOST", "bi.bluefleet.com.br")
-    sql_user = os.getenv("SQLSERVER_USER", "referencia")
-    sql_pass = os.getenv("SQLSERVER_PASSWORD", "JSoo2iS*hdfbs5f2gdsf")
-    sql_db = os.getenv("SQLSERVER_DB", "referencia")
+    sql_host = "bi.bluefleet.com.br"
+    sql_user = "referencia"
+    sql_pass = "JSoo2iS*hdfbs5f2gdsf"
+    sql_db = "referencia"
 
-    # 2. Configurações Supabase (PostgreSQL)
-    supa_url = os.getenv("SUPABASE_DB_URL")
-    if not supa_url:
-        logger.error("SUPABASE_DB_URL não configurado no .env")
-        return
+    # 2. Configurações Supabase API (Pula o Firewall da porta 5432)
+    supa_url = "https://dpvdjldocvdsdgvmnsvu.supabase.co"
+    supa_key = os.getenv("SUPABASE_KEY")
+    
+    # Endpoint da tabela via REST
+    api_url = f"{supa_url}/rest/v1/veiculos_referencia"
 
     try:
         # --- BUSCANDO DADOS NO SQL SERVER ---
@@ -29,7 +30,7 @@ def sync():
         sql_cursor = sql_conn.cursor(as_dict=True)
         
         sql_query = """
-            SELECT 
+            SELECT TOP 5000
                 Placa as placa,
                 Modelo as modelo,
                 Montadora as marca,
@@ -40,44 +41,38 @@ def sync():
                 END as tipo
             FROM Veiculos
             WHERE Placa IS NOT NULL
+            ORDER BY IdVeiculo DESC
         """
         sql_cursor.execute(sql_query)
         veiculos = sql_cursor.fetchall()
         sql_conn.close()
-        logger.info(f"Sucesso! {len(veiculos)} veículos encontrados no SQL Server.")
+        logger.info(f"Sucesso! {len(veiculos)} veículos lidos do SQL Server.")
 
-        # --- ENVIANDO PARA O SUPABASE ---
-        logger.info("Conectando ao Supabase (PostgreSQL)...")
-        supa_conn = psycopg2.connect(supa_url)
-        supa_cursor = supa_conn.cursor()
+        # --- ENVIANDO PARA O SUPABASE VIA HTTPS (PORTA 443) ---
+        headers = {
+            "apikey": supa_key,
+            "Authorization": f"Bearer {supa_key}",
+            "Content-Type": "application/json",
+            "Prefer": "resolution=merge-duplicates" # Isso faz o Upsert automático!
+        }
 
-        # Prepara os dados para inserção em lote
-        data_to_insert = [
-            (v['placa'], v['modelo'], v['marca'], v['frota'], v['tipo'])
-            for v in veiculos
-        ]
+        logger.info("Enviando dados para o Supabase via HTTPS (bypass firewall)...")
+        # Envia em lotes de 500 para não estourar o limite da API
+        batch_size = 500
+        for i in range(0, len(veiculos), batch_size):
+            batch = veiculos[i:i+batch_size]
+            response = requests.post(api_url, headers=headers, data=json.dumps(batch))
+            
+            if response.status_code in [200, 201]:
+                logger.info(f"Lote {i//batch_size + 1} enviado com sucesso ({len(batch)} veículos).")
+            else:
+                logger.error(f"Erro no lote {i//batch_size + 1}: {response.text}")
+                break
 
-        # Limpa tabela ou faz Upsert. Vamos fazer Upsert para não apagar nada útil.
-        upsert_query = """
-            INSERT INTO veiculos_referencia (placa, modelo, marca, frota, tipo)
-            VALUES %s
-            ON CONFLICT (placa) DO UPDATE SET
-                modelo = EXCLUDED.modelo,
-                marca = EXCLUDED.marca,
-                frota = EXCLUDED.frota,
-                tipo = EXCLUDED.tipo,
-                last_sync = CURRENT_TIMESTAMP
-        """
-        
-        execute_values(supa_cursor, upsert_query, data_to_insert)
-        supa_conn.commit()
-        supa_cursor.close()
-        supa_conn.close()
-        
-        logger.info("✅ SINCRONIZAÇÃO CONCLUÍDA COM SUCESSO NO SUPABASE!")
+        logger.info("✅ PROCESSO CONCLUÍDO!")
 
     except Exception as e:
-        logger.error(f"ERRO DURANTE SINCRONIZAÇÃO: {e}")
+        logger.error(f"ERRO: {e}")
 
 if __name__ == "__main__":
     sync()

@@ -25,11 +25,11 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/gestao-pneus", tags=["gestao-pneus"])
 
-# Garante que as tabelas existam ao importar o módulo
-try:
-    ensure_tables()
-except Exception as e:
-    logger.error(f"Falha ao criar tabelas Gestão Pneus: {e}")
+# Garante que as tabelas existam ao importar o módulo (Desativado para evitar travamento em redes com firewall)
+# try:
+#     ensure_tables()
+# except Exception as e:
+#     logger.error(f"Falha ao criar tabelas Gestão Pneus: {e}")
 
 
 # ── Pydantic Models ────────────────────────────────────────────────────────
