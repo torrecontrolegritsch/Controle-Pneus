@@ -83,7 +83,7 @@ VEHICLE_CONFIGS = {
         "eixos": [
             {"num": 1, "nome": "Eixo 1 - Direção", "tipo": "simples", "posicoes": ["E1_ESQ", "E1_DIR"]},
             {"num": 2, "nome": "Eixo 2 - Direcional", "tipo": "simples", "posicoes": ["E2_ESQ", "E2_DIR"]},
-            {"num": 3, "nome": "Eixo 3 - Tração", "tipo": "duplo", "posicoes": ["E3_ESQ_EXT", "E3_ESQ_INT", "E3_DIR_INT", "E2_DIR_EXT"]},
+            {"num": 3, "nome": "Eixo 3 - Tração", "tipo": "duplo", "posicoes": ["E3_ESQ_EXT", "E3_ESQ_INT", "E3_DIR_INT", "E3_DIR_EXT"]},
             {"num": 4, "nome": "Eixo 4 - Truck", "tipo": "duplo", "posicoes": ["E4_ESQ_EXT", "E4_ESQ_INT", "E4_DIR_INT", "E4_DIR_EXT"]},
         ],
         "estepes": ["ESTEPE_1", "ESTEPE_2"],
@@ -91,7 +91,6 @@ VEHICLE_CONFIGS = {
 }
 
 def ensure_tables():
-    # Agora controlado pelo SQL Editor do Supabase (Bypass)
     pass
 
 # ── FILIAIS ────────────────────────────────────────────────────────────────
@@ -127,15 +126,18 @@ def listar_veiculos(filial_id=None, apenas_ativos=True):
     return res
 
 def criar_veiculo(placa, frota="", modelo="", marca="", tipo="truck", filial_id=None, km_atual=0):
+    f_id = int(filial_id) if filial_id and str(filial_id).isdigit() else None
     payload = {
         "placa": placa.strip().upper().replace("-",""),
-        "frota": frota.strip(), "modelo": modelo.strip(),
-        "marca": marca.strip(), "tipo": tipo, "filial_id": filial_id, "km_atual": float(km_atual)
+        "frota": str(frota).strip(), "modelo": str(modelo).strip(),
+        "marca": str(marca).strip(), "tipo": tipo, "filial_id": f_id, "km_atual": float(km_atual or 0)
     }
     res = _api_request("POST", "gp_veiculos", payload=payload)
-    return res[0] if res else {}
+    return res[0] if res and isinstance(res, list) else (res if res else {})
 
 def atualizar_veiculo(veiculo_id, **kwargs):
+    if "filial_id" in kwargs:
+         kwargs["filial_id"] = int(kwargs["filial_id"]) if kwargs["filial_id"] and str(kwargs["filial_id"]).isdigit() else None
     return _api_request("PATCH", "gp_veiculos", params={"id": f"eq.{veiculo_id}"}, payload=kwargs)
 
 def obter_veiculo_com_pneus(veiculo_id):
@@ -167,15 +169,16 @@ def listar_pneus(filial_id=None, status=None, veiculo_id=None):
     return res
 
 def criar_pneu(numero_fogo, marca, medida, filial_id, modelo="", dot="", valor=0.0, vida=1, sulco_atual=0.0, nf="", fornecedor=""):
+    f_id = int(filial_id) if filial_id and str(filial_id).isdigit() else None
     payload = {
         "numero_fogo": numero_fogo.strip().upper(), "marca": marca.strip(),
         "modelo": modelo.strip(), "medida": medida.strip(), "dot": dot.strip(),
-        "valor": float(valor), "vida": int(vida), "filial_id": filial_id,
+        "valor": float(valor), "vida": int(vida), "filial_id": f_id,
         "sulco_atual": float(sulco_atual), "nf": str(nf).strip(), "fornecedor": str(fornecedor).strip(),
         "status": "estoque"
     }
     res = _api_request("POST", "gp_pneus", payload=payload)
-    return res[0] if res else {}
+    return res[0] if res and isinstance(res, list) else (res if res else {})
 
 def obter_pneu(pneu_id):
     params = {"id": f"eq.{pneu_id}", "select": "*,gp_filiais(nome),gp_veiculos(placa)"}
@@ -187,6 +190,8 @@ def obter_pneu(pneu_id):
     return p
 
 def atualizar_pneu(pneu_id, **kwargs):
+    if "filial_id" in kwargs:
+         kwargs["filial_id"] = int(kwargs["filial_id"]) if kwargs["filial_id"] and str(kwargs["filial_id"]).isdigit() else None
     res = _api_request("PATCH", "gp_pneus", params={"id": f"eq.{pneu_id}"}, payload=kwargs)
     return res[0] if res and isinstance(res, list) else {}
 
@@ -198,19 +203,22 @@ def alocar_pneu(pneu_id, veiculo_id, posicao, km_instalacao=0, observacao=""):
 
 def remover_pneu(pneu_id, destino="estoque", km_momento=0, observacao="", filial_destino_id=None):
     new_status = destino if destino in ("descarte", "recapagem") else "estoque"
+    f_dest_id = int(filial_destino_id) if filial_destino_id and str(filial_destino_id).isdigit() else None
     payload = {"status": new_status, "veiculo_id": None, "posicao": None}
-    if filial_destino_id: payload["filial_id"] = filial_destino_id
+    if f_dest_id: payload["filial_id"] = f_dest_id
     _api_request("PATCH", "gp_pneus", params={"id": f"eq.{pneu_id}"}, payload=payload)
     _registrar_movimentacao(pneu_id, "remocao", km_momento=km_momento, observacao=observacao)
     return obter_pneu(pneu_id)
 
 def _registrar_movimentacao(pneu_id, tipo, **kw):
+    f_id = int(kw.get("filial_id")) if kw.get("filial_id") and str(kw.get("filial_id")).isdigit() else None
     payload = {
         "pneu_id": pneu_id, "tipo": tipo,
         "veiculo_id": kw.get("veiculo_id"),
         "posicao": kw.get("posicao"),
         "km_momento": float(kw.get("km_momento", 0)),
-        "observacao": kw.get("observacao", "")
+        "observacao": kw.get("observacao", ""),
+        "filial_destino_id": f_id
     }
     return _api_request("POST", "gp_movimentacoes", payload=payload)
 
@@ -224,12 +232,13 @@ def confirmar_recebimento(pneu_id):
     return _api_request("PATCH", "gp_pneus", params={"id": f"eq.{pneu_id}"}, payload={"recebido": 1})
 
 def transferir_pneu(pneu_id, filial_destino_id, observacao=""):
-    _api_request("PATCH", "gp_pneus", params={"id": f"eq.{pneu_id}"}, payload={"filial_id": filial_destino_id, "recebido": 0})
-    _registrar_movimentacao(pneu_id, "transferencia", filial_destino_id=filial_destino_id, observacao=observacao)
+    f_dest_id = int(filial_destino_id) if filial_destino_id and str(filial_destino_id).isdigit() else None
+    _api_request("PATCH", "gp_pneus", params={"id": f"eq.{pneu_id}"}, payload={"filial_id": f_dest_id, "recebido": 0})
+    _registrar_movimentacao(pneu_id, "transferencia", filial_id=f_dest_id, observacao=observacao)
     return obter_pneu(pneu_id)
 
 def mover_pneu_veiculo(veiculo_id, pos_origem, pos_destino, observacao="", km_momento=0):
-    return True # Implementar logica de troca se necessario
+    return True
 
 def enviar_para_recicladora(pneu_id, data_envio, observacao=''):
     payload = {"status": "reciclagem", "data_envio_reciclagem": data_envio, "observacao_reciclagem": observacao}
