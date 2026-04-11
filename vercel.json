@@ -2,7 +2,7 @@
   "version": 2,
   "builds": [
     {
-      "src": "backend/main.py",
+      "src": "main.py",
       "use": "@vercel/python"
     },
     {
@@ -14,15 +14,15 @@
   "rewrites": [
     {
       "source": "/gestao-pneus/(.*)",
-      "destination": "backend/main.py"
+      "destination": "main.py"
     },
     {
       "source": "/veiculos/(.*)",
-      "destination": "backend/main.py"
+      "destination": "main.py"
     },
     {
       "source": "/api/(.*)",
-      "destination": "backend/main.py"
+      "destination": "main.py"
     },
     {
       "source": "/(.*)",
