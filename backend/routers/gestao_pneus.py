@@ -325,12 +325,32 @@ def get_relatorio_financeiro_reciclagem(mes: Optional[str] = Query(None), filial
 
 @router.get("/busca-veiculo-sql/{placa}")
 def get_busca_veiculo_sql(placa: str):
-    """Busca dados de um veículo no SQL Server corporativo pela placa."""
+    """Busca dados de um veículo no SQL Server corporativo ou no banco local pela placa."""
     try:
+        # 1. Tenta buscar na referência (Supabase ou SQL Server)
         result = buscar_veiculo_por_placa(placa)
+        
+        # 2. Fallback: Se não encontrou na referência, tenta ver se ele já está cadastrado no sistema
         if not result:
-            raise HTTPException(status_code=404, detail="Veículo não encontrado no SQL Server")
+            placa_limpa = placa.replace("-", "").upper().strip()
+            veiculos_locais = listar_veiculos(apenas_ativos=False)
+            v_existente = next((v for v in veiculos_locais if v['placa'].replace("-","").upper() == placa_limpa), None)
+            if v_existente:
+                result = {
+                    "placa": v_existente['placa'],
+                    "modelo": v_existente['modelo'],
+                    "marca": v_existente['marca'],
+                    "frota": v_existente['frota'],
+                    "tipo": v_existente['tipo']
+                }
+
+        if not result:
+            raise HTTPException(status_code=404, detail="Veículo não encontrado nas bases de referência")
+            
         return result
+    except HTTPException as he:
+        # Re-levanta exceções do FastAPI (como o 404 acima)
+        raise he
     except Exception as e:
-        logger.error(f"Erro ao buscar placa no SQL Server: {e}")
-        raise HTTPException(status_code=500, detail="Erro interno ao consultar banco externo")
+        logger.error(f"Erro ao buscar placa: {e}")
+        raise HTTPException(status_code=500, detail="Erro interno ao consultar banco de veículos")
