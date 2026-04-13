@@ -30,21 +30,32 @@ def _api_request(method, table, params=None, payload=None):
             "apikey": supa_key,
             "Authorization": f"Bearer {supa_key}",
             "Content-Type": "application/json",
-            "Prefer": "return=representation" if method == "POST" else ""
+            "Prefer": "return=representation,resolution=merge-duplicates" if method == "POST" else ""
         }
         
         if method == "GET":
             response = requests.get(api_url, headers=headers, params=params, timeout=10)
         elif method == "POST":
-            response = requests.post(api_url, headers=headers, data=json.dumps(payload), timeout=10)
+            # Converte para lista se não for, para suportar upsert do PostgREST
+            data = payload if isinstance(payload, list) else [payload]
+            response = requests.post(api_url, headers=headers, params=params, data=json.dumps(data), timeout=10)
         elif method == "PATCH":
             response = requests.patch(api_url, headers=headers, params=params, data=json.dumps(payload), timeout=10)
         
         if response.status_code in [200, 201, 204]:
-            return response.json() if response.text else True
+            if not response.text: return True
+            res_json = response.json()
+            # Se for uma lista (comum no PostgREST com return=representation), retorna o primeiro item se esperado
+            return res_json
         else:
             from fastapi import HTTPException
-            raise HTTPException(status_code=400, detail=response.text)
+            error_detail = response.text
+            try:
+                # Tenta extrair mensagem amigável se for JSON
+                err_data = response.json()
+                if 'message' in err_data: error_detail = err_data['message']
+            except: pass
+            raise HTTPException(status_code=response.status_code, detail=error_detail)
     except Exception as e:
         logger.error(f"Erro na requisição ({table}): {e}")
         from fastapi import HTTPException
@@ -132,7 +143,7 @@ def criar_veiculo(placa, frota="", modelo="", marca="", tipo="truck", filial_id=
         "frota": str(frota).strip(), "modelo": str(modelo).strip(),
         "marca": str(marca).strip(), "tipo": tipo, "filial_id": f_id, "km_atual": float(km_atual or 0)
     }
-    res = _api_request("POST", "gp_veiculos", payload=payload)
+    res = _api_request("POST", "gp_veiculos", params={"on_conflict": "placa"}, payload=payload)
     return res[0] if res and isinstance(res, list) else (res if res else {})
 
 def atualizar_veiculo(veiculo_id, **kwargs):
@@ -177,7 +188,7 @@ def criar_pneu(numero_fogo, marca, medida, filial_id, modelo="", dot="", valor=0
         "sulco_atual": float(sulco_atual), "nf": str(nf).strip(), "fornecedor": str(fornecedor).strip(),
         "status": "estoque"
     }
-    res = _api_request("POST", "gp_pneus", payload=payload)
+    res = _api_request("POST", "gp_pneus", params={"on_conflict": "numero_fogo"}, payload=payload)
     return res[0] if res and isinstance(res, list) else (res if res else {})
 
 def obter_pneu(pneu_id):
