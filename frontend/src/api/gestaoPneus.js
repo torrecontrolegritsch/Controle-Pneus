@@ -72,6 +72,17 @@ export const fetchPneuDetail = (id) => get(`${P}/pneus/${id}`)
 export const createPneu = (data) => post(`${P}/pneus`, data)
 export const updatePneu = (id, data) => put(`${P}/pneus/${id}`, data)
 
+// Importação
+export const fetchPneusTemplate = () => `${BASE}${P}/pneus/template`
+export const importPneusCsv = (file) => {
+  const formData = new FormData()
+  formData.append('file', file)
+  return fetch(`${BASE}${P}/pneus/importar`, {
+    method: 'POST',
+    body: formData
+  }).then(res => res.json())
+}
+
 // Operações
 export const alocarPneu = (data) => post(`${P}/alocar`, data)
 export const removerPneu = (data) => post(`${P}/remover`, data)

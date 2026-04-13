@@ -3,9 +3,11 @@ Gestão de Pneus — Endpoints REST.
 Prefixo: /api/gestao-pneus
 """
 import logging
-from typing import Optional
-
-from fastapi import APIRouter, Query, HTTPException
+import csv
+import io
+from typing import Optional, List
+from fastapi import APIRouter, Query, HTTPException, File, UploadFile
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 try:
@@ -15,7 +17,7 @@ try:
         listar_pneus, criar_pneu, atualizar_pneu, obter_pneu, alocar_pneu, remover_pneu, transferir_pneu,
         mover_pneu_veiculo, listar_movimentacoes, obter_dashboard, confirmar_recebimento,
         enviar_para_recicladora, listar_lotes_reciclagem, atualizar_valor_lote_reciclagem,
-        obter_relatorio_financeiro_reciclagem
+        obter_relatorio_financeiro_reciclagem, importar_pneus_lote
     )
 except ImportError:
     from db_gestao_pneus import (
@@ -319,6 +321,50 @@ def post_atualizar_valor_lote(body: dict):
 @router.get("/reciclagem/relatorio-financeiro")
 def get_relatorio_financeiro_reciclagem(mes: Optional[str] = Query(None), filial_id: Optional[int] = Query(None)):
     return obter_relatorio_financeiro_reciclagem(mes=mes, filial_id=filial_id)
+
+@router.get("/pneus/template")
+def get_pneus_template():
+    """Gera um CSV modelo para importação de pneus."""
+    output = io.StringIO()
+    writer = csv.writer(output, delimiter=';')
+    # Header
+    writer.writerow([
+        "numero_fogo", "dot", "marca", "modelo", "medida", 
+        "vida", "valor", "sulco_atual", "fornecedor", "nf", "filial_id"
+    ])
+    # Exemplo
+    writer.writerow([
+        "EX001", "2024", "BRIDGESTONE", "R268", "295/80R22.5", 
+        "1", "2500.00", "16.5", "FORNECEDOR X", "12345", "1"
+    ])
+    
+    output.seek(0)
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=modelo_importacao_pneus.csv"}
+    )
+
+@router.post("/pneus/importar")
+async def post_importar_pneus(file: UploadFile = File(...)):
+    """Recebe um CSV e importa os pneus em massa."""
+    try:
+        content = await file.read()
+        decoded = content.decode('utf-8-sig').splitlines() # handle BOM if present
+        
+        # Detecta separador (pode ser , ou ;)
+        header_line = decoded[0]
+        delimiter = ';' if ';' in header_line else ','
+        
+        reader = csv.DictReader(decoded, delimiter=delimiter)
+        pneus_data = []
+        for row in reader:
+            pneus_data.append(row)
+            
+        return importar_pneus_lote(pneus_data)
+    except Exception as e:
+        logger.error(f"Erro na importação CSV: {e}")
+        raise HTTPException(status_code=400, detail=f"Erro ao processar CSV: {str(e)}")
 
 
 # ── BUSCA EXTERNA (SQL SERVER) ──────────────────────────────────────────────

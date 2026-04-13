@@ -191,6 +191,45 @@ def criar_pneu(numero_fogo, marca, medida, filial_id, modelo="", dot="", valor=0
     res = _api_request("POST", "gp_pneus", params={"on_conflict": "numero_fogo"}, payload=payload)
     return res[0] if res and isinstance(res, list) else (res if res else {})
 
+def importar_pneus_lote(pneus_data):
+    """Importa uma lista de pneus em lote para o Supabase."""
+    if not pneus_data:
+        return {"count": 0}
+    
+    # Normaliza dados e garante tipos
+    pneus_list = []
+    for p in pneus_data:
+        p_norm = {
+            "numero_fogo": str(p.get("numero_fogo", "")).strip().upper(),
+            "marca": str(p.get("marca", "")).strip().upper(),
+            "modelo": str(p.get("modelo", "")).strip().upper(),
+            "medida": str(p.get("medida", "")).strip(),
+            "dot": str(p.get("dot", "")).strip(),
+            "vida": int(p.get("vida", 1) or 1),
+            "valor": float(p.get("valor", 0) or 0),
+            "sulco_atual": float(p.get("sulco_atual", 0) or 0),
+            "fornecedor": str(p.get("fornecedor", "")).strip(),
+            "nf": str(p.get("nf", "")).strip(),
+            "filial_id": int(p.get("filial_id")) if p.get("filial_id") and str(p.get("filial_id")).isdigit() else None,
+            "status": "estoque",
+            "recebido": 1
+        }
+        if p_norm["numero_fogo"] and p_norm["marca"] and p_norm["medida"]:
+            pneus_list.append(p_norm)
+
+    if not pneus_list:
+        return {"count": 0}
+
+    # Divide em lotes de 100 para não estourar payload
+    results = []
+    chunk_size = 100
+    for i in range(0, len(pneus_list), chunk_size):
+        chunk = pneus_list[i:i + chunk_size]
+        res = _api_request("POST", "gp_pneus", params={"on_conflict": "numero_fogo"}, payload=chunk)
+        results.append(res)
+    
+    return {"count": len(pneus_list), "imported": True}
+
 def obter_pneu(pneu_id):
     params = {"id": f"eq.{pneu_id}", "select": "*,gp_filiais(nome),gp_veiculos(placa)"}
     res = _api_request("GET", "gp_pneus", params=params)

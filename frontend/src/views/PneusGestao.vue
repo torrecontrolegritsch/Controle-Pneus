@@ -274,6 +274,15 @@
             <option value="descarte">Descartados</option>
             <option value="recapagem">Em Recapagem</option>
           </select>
+          <button class="btn-secondary" @click="downloadTemplate" style="gap: 6px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Baixar Modelo
+          </button>
+          <button class="btn-secondary" @click="triggerImport" style="gap: 6px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            Importar Estoque
+          </button>
+          <input type="file" ref="fileInput" style="display: none;" accept=".csv" @change="handleFileUpload" />
           <button class="btn-primary" @click="openPneuForm()" style="box-shadow: 0 4px 12px rgba(196,18,48,0.25);">+ Registrar Pneu</button>
         </div>
       </div>
@@ -1079,6 +1088,7 @@ import {
   fetchVehicleConfigs, fetchFiliais, createFilial, updateFilial, deleteFilial,
   fetchVeiculos, fetchVeiculo, createVeiculo, updateVeiculo, deleteVeiculo,
   fetchPneusList, createPneu, updatePneu as updatePneuApi,
+  fetchPneusTemplate, importPneusCsv,
   alocarPneu, removerPneu, transferirPneu,
   fetchMovimentacoes, fetchGPDashboard,
   fetchBuscaVeiculoSql,
@@ -1146,6 +1156,7 @@ const reciclagemCtx = ref(null)
 const valorLoteCtx = ref(null)
 
 // Forms
+const fileInput = ref(null)
 const filialForm = ref({ nome: '', estado: '' })
 const veiculoForm = ref({ placa: '', frota: '', modelo: '', marca: '', tipo: 'truck', filial_id: null })
 const pneuForm = ref({ numero_fogo: '', marca: '', modelo: '', medida: '', dot: '', valor: 0, vida: 1, filial_id: null, sulco_atual: 0 })
@@ -1566,6 +1577,35 @@ async function savePneu() {
     loadPneus()
     refreshDash()
   } catch(e) { showToast(e.message, 'error') }
+}
+
+async function downloadTemplate() {
+  const url = fetchPneusTemplate()
+  const a = document.createElement('a')
+  a.href = url
+  a.download = 'modelo_importacao_pneus.csv'
+  a.click()
+}
+
+function triggerImport() {
+  fileInput.value.click()
+}
+
+async function handleFileUpload(event) {
+  const file = event.target.files[0]
+  if (!file) return
+  
+  try {
+    showToast('Importando pneus... favor aguardar', 'info')
+    const res = await importPneusCsv(file)
+    showToast(`Sucesso! ${res.count} pneus importados.`)
+    loadPneus()
+    refreshDash()
+  } catch(e) {
+    showToast('Erro na importação: ' + e.message, 'error')
+  } finally {
+    event.target.value = '' // limpa input
+  }
 }
 
 // Alocar
