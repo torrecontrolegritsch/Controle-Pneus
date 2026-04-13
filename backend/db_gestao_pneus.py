@@ -255,9 +255,46 @@ def enviar_para_recicladora(pneu_id, data_envio, observacao=''):
     payload = {"status": "reciclagem", "data_envio_reciclagem": data_envio, "observacao_reciclagem": observacao}
     return _api_request("PATCH", "gp_pneus", params={"id": f"eq.{pneu_id}"}, payload=payload)
 
-def listar_lotes_reciclagem(filial_id=None): return []
-def atualizar_valor_lote_reciclagem(lote_id, valor_total): return True
-def obter_relatorio_financeiro_reciclagem(mes=None, filial_id=None): return []
+def listar_lotes_reciclagem(filial_id=None):
+    # Por enquanto retorna vazio pois não temos tabela de lotes, 
+    # mas poderíamos agrupar os pneus em status 'reciclagem'
+    return []
+
+def atualizar_valor_lote_reciclagem(lote_id, valor_total):
+    return True
+
+def obter_relatorio_financeiro_reciclagem(mes=None, filial_id=None):
+    # Busca pneus que estão em reciclagem
+    params = {"status": "eq.reciclagem", "select": "*,gp_filiais(nome)"}
+    if filial_id:
+        params["filial_id"] = f"eq.{filial_id}"
+    
+    pneus = _api_request("GET", "gp_pneus", params=params)
+    if not pneus or not isinstance(pneus, list):
+        return {"resumo_filiais": [], "detalhes": [], "total_geral": 0}
+    
+    # Filtrar por mês se fornecido (YYYY-MM)
+    if mes:
+        pneus = [p for p in pneus if p.get('data_envio_reciclagem') and p['data_envio_reciclagem'].startswith(mes)]
+    
+    resumo = {}
+    total_geral = 0
+    
+    for p in pneus:
+        f_nome = p.get('gp_filiais', {}).get('nome') if p.get('gp_filiais') else 'Sem Filial'
+        valor = float(p.get('valor_arrecadado', 0) or 0)
+        
+        total_geral += valor
+        if f_nome not in resumo:
+            resumo[f_nome] = {"nome": f_nome, "pneus": 0, "total": 0}
+        resumo[f_nome]["pneus"] += 1
+        resumo[f_nome]["total"] += valor
+        
+    return {
+        "resumo_filiais": list(resumo.values()),
+        "detalhes": pneus,
+        "total_geral": total_geral
+    }
 
 def obter_dashboard():
     pneus = listar_pneus()
