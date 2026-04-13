@@ -230,8 +230,11 @@
               </select>
             </td>
             <td>
-              <select class="inline-select" v-model="v.filial_id" @change="saveVeiculoInline(v)">
+              <select class="inline-select" v-model="v.filial_id" @change="saveVeiculoInline(v)" :style="v.filial_id && !filiais.find(f => f.id === v.filial_id) ? 'border-color: var(--red); color: var(--red);' : ''">
                 <option :value="null">— Sem Filial —</option>
+                <option v-if="v.filial_id && !filiais.find(f => f.id === v.filial_id)" :value="v.filial_id">
+                  ⚠️ ID: {{ v.filial_id }} (Inexistente)
+                </option>
                 <option v-for="f in filiais" :key="f.id" :value="f.id">{{ f.nome }}</option>
               </select>
             </td>
@@ -242,6 +245,7 @@
             </td>
             <td class="td-actions">
               <button class="btn-sm" @click="openVeiculoForm(v)">Editar</button>
+              <button class="btn-sm btn-danger" @click="removeVeiculo(v)">Excluir</button>
             </td>
           </tr>
         </tbody>
@@ -1073,7 +1077,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import {
   fetchVehicleConfigs, fetchFiliais, createFilial, updateFilial, deleteFilial,
-  fetchVeiculos, fetchVeiculo, createVeiculo, updateVeiculo,
+  fetchVeiculos, fetchVeiculo, createVeiculo, updateVeiculo, deleteVeiculo,
   fetchPneusList, createPneu, updatePneu as updatePneuApi,
   alocarPneu, removerPneu, transferirPneu,
   fetchMovimentacoes, fetchGPDashboard,
@@ -1475,11 +1479,22 @@ async function saveVeiculo() {
     refreshDash()
   } catch(e) { showToast(e.message, 'error') }
 }
+async function removeVeiculo(v) {
+  if (!confirm(`Deseja realmente EXCLUIR o veículo ${v.placa}? Esta ação não pode ser desfeita.`)) return
+  try {
+    await deleteVeiculo(v.id)
+    showToast('Veículo excluído com sucesso!')
+    loadVeiculos()
+    refreshDash()
+  } catch(e) { showToast(e.message, 'error') }
+}
+
 async function saveVeiculoInline(v) {
   try {
     await updateVeiculo(v.id, { placa: v.placa, frota: v.frota, modelo: v.modelo, marca: v.marca, tipo: v.tipo, filial_id: v.filial_id })
     showToast('Veículo salvo com sucesso!')
     loadVeiculos() // Recarrega para obter contagens atualizadas
+    refreshDash()
   } catch(e) {
     showToast(e.message, 'error')
     loadVeiculos() // Reverte
