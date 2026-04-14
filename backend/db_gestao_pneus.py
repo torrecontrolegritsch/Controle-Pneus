@@ -355,11 +355,26 @@ def _registrar_movimentacao(pneu_id, tipo, **kw):
     }
     return _api_request("POST", "gp_movimentacoes", payload=payload)
 
-def listar_movimentacoes(pneu_id=None, veiculo_id=None, filial_id=None, tipo=None, limit=50):
-    params = {"select": "*,gp_pneus(numero_fogo)", "order": "id.desc", "limit": str(limit)}
+def listar_movimentacoes(pneu_id=None, veiculo_id=None, filial_id=None, tipo=None, limit=100):
+    params = {"select": "*,gp_pneus(numero_fogo),gp_veiculos(placa)", "order": "id.desc", "limit": str(limit)}
     if pneu_id: params["pneu_id"] = f"eq.{pneu_id}"
+    if veiculo_id: params["veiculo_id"] = f"eq.{veiculo_id}"
+    if filial_id: params["filial_id"] = f"eq.{filial_id}"
+    if tipo: params["tipo"] = f"eq.{tipo}"
+    
     res = _api_request("GET", "gp_movimentacoes", params=params)
-    return res if res else []
+    if not isinstance(res, list): return []
+    
+    for r in res:
+        # Achata numero_fogo
+        pneu_obj = r.get("gp_pneus")
+        r["numero_fogo"] = pneu_obj.get("numero_fogo", "—") if isinstance(pneu_obj, dict) else "—"
+        
+        # Achata veiculo_placa
+        veiculo_obj = r.get("gp_veiculos")
+        r["veiculo_placa"] = veiculo_obj.get("placa", "") if isinstance(veiculo_obj, dict) else ""
+        
+    return res
 
 def confirmar_recebimento(pneu_id):
     return _api_request("PATCH", "gp_pneus", params={"id": f"eq.{pneu_id}"}, payload={"recebido": 1})

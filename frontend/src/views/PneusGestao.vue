@@ -493,8 +493,9 @@
       <div class="timeline-container" v-if="filteredMovs.length">
         <div v-for="m in filteredMovs" :key="m.id" class="timeline-item">
           <div class="tl-date">
-            <span class="tl-day">{{ new Date(m.criado_em).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) }}</span>
-            <span class="tl-time">{{ new Date(m.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', hour12: false }) }}</span>
+            <span class="tl-day" v-if="m.data_hora">{{ new Date(m.data_hora).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) }}</span>
+            <span class="tl-time" v-if="m.data_hora">{{ new Date(m.data_hora).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', hour12: false }) }}</span>
+            <span class="tl-day" v-else>—</span>
           </div>
           
           <div class="tl-icon-box" :class="movClass(m.tipo)" v-html="movIcon(m.tipo)"></div>
