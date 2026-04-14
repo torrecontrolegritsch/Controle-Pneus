@@ -450,7 +450,10 @@
               </div>
               <div class="s-card-actions" style="display: flex; gap: 8px; align-items: center;">
                 <span class="badge badge-green">Validado</span>
-                <button class="btn-recicladora" @click="openReciclagemModal(p)" title="Enviar para Recicladora">♻️ Enviar</button>
+                <button class="btn-recicladora" @click="openReciclagemModal(p)" title="Enviar para Recicladora">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px; vertical-align: middle;"><path d="M12 2v4"></path><path d="m16.2 4.2 2.8 2.8"></path><path d="M12 18v4"></path><path d="m4.9 19.1 2.8-2.8"></path><path d="M2 12h4"></path><path d="m4.2 16.2 2.8-2.8"></path><path d="M18 12h4"></path><path d="m19.1 4.9-2.8 2.8"></path></svg>
+                  Enviar
+                </button>
               </div>
             </div>
             <div v-if="!pneusSucataConfirmados.length" class="empty-sucata">Nenhuma sucata processada</div>
@@ -475,14 +478,14 @@
 
           <select v-model="filtroTipoMov" @change="loadMovs" class="filter-select">
             <option value="">Todos os tipos</option>
-            <option value="entrada_estoque">📥 Entrada Estoque</option>
-            <option value="alocacao">🚛 Alocação (Vaga)</option>
-            <option value="remocao">🔧 Remoção (Retirada)</option>
-            <option value="descarte">🗑️ Descarte</option>
-            <option value="recebimento_sucata">✅ Confirmação Sucata</option>
-            <option value="transferencia">🔄 Transferência</option>
-            <option value="recapagem">♻️ Recapagem</option>
-            <option value="rodizio">🔄 Rodízio / Troca</option>
+            <option value="entrada_estoque">Entrada Estoque</option>
+            <option value="alocacao">Alocação</option>
+            <option value="remocao">Remoção</option>
+            <option value="descarte">Descarte</option>
+            <option value="recebimento_sucata">Confirmação Sucata</option>
+            <option value="transferencia">Transferência</option>
+            <option value="recapagem">Recapagem</option>
+            <option value="rodizio">Rodízio / Troca</option>
           </select>
         </div>
       </div>
@@ -494,9 +497,7 @@
             <span class="tl-time">{{ new Date(m.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', hour12: false }) }}</span>
           </div>
           
-          <div class="tl-icon-box" :class="movClass(m.tipo)">
-            {{ movIcon(m.tipo) }}
-          </div>
+          <div class="tl-icon-box" :class="movClass(m.tipo)" v-html="movIcon(m.tipo)"></div>
 
           <div class="tl-content">
             <div class="tl-header">
@@ -507,20 +508,31 @@
             <div class="tl-details">
               <div v-if="m.veiculo_placa" class="tl-detail-item">
                 <span class="tl-label">Veículo</span>
-                <span class="tl-val">🚛 {{ m.veiculo_placa }}</span>
+                <span class="tl-val">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px; vertical-align: middle;"><path d="M10 17h4V5H2v12h3"/><path d="M20 17h2v-9h-4V5h-4v12h3"/><path d="M10 9h4"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>
+                  {{ m.veiculo_placa }}
+                </span>
               </div>
               <div v-if="m.posicao" class="tl-detail-item">
                 <span class="tl-label">Posição</span>
-                <span class="tl-val">📍 {{ posLabel(m.posicao, m.veiculo_tipo) }}</span>
+                <span class="tl-val">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px; vertical-align: middle;"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                  {{ posLabel(m.posicao, m.veiculo_tipo) }}
+                </span>
               </div>
               <div v-if="m.km_momento" class="tl-detail-item">
                 <span class="tl-label">KM Momento</span>
-                <span class="tl-val">🛣️ {{ fmtN(m.km_momento) }} km</span>
+                <span class="tl-val">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px; vertical-align: middle;"><path d="m21 16-4 4-4-4"></path><path d="M17 20V4"></path><path d="m3 8 4-4 4 4"></path><path d="M7 4v16"></path></svg>
+                  {{ fmtN(m.km_momento) }} km
+                </span>
               </div>
             </div>
 
             <div v-if="m.observacao" class="tl-obs">
-              <span class="obs-icon">💬</span>
+              <span class="obs-icon">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+              </span>
               {{ m.observacao }}
             </div>
           </div>
@@ -537,7 +549,7 @@
     <section v-if="tab === 'recicladora'" class="gp-section">
       <div class="sec-toolbar">
         <div class="toolbar-left">
-          <h2>♻️ Lotes de Reciclagem</h2>
+          <h2>Lotes de Reciclagem</h2>
           <p class="sec-subtitle">Acompanhamento de pneus enviados para descarte/compra</p>
         </div>
       </div>
@@ -564,10 +576,10 @@
                 <span class="val">{{ l.valor_pneu.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) }}</span>
               </div>
                <button class="btn-lote-valor" @click="openValorLoteModal(l)" style="margin-right: 8px;">
-                {{ l.valor_total > 0 ? '✏️ Editar Valor' : '💰 Informar Valor' }}
+                {{ l.valor_total > 0 ? 'Editar Valor' : 'Informar Valor' }}
               </button>
               <button class="btn-lote-valor" @click="imprimirLote(l)" style="background: #f8fafc; border-color: #cbd5e1;">
-                🖨️ Relatório
+                Relatório
               </button>
             </div>
           </div>
