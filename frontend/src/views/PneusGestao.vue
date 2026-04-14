@@ -1570,21 +1570,40 @@ function fillModelo() {
 
 async function savePneu() {
   try {
-    if (editingPneu.value) await updatePneuApi(editingPneu.value.id, pneuForm.value)
-    else await createPneu(pneuForm.value)
+    // pneuForm.value contains the data
+    if (editingPneu.value) {
+      await updatePneu(editingPneu.value.id, pneuForm.value)
+    } else {
+      await createPneu(pneuForm.value)
+    }
     showPneuModal.value = false
     showToast(editingPneu.value ? 'Pneu atualizado!' : 'Pneu cadastrado!')
     loadPneus()
     refreshDash()
-  } catch(e) { showToast(e.message, 'error') }
+  } catch (e) {
+    showToast(e.message || 'Erro ao salvar pneu', 'error')
+  }
 }
 
 async function downloadTemplate() {
-  const url = fetchPneusTemplate()
-  const a = document.createElement('a')
-  a.href = url
-  a.download = 'modelo_importacao_pneus.csv'
-  a.click()
+  try {
+    const url = fetchPneusTemplate()
+    const response = await fetch(url)
+    if (!response.ok) throw new Error('Falha ao baixar modelo do servidor')
+    
+    const blob = await response.blob()
+    const downloadUrl = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = downloadUrl
+    a.download = 'modelo_importacao_pneus.csv'
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    window.URL.revokeObjectURL(downloadUrl)
+  } catch (error) {
+    console.error(error)
+    alert('Erro ao baixar modelo: ' + error.message)
+  }
 }
 
 function triggerImport() {
@@ -1594,17 +1613,25 @@ function triggerImport() {
 async function handleFileUpload(event) {
   const file = event.target.files[0]
   if (!file) return
-  
+
+  const formData = new FormData()
+  formData.append('file', file)
+
   try {
     showToast('Importando pneus... favor aguardar', 'info')
-    const res = await importPneusCsv(file)
-    showToast(`Sucesso! ${res.count} pneus importados.`)
-    loadPneus()
-    refreshDash()
-  } catch(e) {
-    showToast('Erro na importação: ' + e.message, 'error')
+    const data = await importPneusCsv(formData)
+    if (data.error) {
+       alert('Erro na Planilha: ' + data.error)
+    } else {
+       alert(`Sucesso! ${data.count} pneus foram importados para o estoque.`)
+       loadPneus()
+       refreshDash()
+    }
+  } catch (error) {
+    console.error(error)
+    alert('Erro ao importar: ' + (error.response?.data?.detail || error.message))
   } finally {
-    event.target.value = '' // limpa input
+    event.target.value = '' // Limpa o input
   }
 }
 
