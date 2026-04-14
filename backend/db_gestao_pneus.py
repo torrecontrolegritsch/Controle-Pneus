@@ -227,6 +227,15 @@ def importar_pneus_lote(pneus_data):
                 return norm_row[syn]
         return None
 
+    def safe_float(val):
+        if val is None or val == "": return 0.0
+        try:
+            # Converte para string e troca vírgula por ponto
+            s_val = str(val).replace(',', '.')
+            return float(s_val)
+        except:
+            return 0.0
+
     pneus_list = []
     for p_raw in pneus_data:
         f_name = find_val(p_raw, "filial")
@@ -239,8 +248,8 @@ def importar_pneus_lote(pneus_data):
             "medida": str(find_val(p_raw, "medida") or "").strip(),
             "dot": str(find_val(p_raw, "dot") or "").strip(),
             "vida": int(find_val(p_raw, "vida") or 1),
-            "valor": float(find_val(p_raw, "valor") or 0),
-            "sulco_atual": float(find_val(p_raw, "sulco_atual") or 0),
+            "valor": safe_float(find_val(p_raw, "valor")),
+            "sulco_atual": safe_float(find_val(p_raw, "sulco_atual")),
             "fornecedor": str(find_val(p_raw, "fornecedor") or "").strip(),
             "nf": str(find_val(p_raw, "nf") or "").strip(),
             "filial_id": f_id,
