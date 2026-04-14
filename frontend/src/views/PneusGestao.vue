@@ -1,36 +1,67 @@
-<template>
-  <div class="gp-page">
-    <header class="gp-header">
-      <div class="header-branding">
-        <img src="/logo.jpg" alt="Logo" class="header-logo" />
-        <h1>Gestão de Pneus</h1>
+  <div class="app-layout">
+    <!-- SIDEBAR NAV -->
+    <aside class="sidebar">
+      <div class="sidebar-top">
+        <img src="/logo.jpg" alt="Logo" class="sidebar-logo" />
+        <h2 class="sidebar-title">Controle Pneu</h2>
       </div>
-      
-      <div class="user-profile" v-if="user">
-        <div class="user-info">
-          <span class="user-name">{{ user.email }}</span>
-          <span class="user-role">Administrador</span>
+
+      <nav class="sidebar-menu">
+        <button 
+          v-for="t in tabs" 
+          :key="t.id" 
+          class="menu-item" 
+          :class="{ active: tab === t.id }" 
+          @click="tab = t.id"
+        >
+          <span class="menu-icon">{{ t.icon }}</span>
+          <span class="menu-label">{{ t.label }}</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-block" v-if="user">
+          <div class="avatar">👤</div>
+          <div class="u-info">
+            <span class="u-name">{{ user.email.split('@')[0] }}</span>
+            <span class="u-tag">Administrador</span>
+          </div>
+          <button class="mini-logout" @click="$emit('logout')" title="Sair">👋</button>
         </div>
-        <button class="logout-btn" @click="$emit('logout')">Sair 👋</button>
       </div>
+    </aside>
 
-      <div class="gp-kpis" v-if="dash">
-        <div class="kpi-card"><span class="kpi-val">{{ dash.total_pneus }}</span><span class="kpi-lbl">Total Pneus</span></div>
-        <div class="kpi-card kpi-green"><span class="kpi-val">{{ dash.em_estoque }}</span><span class="kpi-lbl">Em Estoque</span></div>
-        <div class="kpi-card kpi-blue"><span class="kpi-val">{{ dash.em_uso }}</span><span class="kpi-lbl">Em Uso</span></div>
-        <div class="kpi-card kpi-red"><span class="kpi-val">{{ dash.descartados }}</span><span class="kpi-lbl">Descartados</span></div>
-        <div class="kpi-card kpi-yellow"><span class="kpi-val">R$ {{ fmtN(dash.valor_estoque) }}</span><span class="kpi-lbl">Valor Estoque</span></div>
-      </div>
-    </header>
+    <!-- CONTENT AREA -->
+    <main class="main-content">
+      <header class="content-header">
+        <div class="header-info">
+          <h1>{{ currentTabLabel }}</h1>
+          <p class="header-sub">Gestão centralizada e inteligente de frota</p>
+        </div>
 
-
-
-    <!-- TABS -->
-    <nav class="gp-tabs">
-      <button v-for="t in tabs" :key="t.id" class="gp-tab" :class="{ active: tab === t.id }" @click="tab = t.id">
-        {{ t.label }}
-      </button>
-    </nav>
+        <div class="header-kpis" v-if="dash">
+          <div class="kpi-box">
+             <span class="kpi-n">{{ dash.total_pneus }}</span>
+             <span class="kpi-t">Total</span>
+          </div>
+          <div class="kpi-box kpi-blue">
+             <span class="kpi-n">{{ dash.em_uso }}</span>
+             <span class="kpi-t">Em Uso</span>
+          </div>
+          <div class="kpi-box kpi-green">
+             <span class="kpi-n">{{ dash.em_estoque }}</span>
+             <span class="kpi-t">Estoque</span>
+          </div>
+          <div class="kpi-box kpi-red">
+             <span class="kpi-n">{{ dash.descartados }}</span>
+             <span class="kpi-t">Descarte</span>
+          </div>
+          <div class="kpi-box kpi-gold">
+             <span class="kpi-n">R$ {{ fmtN(dash.valor_estoque) }}</span>
+             <span class="kpi-t">Patrimônio</span>
+          </div>
+        </div>
+      </header>
 
     <!-- TAB: ALOCAÇÕES (NOVA) -->
     <section v-if="tab === 'alocacoes'" class="gp-section alocacao-layout">
@@ -1109,15 +1140,17 @@ import {
 } from '../api/gestaoPneus.js'
 
 const tabs = [
-  { id: 'alocacoes', label: 'Alocações' },
-  { id: 'veiculos', label: 'Veículos' },
-  { id: 'estoque', label: 'Estoque' },
-  { id: 'sucata', label: 'Sucata' },
-  { id: 'recicladora', label: 'Recicladora' },
-  { id: 'financeiro', label: 'Financeiro' },
-  { id: 'filiais', label: 'Filiais' },
-  { id: 'historico', label: 'Histórico' },
+  { id: 'alocacoes', label: 'Alocações', icon: '🚛' },
+  { id: 'veiculos', label: 'Frota', icon: '📦' },
+  { id: 'estoque', label: 'Estoque', icon: '🏷️' },
+  { id: 'sucata', label: 'Sucata', icon: '♻️' },
+  { id: 'recicladora', label: 'Reciclagem', icon: '🏭' },
+  { id: 'financeiro', label: 'Financeiro', icon: '💰' },
+  { id: 'filiais', label: 'Unidades', icon: '🏢' },
+  { id: 'historico', label: 'Histórico', icon: '📜' }
 ]
+
+const currentTabLabel = computed(() => tabs.find(t => t.id === tab.value)?.label || '')
 const tab = ref('alocacoes')
 const toast = ref(null)
 const dash = ref(null)
@@ -1835,66 +1868,218 @@ onMounted(loadAll)
 </script>
 
 <style scoped>
-.gp-page { padding: 28px 32px; width: 100%; max-width: none; }
-.gp-header { 
-  display: flex; 
-  align-items: center; 
-  justify-content: space-between; 
+.app-layout {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  background: #f1f5f9;
+  overflow: hidden;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+/* SIDEBAR */
+.sidebar {
+  width: 260px;
+  background: #1e293b;
+  display: flex;
+  flex-direction: column;
+  padding: 24px 16px;
+  color: #f8fafc;
+  box-shadow: 4px 0 10px rgba(0,0,0,0.1);
+  z-index: 100;
+}
+
+.sidebar-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 40px;
+  padding: 0 8px;
+}
+
+.sidebar-logo {
+  height: 36px;
+  width: auto;
+  border-radius: 6px;
+}
+
+.sidebar-title {
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  margin: 0;
+  color: #fff;
+}
+
+.sidebar-menu {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border: none;
+  background: none;
+  border-radius: 12px;
+  color: #94a3b8;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: left;
+}
+
+.menu-item:hover {
+  background: rgba(255,255,255,0.05);
+  color: #fff;
+}
+
+.menu-item.active {
+  background: #3b82f6;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+.menu-icon {
+  font-size: 18px;
+}
+
+.sidebar-footer {
+  padding-top: 20px;
+  border-top: 1px solid rgba(255,255,255,0.1);
+}
+
+.user-block {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  background: rgba(255,255,255,0.03);
+  border-radius: 12px;
+}
+
+.avatar {
+  width: 36px;
+  height: 36px;
+  background: #334155;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+
+.u-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.u-name {
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.u-tag {
+  font-size: 10px;
+  color: #64748b;
+  text-transform: uppercase;
+}
+
+.mini-logout {
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+
+.mini-logout:hover {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+/* MAIN CONTENT */
+.main-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 32px 40px;
+  position: relative;
+}
+
+.content-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
   margin-bottom: 32px;
 }
-.header-branding { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
-.header-logo { height: 48px; width: auto; border-radius: 8px; }
-.gp-header h1 { font-size: 24px; font-weight: 800; color: var(--text); margin: 0; letter-spacing: -0.5px; }
 
-.user-profile { 
-  display: flex; 
-  align-items: center; 
-  gap: 20px; 
-  padding: 10px 20px; 
-  background: #fff; 
-  border-radius: 16px; 
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow-sm);
+.header-info h1 {
+  font-size: 28px;
+  font-weight: 800;
+  color: #1e293b;
+  margin: 0;
+  letter-spacing: -1px;
 }
-.user-info { display: flex; flex-direction: column; text-align: right; }
-.user-name { font-weight: 700; color: var(--text); font-size: 14px; }
-.user-role { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; font-weight: 600; }
-.logout-btn { 
-  padding: 8px 16px; 
-  background: #fff5f5; 
-  color: #c53030; 
-  border: 1px solid #feb2b2; 
-  border-radius: 10px; 
-  font-size: 13px;
-  font-weight: 700; 
-  cursor: pointer; 
-  transition: all 0.2s; 
+
+.header-sub {
+  color: #64748b;
+  font-size: 14px;
+  margin: 4px 0 0 0;
 }
-.logout-btn:hover { background: #fff1f2; transform: translateY(-1px); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
 
+.header-kpis {
+  display: flex;
+  gap: 16px;
+}
 
+.kpi-box {
+  background: #fff;
+  padding: 12px 20px;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  min-width: 110px;
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+}
 
-/* KPI Cards */
-.gp-kpis { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 32px; }
-.kpi-card { background: #fff; border: 1px solid var(--border); border-radius: 16px; padding: 20px 24px; min-width: 160px; flex: 1; display: flex; flex-direction: column; gap: 6px; box-shadow: var(--shadow-sm); transition: transform 0.2s ease, box-shadow 0.2s ease; }
-.kpi-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
-.kpi-val { font-size: 26px; font-weight: 800; color: var(--text); line-height: 1.1; letter-spacing: -0.02em; }
-.kpi-lbl { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text3); }
-.kpi-green .kpi-val { color: var(--green); }
-.kpi-blue .kpi-val { color: var(--blue); }
-.kpi-red .kpi-val { color: var(--red); }
-.kpi-yellow .kpi-val { color: var(--yellow); }
+.kpi-n {
+  font-size: 20px;
+  font-weight: 800;
+  color: #1e293b;
+}
 
+.kpi-t {
+  font-size: 10px;
+  text-transform: uppercase;
+  color: #94a3b8;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
 
+.kpi-blue .kpi-n { color: #3b82f6; }
+.kpi-green .kpi-n { color: #10b981; }
+.kpi-red .kpi-n { color: #ef4444; }
+.kpi-gold .kpi-n { color: #f59e0b; }
 
-/* Tabs */
-.gp-tabs { display: flex; gap: 4px; background: #fff; border-radius: 12px; padding: 6px; border: 1px solid var(--border); margin-bottom: 24px; width: fit-content; box-shadow: var(--shadow-sm); }
-.gp-tab { padding: 8px 20px; border: none; background: none; border-radius: 8px; font-size: 13px; font-weight: 600; color: var(--text2); cursor: pointer; transition: all 0.2s; }
-.gp-tab:hover { background: var(--s3); color: var(--text); }
-.gp-tab.active { background: var(--brand); color: #fff; box-shadow: var(--shadow-sm); }
-
-/* Section */
-.gp-section { background: #fff; border: 1px solid var(--border); border-radius: 20px; padding: 32px; box-shadow: var(--shadow-sm); transition: box-shadow 0.2s; }
+.gp-section {
+  background: #fff;
+  border-radius: 24px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05);
+  padding: 24px;
+}
 .gp-section:hover { box-shadow: var(--shadow-md); }
 .sec-toolbar { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
 .sec-toolbar h2 { font-size: 16px; font-weight: 700; margin-right: auto; }
