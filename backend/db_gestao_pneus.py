@@ -194,7 +194,7 @@ def criar_pneu(numero_fogo, marca, medida, filial_id, modelo="", dot="", valor=0
 def importar_pneus_lote(pneus_data):
     """Importa uma lista de pneus em lote para o Supabase."""
     if not pneus_data:
-        return {"count": 0}
+        return {"count": 0, "message": "Nenhum dado recebido"}
     
     # Busca filiais para converter Nome em ID
     filiais = listar_filiais()
@@ -206,11 +206,15 @@ def importar_pneus_lote(pneus_data):
 
     # Normaliza dados e garante tipos
     pneus_list = []
-    for p in pneus_data:
-        # Tenta pegar por 'filial' (nome) ou 'filial_id'
+    for p_raw in pneus_data:
+        # Normaliza chaves (tira espaços e deixa minúsculo)
+        p = {str(k).strip().lower(): v for k, v in p_raw.items()}
+        
+        # Busca f_id (tentando 'filial' ou 'filial_id')
         f_id = get_filial_id(p.get("filial"))
         if not f_id and p.get("filial_id"):
-            f_id = int(p.get("filial_id")) if str(p.get("filial_id")).isdigit() else None
+            val_f = str(p.get("filial_id")).strip()
+            f_id = int(val_f) if val_f.isdigit() else None
 
         p_norm = {
             "numero_fogo": str(p.get("numero_fogo", "")).strip().upper(),
@@ -227,19 +231,19 @@ def importar_pneus_lote(pneus_data):
             "status": "estoque",
             "recebido": 1
         }
+        
+    # Só adiciona se tiver os campos mínimos
         if p_norm["numero_fogo"] and p_norm["marca"] and p_norm["medida"]:
             pneus_list.append(p_norm)
-
+    
     if not pneus_list:
-        return {"count": 0}
+        return {"count": 0, "error": "Nenhum pneu válido encontrado. Verifique se as colunas estão corretas (numero_fogo, marca, medida, etc)."}
 
     # Divide em lotes de 100 para não estourar payload
-    results = []
     chunk_size = 100
     for i in range(0, len(pneus_list), chunk_size):
         chunk = pneus_list[i:i + chunk_size]
-        res = _api_request("POST", "gp_pneus", params={"on_conflict": "numero_fogo"}, payload=chunk)
-        results.append(res)
+        _api_request("POST", "gp_pneus", params={"on_conflict": "numero_fogo"}, payload=chunk)
     
     return {"count": len(pneus_list), "imported": True}
 
