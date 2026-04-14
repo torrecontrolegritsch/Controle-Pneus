@@ -1,3 +1,4 @@
+<template>
   <div class="app-layout">
     <!-- SIDEBAR NAV -->
     <aside class="sidebar">
@@ -1121,8 +1122,8 @@
     </div>
 
 
-    <div v-if="toast" class="toast" :class="toast.type">{{ toast.msg }}</div>
-  </div>
+      </main>
+    </div>
 </template>
 
 <script setup>
@@ -1879,36 +1880,40 @@ onMounted(loadAll)
 
 /* SIDEBAR */
 .sidebar {
-  width: 260px;
-  background: #1e293b;
+  width: 270px;
+  background: #0f172a;
   display: flex;
   flex-direction: column;
-  padding: 24px 16px;
+  padding: 30px 20px;
   color: #f8fafc;
-  box-shadow: 4px 0 10px rgba(0,0,0,0.1);
+  box-shadow: 4px 0 20px rgba(0,0,0,0.15);
   z-index: 100;
 }
 
 .sidebar-top {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 40px;
-  padding: 0 8px;
+  gap: 14px;
+  margin-bottom: 50px;
+  padding: 0 10px;
 }
 
 .sidebar-logo {
-  height: 36px;
+  height: 42px;
   width: auto;
-  border-radius: 6px;
+  border-radius: 10px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.2);
 }
 
 .sidebar-title {
-  font-size: 18px;
-  font-weight: 800;
-  letter-spacing: -0.5px;
+  font-size: 20px;
+  font-weight: 900;
+  letter-spacing: -0.7px;
   margin: 0;
   color: #fff;
+  background: linear-gradient(135deg, #fff 0%, #94a3b8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .sidebar-menu {
