@@ -27,7 +27,7 @@ except ImportError:
         listar_pneus, criar_pneu, atualizar_pneu, obter_pneu, alocar_pneu, remover_pneu, transferir_pneu,
         mover_pneu_veiculo, listar_movimentacoes, obter_dashboard, confirmar_recebimento,
         enviar_para_recicladora, listar_lotes_reciclagem, atualizar_valor_lote_reciclagem,
-        obter_relatorio_financeiro_reciclagem
+        obter_relatorio_financeiro_reciclagem, importar_pneus_lote
     )
 from db_sqlserver import buscar_veiculo_por_placa
 
@@ -35,7 +35,11 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/gestao-pneus", tags=["gestao-pneus"])
 
-# Garante que as tabelas existam ao importar o módulo (Desativado para evitar travamento em redes com firewall)
+@router.get("/ping")
+def ping():
+    return {"status": "online", "message": "pong"}
+
+# Garante que as tabelas existam ao importar o módulo
 # try:
 #     ensure_tables()
 # except Exception as e:
@@ -242,6 +246,8 @@ def get_pneus_template():
     except Exception as e:
         logger.error(f"Erro ao gerar template: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
 
 @router.post("/pneus/importar")
 async def post_importar_pneus(file: UploadFile = File(...)):
