@@ -7,21 +7,28 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
 from dotenv import load_dotenv
 
-# Configuração de Caminhos para Vercel/Local
+# Configura o log para vermos o erro caso falte algo
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Garante que a raiz do projeto está no PATH
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 if BASE_DIR not in sys.path:
     sys.path.append(BASE_DIR)
 
 load_dotenv()
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Gestão de Pneus Online", version="1.1.0")
 
-# Ping de Teste Primário
+# Ping para testar se o servidor subiu
 @app.get("/ping")
 def ping():
-    return {"status": "online", "message": "pong"}
+    return {"status": "online", "message": "servidor ativo na Vercel"}
+
+# Rota simples para testar acesso à API
+@app.get("/api/test")
+def api_test():
+    return {"status": "api ok"}
 
 # CORS
 CORS_ORIGINS = os.getenv("CORS_ORIGINS", "*").split(",")
@@ -33,17 +40,20 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Importação Dinâmica dos Roteadores
+# Importação dos roteadores
 try:
     from backend.routers import gestao_pneus
     app.include_router(gestao_pneus.router, prefix="/api/gestao-pneus")
+    logger.info("Roteadores carregados com sucesso!")
 except Exception as e:
-    logger.error(f"Erro crítico ao carregar roteadores: {e}")
+    logger.error(f"FALHA CRITICA NO CARREGAMENTO: {e}")
 
-# Servir Frontend (Static Files)
+# Frontend (Configurado para ler da pasta frontend/dist)
 dist_path = os.path.join(BASE_DIR, "frontend", "dist")
 if os.path.exists(dist_path):
     app.mount("/frontend", StaticFiles(directory=dist_path, html=True), name="frontend")
+else:
+    logger.warning(f"AVISO: Pasta dist não encontrada em {dist_path}")
 
 @app.get("/")
 def home():
