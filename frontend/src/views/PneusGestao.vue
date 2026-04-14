@@ -1586,24 +1586,9 @@ async function savePneu() {
 }
 
 async function downloadTemplate() {
-  try {
-    const url = fetchPneusTemplate()
-    const response = await fetch(url)
-    if (!response.ok) throw new Error('Falha ao baixar modelo do servidor')
-    
-    const blob = await response.blob()
-    const downloadUrl = window.URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = downloadUrl
-    a.download = 'modelo_importacao_pneus.csv'
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    window.URL.revokeObjectURL(downloadUrl)
-  } catch (error) {
-    console.error(error)
-    alert('Erro ao baixar modelo: ' + error.message)
-  }
+  const url = fetchPneusTemplate()
+  // Usar window.open para download direto é mais robusto em domínios protegidos
+  window.open(url, '_blank')
 }
 
 function triggerImport() {
