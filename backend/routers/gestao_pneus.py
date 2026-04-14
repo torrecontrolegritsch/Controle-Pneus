@@ -198,6 +198,62 @@ def post_pneu(body: PneuIn):
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+@router.get("/pneus/template")
+def get_pneus_template():
+    """Gera um CSV modelo para importação de pneus."""
+    output = io.StringIO()
+    writer = csv.writer(output, delimiter=';')
+    
+    # 1. Header (coluna 'filial' por nome agora é suportada)
+    writer.writerow([
+        "numero_fogo", "dot", "marca", "modelo", "medida", 
+        "vida", "valor", "sulco_atual", "fornecedor", "nf", "filial"
+    ])
+    
+    # 2. Exemplo
+    writer.writerow([
+        "EX001", "2024", "BRIDGESTONE", "R268", "295/80R22.5", 
+        "1", "2500.00", "16.5", "FORNECEDOR X", "12345", "MATRIZ"
+    ])
+    
+    # 3. Informações de apoio (Filiais cadastradas)
+    writer.writerow([])
+    writer.writerow(["--- LISTA DE FILIAIS CADASTRADAS (Use exatamente o nome abaixo) ---"])
+    try:
+        f_list = listar_filiais()
+        for f in f_list:
+            writer.writerow([f["nome"]])
+    except:
+        pass
+
+    output.seek(0)
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=modelo_importacao_pneus.csv"}
+    )
+
+@router.post("/pneus/importar")
+async def post_importar_pneus(file: UploadFile = File(...)):
+    """Recebe um CSV e importa os pneus em massa."""
+    try:
+        content = await file.read()
+        decoded = content.decode('utf-8-sig').splitlines() # handle BOM if present
+        
+        # Detecta separador (pode ser , ou ;)
+        header_line = decoded[0]
+        delimiter = ';' if ';' in header_line else ','
+        
+        reader = csv.DictReader(decoded, delimiter=delimiter)
+        pneus_data = []
+        for row in reader:
+            pneus_data.append(row)
+            
+        return importar_pneus_lote(pneus_data)
+    except Exception as e:
+        logger.error(f"Erro na importação CSV: {e}")
+        raise HTTPException(status_code=400, detail=f"Erro ao processar CSV: {str(e)}")
+
 @router.get("/pneus/{pneu_id}")
 def get_pneu_detail(pneu_id: int):
     result = obter_pneu(pneu_id)
@@ -322,61 +378,7 @@ def post_atualizar_valor_lote(body: dict):
 def get_relatorio_financeiro_reciclagem(mes: Optional[str] = Query(None), filial_id: Optional[int] = Query(None)):
     return obter_relatorio_financeiro_reciclagem(mes=mes, filial_id=filial_id)
 
-@router.get("/pneus/template")
-def get_pneus_template():
-    """Gera um CSV modelo para importação de pneus."""
-    output = io.StringIO()
-    writer = csv.writer(output, delimiter=';')
-    
-    # 1. Header (coluna 'filial' por nome agora é suportada)
-    writer.writerow([
-        "numero_fogo", "dot", "marca", "modelo", "medida", 
-        "vida", "valor", "sulco_atual", "fornecedor", "nf", "filial"
-    ])
-    
-    # 2. Exemplo
-    writer.writerow([
-        "EX001", "2024", "BRIDGESTONE", "R268", "295/80R22.5", 
-        "1", "2500.00", "16.5", "FORNECEDOR X", "12345", "MATRIZ"
-    ])
-    
-    # 3. Informações de apoio (Filiais cadastradas)
-    writer.writerow([])
-    writer.writerow(["--- LISTA DE FILIAIS CADASTRADAS (Use exatamente o nome abaixo) ---"])
-    try:
-        f_list = listar_filiais()
-        for f in f_list:
-            writer.writerow([f["nome"]])
-    except:
-        pass
 
-    output.seek(0)
-    return StreamingResponse(
-        iter([output.getvalue()]),
-        media_type="text/csv",
-        headers={"Content-Disposition": "attachment; filename=modelo_importacao_pneus.csv"}
-    )
-
-@router.post("/pneus/importar")
-async def post_importar_pneus(file: UploadFile = File(...)):
-    """Recebe um CSV e importa os pneus em massa."""
-    try:
-        content = await file.read()
-        decoded = content.decode('utf-8-sig').splitlines() # handle BOM if present
-        
-        # Detecta separador (pode ser , ou ;)
-        header_line = decoded[0]
-        delimiter = ';' if ';' in header_line else ','
-        
-        reader = csv.DictReader(decoded, delimiter=delimiter)
-        pneus_data = []
-        for row in reader:
-            pneus_data.append(row)
-            
-        return importar_pneus_lote(pneus_data)
-    except Exception as e:
-        logger.error(f"Erro na importação CSV: {e}")
-        raise HTTPException(status_code=400, detail=f"Erro ao processar CSV: {str(e)}")
 
 
 # ── BUSCA EXTERNA (SQL SERVER) ──────────────────────────────────────────────
