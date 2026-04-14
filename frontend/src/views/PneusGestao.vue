@@ -1123,6 +1123,7 @@
 
 
       </main>
+      <div v-if="toast" class="toast" :class="toast.type">{{ toast.msg }}</div>
     </div>
 </template>
 
