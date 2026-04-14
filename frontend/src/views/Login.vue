@@ -1,12 +1,12 @@
 <template>
   <div class="login-container">
     <div class="glass-card animate-fade-in">
-      <div class="logo-box">
-        <img src="/logo.jpg" alt="Logo" class="login-logo" />
-      </div>
-      
-      <h1 class="login-title">Gestão de Pneus</h1>
-      <p class="login-subtitle">Acesso Restrito - BlueFleet Premium</p>
+      <header class="gp-header">
+        <div class="header-branding">
+          <img src="/logo.jpg" alt="Logo" class="header-logo" />
+          <h1>Gestão de Pneus</h1>
+        </div>
+      </header>
 
       <form @submit.prevent="handleLogin" class="login-form">
         <div class="input-group">
@@ -120,7 +120,7 @@ const handleLogin = async () => {
   left: 0;
   width: 100%;
   height: 100%;
-  background: radial-gradient(circle, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.8) 100%);
+  background: linear-gradient(135deg, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0.4) 100%);
   pointer-events: none;
 }
 
@@ -130,97 +130,67 @@ const handleLogin = async () => {
   width: 100%;
   max-width: 420px;
   padding: 40px;
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 24px;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 32px;
+  box-shadow: 0 40px 80px -15px rgba(0, 0, 0, 0.1), 0 10px 30px -10px rgba(0, 0, 0, 0.05);
 }
 
-.logo-box {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 24px;
-}
-
-.login-logo {
-  height: 60px;
-  width: auto;
-  filter: drop-shadow(0 0 10px rgba(255,255,255,0.2));
-}
-
-.login-title {
-  color: #fff;
-  font-size: 28px;
-  font-weight: 700;
-  text-align: center;
-  margin: 0 0 8px 0;
-  letter-spacing: -0.5px;
-}
-
-.login-subtitle {
-  color: rgba(255,255,255,0.5);
-  text-align: center;
-  font-size: 14px;
-  margin-bottom: 32px;
-}
+.header-branding { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; margin-bottom: 32px; }
+.header-logo { height: 40px; width: auto; border-radius: 8px; }
+.gp-header h1 { font-size: 24px; font-weight: 800; color: #1e293b; margin: 0; letter-spacing: -0.5px; }
 
 .login-form {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 24px;
 }
 
 .input-group label {
   display: block;
-  color: rgba(255,255,255,0.8);
+  color: #475569;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
   margin-bottom: 8px;
   margin-left: 4px;
 }
 
-.input-wrapper {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.input-wrapper .icon {
-  position: absolute;
-  left: 16px;
-  font-size: 16px;
-  opacity: 0.6;
-}
-
 .input-wrapper input {
   width: 100%;
-  padding: 14px 16px 14px 48px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  color: #fff;
+  padding: 16px 16px 16px 48px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  color: #1e293b;
   font-size: 15px;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .input-wrapper input:focus {
   outline: none;
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255,255,255,0.3);
-  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.05);
+  background: #fff;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+}
+
+.input-wrapper .icon {
+  position: absolute;
+  left: 18px;
+  font-size: 18px;
+  opacity: 0.4;
 }
 
 .login-btn {
-  margin-top: 10px;
-  padding: 16px;
-  background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+  margin-top: 8px;
+  padding: 18px;
+  background: #1e293b;
   border: none;
-  border-radius: 12px;
+  border-radius: 16px;
   color: #fff;
   font-size: 16px;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
   transition: all 0.3s ease;
   display: flex;
@@ -229,9 +199,9 @@ const handleLogin = async () => {
 }
 
 .login-btn:hover {
+  background: #0f172a;
   transform: translateY(-2px);
-  box-shadow: 0 10px 20px -10px #3b82f6;
-  filter: brightness(1.1);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
 }
 
 .login-btn:active {

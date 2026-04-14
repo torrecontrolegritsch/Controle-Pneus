@@ -1,7 +1,10 @@
 <template>
   <div class="gp-page">
     <header class="gp-header">
-      <h1>Gestão de Pneus</h1>
+      <div class="header-branding">
+        <img src="/logo.jpg" alt="Logo" class="header-logo" />
+        <h1>Gestão de Pneus</h1>
+      </div>
       
       <div class="user-profile" v-if="user">
         <div class="user-info">
@@ -1839,6 +1842,8 @@ onMounted(loadAll)
   justify-content: space-between; 
   margin-bottom: 32px;
 }
+.header-branding { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+.header-logo { height: 48px; width: auto; border-radius: 8px; }
 .gp-header h1 { font-size: 24px; font-weight: 800; color: var(--text); margin: 0; letter-spacing: -0.5px; }
 
 .user-profile { 
