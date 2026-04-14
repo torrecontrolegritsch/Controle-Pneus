@@ -327,17 +327,29 @@ def get_pneus_template():
     """Gera um CSV modelo para importação de pneus."""
     output = io.StringIO()
     writer = csv.writer(output, delimiter=';')
-    # Header
+    
+    # 1. Header (coluna 'filial' por nome agora é suportada)
     writer.writerow([
         "numero_fogo", "dot", "marca", "modelo", "medida", 
-        "vida", "valor", "sulco_atual", "fornecedor", "nf", "filial_id"
-    ])
-    # Exemplo
-    writer.writerow([
-        "EX001", "2024", "BRIDGESTONE", "R268", "295/80R22.5", 
-        "1", "2500.00", "16.5", "FORNECEDOR X", "12345", "1"
+        "vida", "valor", "sulco_atual", "fornecedor", "nf", "filial"
     ])
     
+    # 2. Exemplo
+    writer.writerow([
+        "EX001", "2024", "BRIDGESTONE", "R268", "295/80R22.5", 
+        "1", "2500.00", "16.5", "FORNECEDOR X", "12345", "MATRIZ"
+    ])
+    
+    # 3. Informações de apoio (Filiais cadastradas)
+    writer.writerow([])
+    writer.writerow(["--- LISTA DE FILIAIS CADASTRADAS (Use exatamente o nome abaixo) ---"])
+    try:
+        f_list = listar_filiais()
+        for f in f_list:
+            writer.writerow([f["nome"]])
+    except:
+        pass
+
     output.seek(0)
     return StreamingResponse(
         iter([output.getvalue()]),

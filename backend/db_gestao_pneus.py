@@ -196,9 +196,22 @@ def importar_pneus_lote(pneus_data):
     if not pneus_data:
         return {"count": 0}
     
+    # Busca filiais para converter Nome em ID
+    filiais = listar_filiais()
+    def get_filial_id(nome):
+        if not nome: return None
+        n = str(nome).strip().upper()
+        f = next((x for x in filiais if x["nome"].strip().upper() == n), None)
+        return f["id"] if f else None
+
     # Normaliza dados e garante tipos
     pneus_list = []
     for p in pneus_data:
+        # Tenta pegar por 'filial' (nome) ou 'filial_id'
+        f_id = get_filial_id(p.get("filial"))
+        if not f_id and p.get("filial_id"):
+            f_id = int(p.get("filial_id")) if str(p.get("filial_id")).isdigit() else None
+
         p_norm = {
             "numero_fogo": str(p.get("numero_fogo", "")).strip().upper(),
             "marca": str(p.get("marca", "")).strip().upper(),
@@ -210,7 +223,7 @@ def importar_pneus_lote(pneus_data):
             "sulco_atual": float(p.get("sulco_atual", 0) or 0),
             "fornecedor": str(p.get("fornecedor", "")).strip(),
             "nf": str(p.get("nf", "")).strip(),
-            "filial_id": int(p.get("filial_id")) if p.get("filial_id") and str(p.get("filial_id")).isdigit() else None,
+            "filial_id": f_id,
             "status": "estoque",
             "recebido": 1
         }
