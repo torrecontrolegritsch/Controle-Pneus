@@ -76,13 +76,17 @@ export const updatePneu = (id, data) => put(`${P}/pneus/${id}`, data)
 
 // Importação
 export const fetchPneusTemplate = () => `${BASE}${P}/pneus/template`
-export const importPneusCsv = (file) => {
-  const formData = new FormData()
-  formData.append('file', file)
+export const importPneusCsv = (data) => {
   return fetch(`${BASE}${P}/pneus/importar`, {
     method: 'POST',
-    body: formData
-  }).then(res => res.json())
+    body: data
+  }).then(async res => {
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: res.statusText }))
+      throw new Error(err.detail || res.statusText)
+    }
+    return res.json()
+  })
 }
 
 // Operações

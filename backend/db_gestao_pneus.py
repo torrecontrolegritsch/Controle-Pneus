@@ -204,48 +204,63 @@ def importar_pneus_lote(pneus_data):
         f = next((x for x in filiais if x["nome"].strip().upper() == n), None)
         return f["id"] if f else None
 
-    # Normaliza dados e garante tipos
+    # Mapeamento de sinonimos para colunas comuns
+    mapping = {
+        "numero_fogo": ["numero_fogo", "fogo", "n fogo", "nº fogo", "num fogo", "numero do fogo", "n.fogo"],
+        "marca": ["marca", "fabricante"],
+        "modelo": ["modelo", "tipo"],
+        "medida": ["medida", "dimensao", "tamanho"],
+        "dot": ["dot", "data"],
+        "vida": ["vida", "v"],
+        "valor": ["valor", "preço", "custo", "preco"],
+        "sulco_atual": ["sulco_atual", "sulco", "profundidade"],
+        "fornecedor": ["fornecedor"],
+        "nf": ["nf", "nota fiscal", "nota"],
+        "filial": ["filial", "unidade", "deposito"]
+    }
+
+    def find_val(row_dict, target_key):
+        # Normaliza as chaves do dicionário para comparação
+        norm_row = {str(k).strip().lower(): v for k, v in row_dict.items()}
+        for syn in mapping.get(target_key, []):
+            if syn in norm_row:
+                return norm_row[syn]
+        return None
+
     pneus_list = []
     for p_raw in pneus_data:
-        # Normaliza chaves (tira espaços e deixa minúsculo)
-        p = {str(k).strip().lower(): v for k, v in p_raw.items()}
+        f_name = find_val(p_raw, "filial")
+        f_id = get_filial_id(f_name)
         
-        # Busca f_id (tentando 'filial' ou 'filial_id')
-        f_id = get_filial_id(p.get("filial"))
-        if not f_id and p.get("filial_id"):
-            val_f = str(p.get("filial_id")).strip()
-            f_id = int(val_f) if val_f.isdigit() else None
-
         p_norm = {
-            "numero_fogo": str(p.get("numero_fogo", "")).strip().upper(),
-            "marca": str(p.get("marca", "")).strip().upper(),
-            "modelo": str(p.get("modelo", "")).strip().upper(),
-            "medida": str(p.get("medida", "")).strip(),
-            "dot": str(p.get("dot", "")).strip(),
-            "vida": int(p.get("vida", 1) or 1),
-            "valor": float(p.get("valor", 0) or 0),
-            "sulco_atual": float(p.get("sulco_atual", 0) or 0),
-            "fornecedor": str(p.get("fornecedor", "")).strip(),
-            "nf": str(p.get("nf", "")).strip(),
+            "numero_fogo": str(find_val(p_raw, "numero_fogo") or "").strip().upper(),
+            "marca": str(find_val(p_raw, "marca") or "").strip().upper(),
+            "modelo": str(find_val(p_raw, "modelo") or "").strip().upper(),
+            "medida": str(find_val(p_raw, "medida") or "").strip(),
+            "dot": str(find_val(p_raw, "dot") or "").strip(),
+            "vida": int(find_val(p_raw, "vida") or 1),
+            "valor": float(find_val(p_raw, "valor") or 0),
+            "sulco_atual": float(find_val(p_raw, "sulco_atual") or 0),
+            "fornecedor": str(find_val(p_raw, "fornecedor") or "").strip(),
+            "nf": str(find_val(p_raw, "nf") or "").strip(),
             "filial_id": f_id,
             "status": "estoque",
             "recebido": 1
         }
         
-    # Só adiciona se tiver os campos mínimos
         if p_norm["numero_fogo"] and p_norm["marca"] and p_norm["medida"]:
             pneus_list.append(p_norm)
     
     if not pneus_list:
-        return {"count": 0, "error": "Nenhum pneu válido encontrado. Verifique se as colunas estão corretas (numero_fogo, marca, medida, etc)."}
+        return {"count": 0, "error": "Nenhum pneu válido encontrado. Verifique se as colunas obrigatórias estão presentes (Fogo, Marca, Medida)."}
 
-    # Divide em lotes de 100 para não estourar payload
+    # Divide em lotes de 100
     chunk_size = 100
     for i in range(0, len(pneus_list), chunk_size):
         chunk = pneus_list[i:i + chunk_size]
         _api_request("POST", "gp_pneus", params={"on_conflict": "numero_fogo"}, payload=chunk)
     
-    return {"count": len(pneus_list), "imported": True}
+    return {"count": len(pneus_list), "success": True}
 
 def obter_pneu(pneu_id):
     params = {"id": f"eq.{pneu_id}", "select": "*,gp_filiais(nome),gp_veiculos(placa)"}
