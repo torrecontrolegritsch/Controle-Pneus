@@ -60,9 +60,10 @@ def _api_request(method, table, params=None, payload=None):
             response = requests.patch(api_url, headers=headers, params=params, data=json.dumps(payload), timeout=10)
         
         if response.status_code in [200, 201, 204]:
-            if not response.text: return True
+            if not response.text or response.status_code == 204: 
+                # Retorna lista vazia para GET e dict vazio para outros se não houver conteúdo
+                return [] if method == "GET" else {}
             res_json = response.json()
-            # Se for uma lista (comum no PostgREST com return=representation), retorna o primeiro item se esperado
             return res_json
         else:
             from fastapi import HTTPException
@@ -394,14 +395,26 @@ def obter_relatorio_financeiro_reciclagem(mes=None, filial_id=None):
     }
 
 def obter_dashboard():
-    pneus = listar_pneus()
-    veiculos = listar_veiculos()
-    return {
-        "total_pneus": len(pneus),
-        "em_estoque": len([p for p in pneus if p['status'] == 'estoque']),
-        "em_uso": len([p for p in pneus if p['status'] == 'em_uso']),
-        "descartados": len([p for p in pneus if p['status'] == 'descarte']),
-        "total_veiculos": len(veiculos),
-        "valor_estoque": sum(p.get('valor', 0) for p in pneus if p['status'] == 'estoque'),
-        "alertas_rodizio": []
-    }
+    try:
+        pneus = listar_pneus()
+        veiculos = listar_veiculos()
+        
+        # Garante que pneus e veiculos sejam listas
+        if not isinstance(pneus, list): pneus = []
+        if not isinstance(veiculos, list): veiculos = []
+        
+        return {
+            "total_pneus": len(pneus),
+            "em_estoque": len([p for p in pneus if str(p.get('status')).lower() == 'estoque']),
+            "em_uso": len([p for p in pneus if str(p.get('status')).lower() == 'em_uso']),
+            "descartados": len([p for p in pneus if str(p.get('status')).lower() == 'descarte']),
+            "total_veiculos": len(veiculos),
+            "valor_estoque": sum(float(p.get('valor', 0) or 0) for p in pneus if str(p.get('status')).lower() == 'estoque'),
+            "alertas_rodizio": []
+        }
+    except Exception as e:
+        logger.error(f"Falha ao processar dados do dashboard: {e}")
+        return {
+            "total_pneus": 0, "em_estoque": 0, "em_uso": 0, "descartados": 0, 
+            "total_veiculos": 0, "valor_estoque": 0, "alertas_rodizio": [], "error": str(e)
+        }
