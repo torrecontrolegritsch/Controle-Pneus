@@ -4,29 +4,24 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import RedirectResponse
 from dotenv import load_dotenv
 
-# Carrega variáveis
-load_dotenv()
+# Configuração de Caminhos para Vercel/Local
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+if BASE_DIR not in sys.path:
+    sys.path.append(BASE_DIR)
 
+load_dotenv()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Tenta carregar os roteadores
-try:
-    from backend.routers import gestao_pneus
-except ImportError:
-    # Fallback para ambiente local/Vercel
-    sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-    from backend.routers import gestao_pneus
-
 app = FastAPI(title="Gestão de Pneus Online", version="1.1.0")
 
-# CORS
-# ... (mantendo suporte a CORS_ORIGINS)
+# Ping de Teste Primário
 @app.get("/ping")
 def ping():
-    return {"status": "online"}
+    return {"status": "online", "message": "pong"}
 
 # CORS
 CORS_ORIGINS = os.getenv("CORS_ORIGINS", "*").split(",")
@@ -38,18 +33,20 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Rotas
-# Rotas
-app.include_router(gestao_pneus.router, prefix="/api/gestao-pneus")
+# Importação Dinâmica dos Roteadores
+try:
+    from backend.routers import gestao_pneus
+    app.include_router(gestao_pneus.router, prefix="/api/gestao-pneus")
+except Exception as e:
+    logger.error(f"Erro crítico ao carregar roteadores: {e}")
 
-# Frontend
-dist_path = os.path.join(os.getcwd(), "frontend", "dist")
+# Servir Frontend (Static Files)
+dist_path = os.path.join(BASE_DIR, "frontend", "dist")
 if os.path.exists(dist_path):
     app.mount("/frontend", StaticFiles(directory=dist_path, html=True), name="frontend")
 
 @app.get("/")
 def home():
-    from fastapi.responses import RedirectResponse
     return RedirectResponse(url="/frontend/")
 
 if __name__ == "__main__":
