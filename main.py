@@ -16,11 +16,17 @@ logger = logging.getLogger(__name__)
 try:
     from backend.routers import gestao_pneus
 except ImportError:
-    # Fallback se estiver rodando de dentro da pasta backend
-    sys.path.append(os.path.join(os.getcwd(), "backend"))
-    from routers import gestao_pneus
+    # Fallback para ambiente local/Vercel
+    sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+    from backend.routers import gestao_pneus
 
 app = FastAPI(title="Gestão de Pneus Online", version="1.1.0")
+
+# CORS
+# ... (mantendo suporte a CORS_ORIGINS)
+@app.get("/ping")
+def ping():
+    return {"status": "online"}
 
 # CORS
 CORS_ORIGINS = os.getenv("CORS_ORIGINS", "*").split(",")
@@ -33,7 +39,8 @@ app.add_middleware(
 )
 
 # Rotas
-app.include_router(gestao_pneus.router)
+# Rotas
+app.include_router(gestao_pneus.router, prefix="/api/gestao-pneus")
 
 # Frontend
 dist_path = os.path.join(os.getcwd(), "frontend", "dist")

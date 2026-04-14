@@ -33,7 +33,7 @@ from db_sqlserver import buscar_veiculo_por_placa
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/gestao-pneus", tags=["gestao-pneus"])
+router = APIRouter(tags=["gestao-pneus"])
 
 @router.get("/ping")
 def ping():
