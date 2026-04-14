@@ -48,14 +48,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Importação dos roteadores com captura de erro para debug
-try:
-    from backend.routers import gestao_pneus
-    app.include_router(gestao_pneus.router, prefix="/api/gestao-pneus")
-    logger.info("Roteadores carregados!")
-except Exception as e:
-    ERROR_LOAD = e
-    logger.error(f"FALHA NO CARREGAMENTO: {e}")
+# Importação dos roteadores - OBRIGATÓRIO (Removi o try/except para vermos o erro se falhar)
+from backend.routers import gestao_pneus
+app.include_router(gestao_pneus.router, prefix="/api/gestao-pneus")
+logger.info("Roteadores carregados com sucesso!")
 
 # Frontend
 dist_path = os.path.join(BASE_DIR, "frontend", "dist")
