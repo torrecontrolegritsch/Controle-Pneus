@@ -62,7 +62,6 @@ def _api_request(method, table, params=None, payload=None):
         if response.status_code in [200, 201, 204]:
             print(f"  [OK] {method} {table} - Status: {response.status_code}")
             if not response.text or response.status_code == 204: 
-                # Retorna lista vazia para GET e dict vazio para outros se não houver conteúdo
                 return [] if method == "GET" else {}
             res_json = response.json()
             if method == "GET" and isinstance(res_json, list):
@@ -70,15 +69,18 @@ def _api_request(method, table, params=None, payload=None):
             return res_json
         else:
             print(f"  [ERRO] {method} {table} - Status: {response.status_code} - Resposta: {response.text}")
-            from fastapi import HTTPException
-            raise HTTPException(status_code=response.status_code, detail=response.text)
+            error_detail = response.text
             try:
-                # Tenta extrair mensagem amigável se for JSON
                 err_data = response.json()
-                if 'message' in err_data: error_detail = err_data['message']
+                if isinstance(err_data, dict) and 'message' in err_data: 
+                    error_detail = err_data['message']
             except: pass
+            
+            from fastapi import HTTPException
             raise HTTPException(status_code=response.status_code, detail=error_detail)
     except Exception as e:
+        if isinstance(e, requests.exceptions.HTTPError) or "HTTPException" in str(type(e)):
+             raise e
         logger.error(f"Erro na requisição ({table}): {e}")
         from fastapi import HTTPException
         raise HTTPException(status_code=500, detail=str(e))
@@ -364,13 +366,15 @@ def remover_pneu(pneu_id, destino="estoque", km_momento=0, observacao="", filial
 
 def _registrar_movimentacao(pneu_id, tipo, **kw):
     f_id = int(kw.get("filial_id")) if kw.get("filial_id") and str(kw.get("filial_id")).isdigit() else None
+    
     payload = {
         "pneu_id": pneu_id, "tipo": tipo,
         "veiculo_id": kw.get("veiculo_id"),
         "posicao": kw.get("posicao"),
         "km_momento": float(kw.get("km_momento", 0)),
         "observacao": kw.get("observacao", ""),
-        "filial_destino_id": f_id
+        "filial_id": f_id,             # Filial onde ocorreu (obrigatório se houver RLS)
+        "filial_destino_id": f_id       # No caso de remoção/transferência
     }
     return _api_request("POST", "gp_movimentacoes", payload=payload)
 
