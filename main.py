@@ -23,12 +23,12 @@ app = FastAPI(title="Gestão de Pneus Online", version="1.1.0")
 ERROR_LOAD = None
 
 # Ping de Teste
-@app.get("/ping")
+@app.get("/api/ping")
 def ping():
     return {"status": "online", "message": "servidor ativo"}
 
 # Rota de Diagnóstico (Lanterna)
-@app.get("/debug-server")
+@app.get("/api/debug-server")
 def debug_server():
     return {
         "status": "rodando",

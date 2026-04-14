@@ -17,12 +17,8 @@
       "destination": "main.py"
     },
     {
-      "source": "/ping",
-      "destination": "main.py"
-    },
-    {
       "source": "/(.*)",
-      "destination": "frontend/$1"
+      "destination": "/frontend/$1"
     }
   ]
 }
