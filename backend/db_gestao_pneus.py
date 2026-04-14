@@ -335,12 +335,31 @@ def alocar_pneu(pneu_id, veiculo_id, posicao, km_instalacao=0, observacao=""):
     return obter_pneu(pneu_id)
 
 def remover_pneu(pneu_id, destino="estoque", km_momento=0, observacao="", filial_destino_id=None):
+    # 1. Busca estado atual para saber de onde está saindo
+    current = obter_pneu(pneu_id)
+    veiculo_id = current.get("veiculo_id")
+    posicao = current.get("posicao")
+    
+    # 2. Atualiza o status do pneu
     new_status = destino if destino in ("descarte", "recapagem") else "estoque"
     f_dest_id = int(filial_destino_id) if filial_destino_id and str(filial_destino_id).isdigit() else None
+    
     payload = {"status": new_status, "veiculo_id": None, "posicao": None}
     if f_dest_id: payload["filial_id"] = f_dest_id
+    
     _api_request("PATCH", "gp_pneus", params={"id": f"eq.{pneu_id}"}, payload=payload)
-    _registrar_movimentacao(pneu_id, "remocao", km_momento=km_momento, observacao=observacao)
+    
+    # 3. Registra a movimentação com o contexto completo (de onde saiu -> para onde foi)
+    _registrar_movimentacao(
+        pneu_id, 
+        "remocao", 
+        veiculo_id=veiculo_id, 
+        posicao=posicao, 
+        km_momento=km_momento, 
+        observacao=observacao,
+        filial_id=f_dest_id
+    )
+    
     return obter_pneu(pneu_id)
 
 def _registrar_movimentacao(pneu_id, tipo, **kw):
