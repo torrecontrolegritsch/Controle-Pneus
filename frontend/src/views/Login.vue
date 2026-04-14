@@ -66,9 +66,13 @@ const handleLogin = async () => {
   loading.value = true
   errorMsg.value = ''
   
+  // Detecta a BASE API de forma resiliente
+  const BASE = import.meta.env.VITE_API_URL && import.meta.env.MODE === 'development' 
+    ? import.meta.env.VITE_API_URL 
+    : '';
+
   try {
-    // Aqui faremos a autenticação com o Supabase via Backend Proxy
-    const response = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/login`, {
+    const response = await fetch(`${BASE}/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: email.value, password: password.value })
