@@ -48,9 +48,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Importação dos roteadores - OBRIGATÓRIO (Removi o try/except para vermos o erro se falhar)
-from backend.routers import gestao_pneus
+# Importação dos roteadores
+from backend.routers import gestao_pneus, auth
 app.include_router(gestao_pneus.router, prefix="/api/gestao-pneus")
+app.include_router(auth.router)
 logger.info("Roteadores carregados com sucesso!")
 
 # Frontend

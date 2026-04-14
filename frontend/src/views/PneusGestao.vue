@@ -2,6 +2,15 @@
   <div class="gp-page">
     <header class="gp-header">
       <h1>Gestão de Pneus</h1>
+      
+      <div class="user-profile" v-if="user">
+        <div class="user-info">
+          <span class="user-name">{{ user.email }}</span>
+          <span class="user-role">Administrador</span>
+        </div>
+        <button class="logout-btn" @click="$emit('logout')">Sair 👋</button>
+      </div>
+
       <div class="gp-kpis" v-if="dash">
         <div class="kpi-card"><span class="kpi-val">{{ dash.total_pneus }}</span><span class="kpi-lbl">Total Pneus</span></div>
         <div class="kpi-card kpi-green"><span class="kpi-val">{{ dash.em_estoque }}</span><span class="kpi-lbl">Em Estoque</span></div>
@@ -1344,6 +1353,9 @@ async function handleDropOnRemoval(target = 'estoque') {
   dragSource.value = null
 }
 
+const props = defineProps(['user'])
+const emit = defineEmits(['logout'])
+
 // Helpers
 const fmtN = (v) => v ? Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0,00'
 
@@ -1821,7 +1833,39 @@ onMounted(loadAll)
 
 <style scoped>
 .gp-page { padding: 28px 32px; width: 100%; max-width: none; }
-.gp-header h1 { font-size: 22px; font-weight: 700; color: var(--text); margin-bottom: 16px; }
+.gp-header { 
+  display: flex; 
+  align-items: center; 
+  justify-content: space-between; 
+  margin-bottom: 32px;
+}
+.gp-header h1 { font-size: 24px; font-weight: 800; color: var(--text); margin: 0; letter-spacing: -0.5px; }
+
+.user-profile { 
+  display: flex; 
+  align-items: center; 
+  gap: 20px; 
+  padding: 10px 20px; 
+  background: #fff; 
+  border-radius: 16px; 
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+}
+.user-info { display: flex; flex-direction: column; text-align: right; }
+.user-name { font-weight: 700; color: var(--text); font-size: 14px; }
+.user-role { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; font-weight: 600; }
+.logout-btn { 
+  padding: 8px 16px; 
+  background: #fff5f5; 
+  color: #c53030; 
+  border: 1px solid #feb2b2; 
+  border-radius: 10px; 
+  font-size: 13px;
+  font-weight: 700; 
+  cursor: pointer; 
+  transition: all 0.2s; 
+}
+.logout-btn:hover { background: #fff1f2; transform: translateY(-1px); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
 
 
 
