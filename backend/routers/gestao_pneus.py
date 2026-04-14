@@ -6,7 +6,8 @@ import logging
 import csv
 import io
 from typing import Optional, List
-from fastapi import APIRouter, Query, HTTPException, File, UploadFile
+
+from fastapi import APIRouter, Query, HTTPException, File, UploadFile, Response
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
@@ -201,37 +202,40 @@ def post_pneu(body: PneuIn):
 @router.get("/pneus/template")
 def get_pneus_template():
     """Gera um CSV modelo para importação de pneus."""
-    output = io.StringIO()
-    writer = csv.writer(output, delimiter=';')
-    
-    # 1. Header (coluna 'filial' por nome agora é suportada)
-    writer.writerow([
-        "numero_fogo", "dot", "marca", "modelo", "medida", 
-        "vida", "valor", "sulco_atual", "fornecedor", "nf", "filial"
-    ])
-    
-    # 2. Exemplo
-    writer.writerow([
-        "EX001", "2024", "BRIDGESTONE", "R268", "295/80R22.5", 
-        "1", "2500.00", "16.5", "FORNECEDOR X", "12345", "MATRIZ"
-    ])
-    
-    # 3. Informações de apoio (Filiais cadastradas)
-    writer.writerow([])
-    writer.writerow(["--- LISTA DE FILIAIS CADASTRADAS (Use exatamente o nome abaixo) ---"])
     try:
-        f_list = listar_filiais()
-        for f in f_list:
-            writer.writerow([f["nome"]])
-    except:
-        pass
+        output = io.StringIO()
+        writer = csv.writer(output, delimiter=';')
+        
+        # 1. Header
+        writer.writerow([
+            "numero_fogo", "dot", "marca", "modelo", "medida", 
+            "vida", "valor", "sulco_atual", "fornecedor", "nf", "filial"
+        ])
+        
+        # 2. Exemplo
+        writer.writerow([
+            "EX001", "2024", "BRIDGESTONE", "R268", "295/80R22.5", 
+            "1", "2500.00", "16.5", "FORNECEDOR X", "12345", "MATRIZ"
+        ])
+        
+        # 3. Informações de apoio
+        writer.writerow([])
+        writer.writerow(["--- LISTA DE FILIAIS CADASTRADAS (Use exatamente o nome abaixo) ---"])
+        try:
+            f_list = listar_filiais()
+            for f in f_list:
+                writer.writerow([f["nome"]])
+        except:
+            writer.writerow(["Erro ao carregar filiais. Verifique as configurações do Vercel."])
 
-    output.seek(0)
-    return StreamingResponse(
-        iter([output.getvalue()]),
-        media_type="text/csv",
-        headers={"Content-Disposition": "attachment; filename=modelo_importacao_pneus.csv"}
-    )
+        return Response(
+            content=output.getvalue(),
+            media_type="text/csv",
+            headers={"Content-Disposition": "attachment; filename=modelo_importacao_pneus.csv"}
+        )
+    except Exception as e:
+        logger.error(f"Erro ao gerar template: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/pneus/importar")
 async def post_importar_pneus(file: UploadFile = File(...)):
