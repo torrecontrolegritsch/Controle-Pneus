@@ -46,8 +46,9 @@ app.add_middleware(
 )
 
 # Importação dos roteadores
-from backend.routers import gestao_pneus
+from backend.routers import gestao_pneus, auth
 app.include_router(gestao_pneus.router, prefix="/api/gestao-pneus")
+app.include_router(auth.router)
 
 # Servir Frontend
 dist_path = os.path.join(BASE_DIR, "frontend", "dist")
