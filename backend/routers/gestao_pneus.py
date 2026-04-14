@@ -29,7 +29,14 @@ except ImportError:
         enviar_para_recicladora, listar_lotes_reciclagem, atualizar_valor_lote_reciclagem,
         obter_relatorio_financeiro_reciclagem, importar_pneus_lote
     )
-from db_sqlserver import buscar_veiculo_por_placa
+try:
+    from backend.db_sqlserver import buscar_veiculo_por_placa
+except ImportError:
+    try:
+        from db_sqlserver import buscar_veiculo_por_placa
+    except ImportError:
+        def buscar_veiculo_por_placa(placa): return None
+        logger.warning("Aviso: Módulo db_sqlserver não encontrado. Busca corporativa desativada.")
 
 logger = logging.getLogger(__name__)
 

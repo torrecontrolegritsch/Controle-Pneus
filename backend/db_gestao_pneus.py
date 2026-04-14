@@ -10,9 +10,19 @@ from dotenv import load_dotenv
 from datetime import datetime
 from typing import Optional
 
-# Força a busca do .env na pasta raiz do projeto
-env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.env')
-load_dotenv(dotenv_path=env_path)
+# Localiza o arquivo .env na raiz do projeto (Pneus/.env)
+import sys
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+env_path = os.path.join(BASE_DIR, '.env')
+
+if os.path.exists(env_path):
+    load_dotenv(dotenv_path=env_path)
+else:
+    # Tenta carregar do ambiente direto (Vercel)
+    load_dotenv()
+
+if BASE_DIR not in sys.path:
+    sys.path.append(BASE_DIR)
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(name)s: %(message)s')
 logger = logging.getLogger(__name__)
@@ -24,8 +34,15 @@ def _api_request(method, table, params=None, payload=None):
         if not supa_key: 
             logger.error("!!! SUPABASE_KEY não encontrada !!!")
             return None
-        
-        api_url = f"https://dpvdjldocvdsdgvmnsvu.supabase.co/rest/v1/{table}"
+            
+        # Tenta pegar a URL do Supabase do .env ou usa o ID fixo se falhar
+        supa_url = os.getenv("SUPABASE_URL")
+        if not supa_url:
+            # Se não tiver URL, tenta extrair do ID que já conhecemos
+            project_id = "dpvdjldocvdsdgvmnsvu"
+            supa_url = f"https://{project_id}.supabase.co"
+            
+        api_url = f"{supa_url.rstrip('/')}/rest/v1/{table}"
         headers = {
             "apikey": supa_key,
             "Authorization": f"Bearer {supa_key}",
