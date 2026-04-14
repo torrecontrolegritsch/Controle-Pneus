@@ -60,14 +60,18 @@ def _api_request(method, table, params=None, payload=None):
             response = requests.patch(api_url, headers=headers, params=params, data=json.dumps(payload), timeout=10)
         
         if response.status_code in [200, 201, 204]:
+            print(f"  [OK] {method} {table} - Status: {response.status_code}")
             if not response.text or response.status_code == 204: 
                 # Retorna lista vazia para GET e dict vazio para outros se não houver conteúdo
                 return [] if method == "GET" else {}
             res_json = response.json()
+            if method == "GET" and isinstance(res_json, list):
+                print(f"  [DADOS] {len(res_json)} registros encontrados")
             return res_json
         else:
+            print(f"  [ERRO] {method} {table} - Status: {response.status_code} - Resposta: {response.text}")
             from fastapi import HTTPException
-            error_detail = response.text
+            raise HTTPException(status_code=response.status_code, detail=response.text)
             try:
                 # Tenta extrair mensagem amigável se for JSON
                 err_data = response.json()
@@ -191,10 +195,14 @@ def listar_pneus(filial_id=None, status=None, veiculo_id=None):
     if status: params["status"] = f"eq.{status}"
     if veiculo_id: params["veiculo_id"] = f"eq.{veiculo_id}"
     res = _api_request("GET", "gp_pneus", params=params)
-    if not res: return []
+    if not isinstance(res, list): return []
     for r in res:
-        r["filial_nome"] = r.get("gp_filiais", {}).get("nome", "")
-        r["veiculo_placa"] = r.get("gp_veiculos", {}).get("placa", "")
+        # Proteção contra campos nulos em Joins
+        filial_obj = r.get("gp_filiais")
+        r["filial_nome"] = filial_obj.get("nome", "") if isinstance(filial_obj, dict) else ""
+        
+        veiculo_obj = r.get("gp_veiculos")
+        r["veiculo_placa"] = veiculo_obj.get("placa", "") if isinstance(veiculo_obj, dict) else ""
     return res
 
 def criar_pneu(numero_fogo, marca, medida, filial_id, modelo="", dot="", valor=0.0, vida=1, sulco_atual=0.0, nf="", fornecedor=""):
