@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Garante que a raiz do projeto está no PATH
+# Garante que a raiz do projeto está no PATH para Vercel
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 if BASE_DIR not in sys.path:
     sys.path.append(BASE_DIR)
@@ -20,15 +20,23 @@ load_dotenv()
 
 app = FastAPI(title="Gestão de Pneus Online", version="1.1.0")
 
-# Ping para testar se o servidor subiu
+ERROR_LOAD = None
+
+# Ping de Teste
 @app.get("/ping")
 def ping():
-    return {"status": "online", "message": "servidor ativo na Vercel"}
+    return {"status": "online", "message": "servidor ativo"}
 
-# Rota simples para testar acesso à API
-@app.get("/api/test")
-def api_test():
-    return {"status": "api ok"}
+# Rota de Diagnóstico (Lanterna)
+@app.get("/debug-server")
+def debug_server():
+    return {
+        "status": "rodando",
+        "erro_carregamento": str(ERROR_LOAD) if ERROR_LOAD else "Nenhum erro",
+        "caminho_atual": os.getcwd(),
+        "arquivos_raiz": os.listdir('.'),
+        "sys_path": sys.path
+    }
 
 # CORS
 CORS_ORIGINS = os.getenv("CORS_ORIGINS", "*").split(",")
@@ -40,20 +48,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Importação dos roteadores
+# Importação dos roteadores com captura de erro para debug
 try:
     from backend.routers import gestao_pneus
     app.include_router(gestao_pneus.router, prefix="/api/gestao-pneus")
-    logger.info("Roteadores carregados com sucesso!")
+    logger.info("Roteadores carregados!")
 except Exception as e:
-    logger.error(f"FALHA CRITICA NO CARREGAMENTO: {e}")
+    ERROR_LOAD = e
+    logger.error(f"FALHA NO CARREGAMENTO: {e}")
 
-# Frontend (Configurado para ler da pasta frontend/dist)
+# Frontend
 dist_path = os.path.join(BASE_DIR, "frontend", "dist")
 if os.path.exists(dist_path):
     app.mount("/frontend", StaticFiles(directory=dist_path, html=True), name="frontend")
-else:
-    logger.warning(f"AVISO: Pasta dist não encontrada em {dist_path}")
 
 @app.get("/")
 def home():
