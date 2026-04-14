@@ -15,19 +15,23 @@
           :class="{ active: tab === t.id }" 
           @click="tab = t.id"
         >
-          <span class="menu-icon">{{ t.icon }}</span>
+          <span class="menu-icon" v-html="t.icon"></span>
           <span class="menu-label">{{ t.label }}</span>
         </button>
       </nav>
 
       <div class="sidebar-footer">
         <div class="user-block" v-if="user">
-          <div class="avatar">👤</div>
+          <div class="avatar">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+          </div>
           <div class="u-info">
             <span class="u-name">{{ user.email.split('@')[0] }}</span>
             <span class="u-tag">Administrador</span>
           </div>
-          <button class="mini-logout" @click="$emit('logout')" title="Sair">👋</button>
+          <button class="mini-logout" @click="$emit('logout')" title="Sair">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+          </button>
         </div>
       </div>
     </aside>
@@ -70,14 +74,19 @@
       <div class="aloc-sidebar">
         <div class="search-box">
           <label>Buscar Veículo</label>
-          <input v-model="searchVeiculo" placeholder="Placa ou Frota..." class="stock-input" />
+          <div class="input-with-icon">
+            <svg class="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <input v-model="searchVeiculo" placeholder="Placa ou Frota..." class="stock-input" />
+          </div>
         </div>
         
         <div class="aloc-veiculo-list">
           <div v-for="v in filteredVeiculos" :key="v.id" 
                class="aloc-v-card" :class="{ active: veiculoDetail?.id === v.id }"
                @click="openVeiculoDetail(v)">
-            <div class="v-card-icon">🚛</div>
+            <div class="v-card-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 17h4V5H2v12h3"/><path d="M20 17h2v-9h-4V5h-4v12h3"/><path d="M10 9h4"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>
+            </div>
             <div class="v-card-info">
               <span class="v-placa">{{ v.placa }}</span>
               <span class="v-modelo">{{ v.modelo }}</span>
@@ -176,10 +185,9 @@
                 </div>
              </div>
 
-             <!-- ALMOXARIFADO (LADO) -->
-             <div class="gp-stock-panel">
+              <div class="gp-stock-panel">
                 <div class="stock-header">
-                  <h4>Almoxarifado 📦</h4>
+                  <h4>Inventário</h4>
                   <span class="stock-count">{{ pneusEstoqueFilial.length }}</span>
                 </div>
                 <div class="stock-filters" style="padding: 0 15px 10px;">
@@ -207,16 +215,20 @@
                 <div class="removal-zone sucata-drop" :class="{ 'drag-over': dragOverRemoval }" 
                      @dragover.prevent="dragOverRemoval = true" @dragleave="dragOverRemoval = false" 
                      @drop="handleDropOnRemoval('sucata')">
-                  <span class="icon">🗑️</span>
-                  <span class="label">ARRASTE PARA SUCATA</span>
+                  <span class="icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                  </span>
+                  <span class="label">ARRASTE PARA DESCARTE</span>
                 </div>
              </div>
           </div>
         </div>
         <div v-else class="empty-state" style="border:none; background:transparent;">
           <div class="select-v-prompt">
-            <span class="prompt-icon">🚛</span>
-            <h3>Selecione um veículo para iniciar</h3>
+            <span class="prompt-icon">
+               <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10 17h4V5H2v12h3"/><path d="M20 17h2v-9h-4V5h-4v12h3"/><path d="M10 9h4"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>
+            </span>
+            <h3>Selecione um veículo</h3>
             <p>Utilize a barra de pesquisa à esquerda para selecionar uma placa.</p>
           </div>
         </div>
@@ -516,7 +528,7 @@
       </div>
 
       <div v-else class="empty-state">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 16px;"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M12 7v5l3 3"/></svg>
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 16px;"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
         <p>Nenhuma movimentação encontrada com os filtros atuais.</p>
       </div>
     </section>
@@ -534,7 +546,9 @@
         <div v-for="l in lotesReciclagem" :key="l.id" class="lote-card">
           <div class="lote-header">
             <div class="lote-title">
-              <span class="lote-icon">📦</span>
+              <span class="lote-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 8V21H3V8"></path><path d="M1 3H23V8H1V3Z"></path><path d="M10 12H14"></path></svg>
+              </span>
               <div class="lote-names">
                 <h3>{{ l.numero_lote }}</h3>
                 <span class="lote-date">Envio: {{ new Date(l.data_envio).toLocaleDateString('pt-BR') }}</span>
@@ -1142,14 +1156,14 @@ import {
 } from '../api/gestaoPneus.js'
 
 const tabs = [
-  { id: 'alocacoes', label: 'Alocações', icon: '🚛' },
-  { id: 'veiculos', label: 'Frota', icon: '📦' },
-  { id: 'estoque', label: 'Estoque', icon: '🏷️' },
-  { id: 'sucata', label: 'Sucata', icon: '♻️' },
-  { id: 'recicladora', label: 'Reciclagem', icon: '🏭' },
-  { id: 'financeiro', label: 'Financeiro', icon: '💰' },
-  { id: 'filiais', label: 'Unidades', icon: '🏢' },
-  { id: 'historico', label: 'Histórico', icon: '📜' }
+  { id: 'alocacoes', label: 'Alocações', icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>` },
+  { id: 'veiculos', label: 'Frota', icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 17h4V5H2v12h3"/><path d="M20 17h2v-9h-4V5h-4v12h3"/><path d="M10 9h4"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>` },
+  { id: 'filiais', label: 'Unidades', icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>` },
+  { id: 'estoque', label: 'Estoque', icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 8V21H3V8"></path><path d="M1 3H23V8H1V3Z"></path><path d="M10 12H14"></path></svg>` },
+  { id: 'financeiro', label: 'Financeiro', icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>` },
+  { id: 'sucata', label: 'Sucata', icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>` },
+  { id: 'recicladora', label: 'Reciclagem', icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 20V9c0-2 2-3 4-3s4 1 4 3v11"></path><path d="M14 20V5c0-2 2-3 4-3s4 1 4 3v15"></path><path d="M2 20h20"></path><path d="M22 7l-4-4-4 4"></path></svg>` },
+  { id: 'historico', label: 'Histórico', icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>` }
 ]
 
 const currentTabLabel = computed(() => tabs.find(t => t.id === tab.value)?.label || '')
@@ -1410,7 +1424,19 @@ const statusLabel = (s) => ({ estoque: 'Estoque', em_uso: 'Em Uso', descarte: 'D
 const statusClass = (s) => ({ estoque: 'badge-green', em_uso: 'badge-blue', descarte: 'badge-red', recapagem: 'badge-yellow' }[s] || '')
 const movLabel = (t) => ({ entrada_estoque: 'Entrada', alocacao: 'Alocação', remocao: 'Remoção', descarte: 'Descarte', transferencia: 'Transferência', recapagem: 'Recapagem', recebimento_sucata: 'Confirmação Sucata', rodizio: 'Rodízio / Troca' }[t] || t)
 const movClass = (t) => ({ entrada_estoque: 'badge-green', alocacao: 'badge-blue', remocao: 'badge-yellow', descarte: 'badge-red', transferencia: 'badge-purple', recapagem: 'badge-yellow', recebimento_sucata: 'badge-green', rodizio: 'badge-purple' }[t] || '')
-const movIcon = (t) => ({ entrada_estoque: '📥', alocacao: '🚛', remocao: '🔧', descarte: '🗑️', transferencia: '🔄', recapagem: '♻️', recebimento_sucata: '✅', rodizio: '🔄' }[t] || '📄')
+const movIcon = (t) => {
+  const icons = {
+    entrada_estoque: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m3 16 4 4 4-4"></path><path d="M7 20V4"></path><rect x="12" y="4" width="8" height="8" rx="1"></rect><path d="M12 18h8"></path></svg>`,
+    alocacao: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10 17h4V5H2v12h3"/><path d="M20 17h2v-9h-4V5h-4v12h3"/><path d="M10 9h4"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>`,
+    remocao: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>`,
+    descarte: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>`,
+    transferencia: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 11V7a5 5 0 0 1 10 0v4"></path><path d="M11 21a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V13a2 2 0 0 0-2-2h-6a2 2 0 0 0-2 2v8Z"></path></svg>`,
+    recapagem: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4"></path><path d="m16.2 4.2 2.8 2.8"></path><path d="M12 18v4"></path><path d="m4.9 19.1 2.8-2.8"></path><path d="M2 12h4"></path><path d="m4.2 16.2 2.8-2.8"></path><path d="M18 12h4"></path><path d="m19.1 4.9-2.8 2.8"></path></svg>`,
+    recebimento_sucata: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>`,
+    rodizio: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m17 2 4 4-4 4"></path><path d="M3 11v-1a4 4 0 0 1 4-4h14"></path><path d="m7 22-4-4 4-4"></path><path d="M21 13v1a4 4 0 0 1-4 4H3"></path></svg>`
+  }
+  return icons[t] || `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>`
+}
 const posLabel = (pos, type = null) => {
   if (!pos) return '—'
   
@@ -2017,19 +2043,23 @@ onMounted(loadAll)
 }
 
 .mini-logout {
-  background: #fee2e2;
-  border: none;
-  font-size: 16px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
   cursor: pointer;
   padding: 8px;
-  border-radius: 10px;
+  border-radius: 8px;
   transition: all 0.2s;
-  color: #ef4444;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .mini-logout:hover {
-  background: #fecaca;
-  transform: scale(1.1);
+  background: #fee2e2;
+  border-color: #ef4444;
+  color: #ef4444;
+  transform: translateY(-1px);
 }
 
 /* MAIN CONTENT */
@@ -2069,18 +2099,19 @@ onMounted(loadAll)
 .kpi-box {
   background: #fff;
   padding: 12px 20px;
-  border-radius: 16px;
+  border-radius: 8px;
   border: 1px solid #e2e8f0;
   display: flex;
   flex-direction: column;
-  min-width: 110px;
-  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+  min-width: 120px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
 }
 
 .kpi-n {
-  font-size: 20px;
+  font-size: 24px;
   font-weight: 800;
   color: #1e293b;
+  letter-spacing: -1px;
 }
 
 .kpi-t {
@@ -2098,9 +2129,9 @@ onMounted(loadAll)
 
 .gp-section {
   background: #fff;
-  border-radius: 24px;
+  border-radius: 12px;
   border: 1px solid #e2e8f0;
-  box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
   padding: 24px;
 }
 .gp-section:hover { box-shadow: var(--shadow-md); }
@@ -2239,7 +2270,35 @@ onMounted(loadAll)
 .stock-header h4 { font-size: 14px; font-weight: 700; }
 .stock-count { font-size: 11px; font-weight: 700; color: var(--brand); background: var(--brand-bg); padding: 2px 8px; border-radius: 10px; }
 .search-stock { padding: 0 20px 15px; }
-.stock-input { width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; }
+
+.input-with-icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-icon {
+  position: absolute;
+  left: 10px;
+  color: #94a3b8;
+  pointer-events: none;
+}
+
+.stock-input {
+  width: 100%;
+  padding: 8px 12px 8px 34px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 13px;
+  background: #fff;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.stock-input:focus {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px rgba(196,18,48,0.1);
+  outline: none;
+}
 
 .stock-list { flex: 1; overflow-y: auto; padding: 0 15px; display: flex; flex-direction: column; gap: 10px; }
 .tire-card-stock { 
