@@ -1608,7 +1608,7 @@ async function handleFileUpload(event) {
     if (data.error) {
        alert('Erro na Planilha: ' + data.error)
     } else {
-       alert(`Sucesso! ${data.count} pneus foram importados para o estoque.`)
+       showToast(data.message || `Sucesso! ${data.count} pneus foram processados.`)
        loadPneus()
        refreshDash()
     }

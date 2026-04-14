@@ -289,13 +289,29 @@ def importar_pneus_lote(pneus_data):
     if not pneus_list:
         return {"count": 0, "error": "Nenhum pneu válido encontrado. Verifique se as colunas obrigatórias estão presentes (Fogo, Marca, Medida)."}
 
+    # Busca pneus existentes para identificar duplicatas (evita contar como novo o que já existe)
+    try:
+        p_existentes = _api_request("GET", "gp_pneus", params={"select": "numero_fogo"})
+        fogos_existentes = {str(p["numero_fogo"]).strip().upper() for p in p_existentes} if isinstance(p_existentes, list) else set()
+    except:
+        fogos_existentes = set()
+
+    novos_count = sum(1 for p in pneus_list if p["numero_fogo"] not in fogos_existentes)
+    atualizados_count = len(pneus_list) - novos_count
+
     # Divide em lotes de 100
     chunk_size = 100
     for i in range(0, len(pneus_list), chunk_size):
         chunk = pneus_list[i:i + chunk_size]
         _api_request("POST", "gp_pneus", params={"on_conflict": "numero_fogo"}, payload=chunk)
     
-    return {"count": len(pneus_list), "success": True}
+    msg = f"Importação concluída! {novos_count} pneus novos adicionados"
+    if atualizados_count > 0:
+        msg += f" e {atualizados_count} pneus já existentes foram atualizados."
+    else:
+        msg += "."
+
+    return {"count": len(pneus_list), "novos": novos_count, "atualizados": atualizados_count, "message": msg, "success": True}
 
 def obter_pneu(pneu_id):
     params = {"id": f"eq.{pneu_id}", "select": "*,gp_filiais(nome),gp_veiculos(placa)"}
