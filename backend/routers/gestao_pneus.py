@@ -204,6 +204,9 @@ def get_pneus_template():
     """Gera um CSV modelo para importação de pneus."""
     try:
         output = io.StringIO()
+        # Adiciona BOM para o Excel identificar como UTF-8
+        output.write('\ufeff')
+        
         writer = csv.writer(output, delimiter=';')
         
         # 1. Header
@@ -226,12 +229,15 @@ def get_pneus_template():
             for f in f_list:
                 writer.writerow([f["nome"]])
         except:
-            writer.writerow(["Erro ao carregar filiais. Verifique as configurações do Vercel."])
+             writer.writerow(["Erro ao carregar filiais online"])
 
         return Response(
             content=output.getvalue(),
             media_type="text/csv",
-            headers={"Content-Disposition": "attachment; filename=modelo_importacao_pneus.csv"}
+            headers={
+                "Content-Disposition": "attachment; filename=modelo_importacao_pneus.csv",
+                "Content-Type": "text/csv; charset=utf-8-sig"
+            }
         )
     except Exception as e:
         logger.error(f"Erro ao gerar template: {e}")
