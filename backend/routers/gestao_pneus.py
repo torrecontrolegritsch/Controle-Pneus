@@ -30,13 +30,14 @@ except ImportError:
         obter_relatorio_financeiro_reciclagem, importar_pneus_lote
     )
 try:
-    from backend.db_sqlserver import buscar_veiculo_por_placa
+    from backend.db_sqlserver import buscar_veiculo_por_placa, sincronizar_todos_do_sql
 except ImportError:
     try:
-        from db_sqlserver import buscar_veiculo_por_placa
+        from db_sqlserver import buscar_veiculo_por_placa, sincronizar_todos_do_sql
     except ImportError:
         def buscar_veiculo_por_placa(placa): return None
-        logger.warning("Aviso: Módulo db_sqlserver não encontrado. Busca corporativa desativada.")
+        def sincronizar_todos_do_sql(limite=5000): return {"ok": False, "erro": "Modulo db_sqlserver nao encontrado."}
+        logger.warning("Aviso: Modulo db_sqlserver nao encontrado. Busca e sincronizacao desativadas.")
 
 logger = logging.getLogger(__name__)
 
@@ -184,8 +185,13 @@ def put_veiculo(veiculo_id: int, body: VeiculoIn):
 
 @router.delete("/veiculos/{veiculo_id}")
 def delete_veiculo(veiculo_id: int):
-    desativar_veiculo(veiculo_id)
-    return {"ok": True}
+    try:
+        desativar_veiculo(veiculo_id)
+        return {"ok": True}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # ── PNEUS ──────────────────────────────────────────────────────────────────
@@ -408,32 +414,60 @@ def get_relatorio_financeiro_reciclagem(mes: Optional[str] = Query(None), filial
 
 @router.get("/busca-veiculo-sql/{placa}")
 def get_busca_veiculo_sql(placa: str):
-    """Busca dados de um veículo no SQL Server corporativo ou no banco local pela placa."""
+    """Busca dados de um veiculo pela placa em 3 fontes (prioridade): Supabase → SQL Server → Sistema."""
     try:
-        # 1. Tenta buscar na referência (Supabase ou SQL Server)
-        result = buscar_veiculo_por_placa(placa)
-        
-        # 2. Fallback: Se não encontrou na referência, tenta ver se ele já está cadastrado no sistema
+        placa_limpa = placa.replace("-", "").upper().strip()
+
+        # 1. Tenta buscar na referência (Supabase ou SQL Server corporativo)
+        result = buscar_veiculo_por_placa(placa_limpa)
+
+        # 2. Fallback: veículos já cadastrados no sistema de pneus (gp_veiculos)
         if not result:
-            placa_limpa = placa.replace("-", "").upper().strip()
             veiculos_locais = listar_veiculos(apenas_ativos=False)
-            v_existente = next((v for v in veiculos_locais if v['placa'].replace("-","").upper() == placa_limpa), None)
+            v_existente = next(
+                (v for v in veiculos_locais if v['placa'].replace("-", "").upper() == placa_limpa),
+                None
+            )
             if v_existente:
                 result = {
                     "placa": v_existente['placa'],
                     "modelo": v_existente['modelo'],
                     "marca": v_existente['marca'],
                     "frota": v_existente['frota'],
-                    "tipo": v_existente['tipo']
+                    "tipo": v_existente['tipo'],
+                    "fonte": "sistema"
                 }
 
         if not result:
-            raise HTTPException(status_code=404, detail="Veículo não encontrado nas bases de referência")
-            
+            raise HTTPException(
+                status_code=404,
+                detail="Veiculo nao encontrado. Verifique a placa ou preencha os dados manualmente."
+            )
+
         return result
     except HTTPException as he:
-        # Re-levanta exceções do FastAPI (como o 404 acima)
         raise he
     except Exception as e:
         logger.error(f"Erro ao buscar placa: {e}")
-        raise HTTPException(status_code=500, detail="Erro interno ao consultar banco de veículos")
+        raise HTTPException(status_code=500, detail="Erro interno ao consultar banco de veiculos")
+
+# ── SINCRONIZAÇÃO SQL SERVER → SUPABASE ─────────────────────────────────────
+
+@router.post("/sincronizar-veiculos-sql")
+def post_sincronizar_veiculos(limite: int = 5000):
+    """
+    Sincroniza todos os veiculos do SQL Server corporativo para o Supabase.
+    Execute apenas localmente (requer pymssql e acesso ao SQL Server).
+    Apos a sincronizacao, o Vercel (producao) encontrara os veiculos via Supabase.
+    """
+    try:
+        resultado = sincronizar_todos_do_sql(limite=limite)
+        if not resultado.get("ok"):
+            raise HTTPException(status_code=503, detail=resultado.get("erro", "Sincronizacao falhou."))
+        return resultado
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        logger.error(f"Erro na sincronizacao: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+

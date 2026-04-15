@@ -265,6 +265,22 @@
           <option value="">Todas as filiais</option>
           <option v-for="f in filiais" :key="f.id" :value="f.id">{{ f.nome }}</option>
         </select>
+        <button 
+          class="btn-secondary btn-sync-sql" 
+          @click="doSincronizarSQL"
+          :disabled="sincronizando"
+          title="Sincroniza todos os veículos do SQL Server corporativo para o Supabase (execute com o sistema rodando localmente)"
+        >
+          <svg v-if="!sincronizando" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="17 8 12 3 7 8"/>
+            <line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+          <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation: spin 1s linear infinite">
+            <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+          </svg>
+          {{ sincronizando ? 'Sincronizando...' : 'Sincronizar do SQL' }}
+        </button>
         <button class="btn-primary" @click="openVeiculoForm()">+ Novo Veículo</button>
       </div>
       <div class="table-responsive" v-if="veiculos.length">
@@ -1163,7 +1179,7 @@ import {
   fetchPneusTemplate, importPneusCsv,
   alocarPneu, removerPneu, transferirPneu,
   fetchMovimentacoes, fetchGPDashboard,
-  fetchBuscaVeiculoSql,
+  fetchBuscaVeiculoSql, fetchSincronizarVeiculosSql,
   confirmarRecebimento, rodizioPneu,
   fetchLotesReciclagem, enviarParaReciclagem, atualizarValorLote, fetchRelatorioFinanceiroReciclagem
 } from '../api/gestaoPneus.js'
@@ -1197,6 +1213,7 @@ const pneusGeral = ref([])
 const movs = ref([])
 const vehicleConfigs = ref({})
 const modeloSelecionado = ref(null)
+const sincronizando = ref(false)
 
 // Filters
 const filtroFilialV = ref('')
@@ -1539,13 +1556,13 @@ function openVeiculoForm(v = null) {
 }
 
 async function buscarPlacaSQL() {
-  if (editingVeiculo.value) return; 
+  if (editingVeiculo.value) return;
   let p = veiculoForm.value.placa;
   if (!p || p.length < 7) return;
-  
-  // Normalização para busca
+
+  // Normaliza a placa para busca
   p = p.trim().toUpperCase().replace('-', '');
-  
+
   try {
     const res = await fetchBuscaVeiculoSql(p);
     if (res) {
@@ -1553,18 +1570,23 @@ async function buscarPlacaSQL() {
       if (res.marca) veiculoForm.value.marca = res.marca;
       if (res.frota) veiculoForm.value.frota = res.frota;
       if (res.tipo) veiculoForm.value.tipo = res.tipo;
-      // Normaliza a placa no form para o formato com hífen se o usuário preferir, 
-      // ou mantém como extraído do SQL
       if (res.placa) veiculoForm.value.placa = res.placa;
-      
-      showToast('Veículo encontrado no SQL!', 'success');
+
+      // Mensagem diferenciada por fonte
+      const fonteMsgs = {
+        supabase: 'Dados preenchidos automaticamente ✓',
+        sqlserver: 'Encontrado no SQL corporativo ✓',
+        sistema: 'Dados carregados do cadastro do sistema ✓',
+      };
+      showToast(fonteMsgs[res.fonte] || 'Veiculo encontrado!', 'success');
     }
   } catch (e) {
-    if (e.message && e.message.includes('não encontrado')) {
-      showToast('Veículo não encontrado no SQL corporativo.', 'info');
+    const detail = e.message || '';
+    if (detail.includes('nao encontrado') || detail.includes('n\u00e3o encontrado') || detail.includes('404')) {
+      showToast('Placa n\u00e3o encontrada nas bases. Preencha os dados manualmente.', 'warning');
     } else {
       console.error(e);
-      showToast('Erro ao consultar SQL Server.', 'error');
+      showToast('Erro ao consultar bases de veiculo.', 'error');
     }
   }
 }
@@ -1587,6 +1609,29 @@ async function removeVeiculo(v) {
     loadVeiculos()
     refreshDash()
   } catch(e) { showToast(e.message, 'error') }
+}
+
+async function doSincronizarSQL() {
+  if (sincronizando.value) return
+  if (!confirm('Isso vai buscar TODOS os veículos do SQL Server e salvar no Supabase.\n\nExecute apenas com o sistema rodando localmente com acesso ao SQL corporativo.\n\nContinuar?')) return
+
+  sincronizando.value = true
+  showToast('Sincronizando veículos do SQL Server... aguarde.', 'info')
+
+  try {
+    const res = await fetchSincronizarVeiculosSql(5000)
+    showToast(`✅ ${res.sincronizados} veículos sincronizados para o Supabase!`, 'success')
+    loadVeiculos()
+  } catch (e) {
+    const msg = e.message || ''
+    if (msg.includes('pymssql') || msg.includes('503')) {
+      showToast('SQL Server inacessível. Execute localmente com acesso à rede corporativa.', 'warning')
+    } else {
+      showToast(e.message || 'Erro na sincronização.', 'error')
+    }
+  } finally {
+    sincronizando.value = false
+  }
 }
 
 async function saveVeiculoInline(v) {
@@ -2195,6 +2240,10 @@ onMounted(loadAll)
 .btn-accent:hover { background: var(--brand-mid); color: var(--brand-dark); }
 .btn-danger { color: var(--red); border-color: var(--red3); }
 .btn-danger:hover { background: var(--red2); }
+.btn-sync-sql { display: flex; align-items: center; gap: 6px; color: #0369a1; border-color: #bae6fd; background: #f0f9ff; }
+.btn-sync-sql:hover:not(:disabled) { background: #e0f2fe; border-color: #7dd3fc; }
+.btn-sync-sql:disabled { opacity: 0.6; cursor: not-allowed; }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 .filter-select { padding: 8px 12px; border: 1px solid var(--s4); border-radius: 8px; font-size: 13px; font-weight: 500; background: #fff; color: var(--text); min-width: 160px; box-shadow: var(--shadow-sm); outline: none; transition: 0.2s; }
 .filter-select:focus { border-color: var(--brand); box-shadow: 0 0 0 3px rgba(196,18,48,0.1); }
 
@@ -2399,6 +2448,8 @@ onMounted(loadAll)
 .toast { position: fixed; bottom: 24px; right: 24px; padding: 12px 24px; border-radius: 10px; font-size: 14px; font-weight: 500; color: #fff; z-index: 2000; animation: slideIn .3s ease; box-shadow: 0 8px 24px rgba(0,0,0,.15); }
 .toast.success { background: var(--green); }
 .toast.error { background: var(--red); }
+.toast.warning { background: #d97706; }
+.toast.info { background: #2563eb; }
 @keyframes slideIn { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
 @media (max-width: 768px) {

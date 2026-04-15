@@ -104,6 +104,13 @@ export const fetchGPDashboard = () => get(`${P}/dashboard`)
 
 // Busca SQL Server
 export const fetchBuscaVeiculoSql = (placa) => get(`${P}/busca-veiculo-sql/${placa}`)
+export const fetchSincronizarVeiculosSql = (limite = 5000) =>
+  fetch(`${BASE}${P}/sincronizar-veiculos-sql?limite=${limite}`, { method: 'POST' })
+    .then(async res => {
+      const data = await res.json().catch(() => ({ detail: res.statusText }))
+      if (!res.ok) throw new Error(data.detail || res.statusText)
+      return data
+    })
 
 // Reciclagem e Financeiro
 export const fetchLotesReciclagem = (params = {}) => get(`${P}/reciclagem/lotes`, params)
