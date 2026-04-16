@@ -326,8 +326,8 @@ def obter_pneu(pneu_id):
     res = _api_request("GET", "gp_pneus", params=params)
     if not res: return {}
     p = res[0]
-    p["filial_nome"] = p.get("gp_filiais", {}).get("nome", "")
-    p["veiculo_placa"] = p.get("gp_veiculos", {}).get("placa", "")
+    p["filial_nome"] = (p.get("gp_filiais") or {}).get("nome", "")
+    p["veiculo_placa"] = (p.get("gp_veiculos") or {}).get("placa", "")
     return p
 
 def atualizar_pneu(pneu_id, **kwargs):
