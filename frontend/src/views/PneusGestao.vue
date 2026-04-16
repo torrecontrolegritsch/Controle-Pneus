@@ -1327,7 +1327,37 @@ const filteredStock = computed(() => {
 })
 
 const modelosPreCadastrados = computed(() => {
-  return [] // Carregamento via planilha desativado
+  const defaults = [
+    { marca: 'MICHELIN', modelo: 'X MULTI Z', medida: '295/80R22.5' },
+    { marca: 'BRIDGESTONE', modelo: 'R268', medida: '295/80R22.5' },
+    { marca: 'PIRELLI', modelo: 'FR88', medida: '295/80R22.5' },
+    { marca: 'GOODYEAR', modelo: 'KMAX S', medida: '295/80R22.5' },
+    { marca: 'FIRESTONE', modelo: 'FS440', medida: '295/80R22.5' }
+  ];
+
+  const uniques = new Map();
+  
+  // Adiciona os defaults primeiro
+  defaults.forEach(d => {
+    uniques.set(`${d.marca}|${d.modelo}|${d.medida}`, d);
+  });
+
+  // Lê os pneus carregados do banco e extrai as combinações já usadas
+  pneus.value.forEach(p => {
+    if (p.marca && p.medida) {
+      const marca = p.marca.toUpperCase().trim();
+      const modelo = p.modelo ? p.modelo.toUpperCase().trim() : '';
+      const medida = p.medida.toUpperCase().trim();
+      
+      const key = `${marca}|${modelo}|${medida}`;
+      if (!uniques.has(key)) {
+        uniques.set(key, { marca, modelo, medida });
+      }
+    }
+  });
+
+  // Retorna em ordem alfabética por Marca
+  return Array.from(uniques.values()).sort((a, b) => a.marca.localeCompare(b.marca));
 })
 
 const filteredMovs = computed(() => {
