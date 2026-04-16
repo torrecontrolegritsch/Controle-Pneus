@@ -72,7 +72,8 @@ def main():
     cursor = conn.cursor(as_dict=True)
     cursor.execute(
         f"SELECT TOP {args.limite} "
-        f"Placa as placa, Modelo as modelo, Montadora as marca, CAST(IdVeiculo AS VARCHAR) as frota "
+        f"Placa as placa, Modelo as modelo, Montadora as marca, CAST(IdVeiculo AS VARCHAR) as frota, "
+        f"ISNULL(OdometroConfirmado, 0) as km_atual "
         f"FROM Veiculos WHERE Placa IS NOT NULL AND Placa != '' ORDER BY IdVeiculo DESC"
     )
     rows = cursor.fetchall()
@@ -97,6 +98,7 @@ def main():
             "modelo": str(r.get("modelo", "") or "").strip(),
             "marca": str(r.get("marca", "") or "").strip(),
             "frota": str(r.get("frota", "") or "").strip(),
+            "km_atual": float(r.get("km_atual") or 0)
         })
 
     print(f"[INFO] {len(payload)} veiculos unicos apos remocao de duplicatas.")
