@@ -1620,6 +1620,11 @@ async function buscarPlacaSQL() {
       if (res.tipo) veiculoForm.value.tipo = res.tipo;
       if (res.placa) veiculoForm.value.placa = res.placa;
       if (res.km_atual && res.km_atual > 0) veiculoForm.value.km_atual = res.km_atual;
+      if (res.filial_nome) {
+        // Encontra uma filial onde o nome bata parcialmente com o que vem do SQL
+        const f = filiais.value.find(fi => fi.nome.toUpperCase().includes(res.filial_nome.toUpperCase()) || res.filial_nome.toUpperCase().includes(fi.nome.toUpperCase()));
+        if (f) veiculoForm.value.filial_id = f.id;
+      }
 
       // Mensagem diferenciada por fonte
       const fonteMsgs = {
