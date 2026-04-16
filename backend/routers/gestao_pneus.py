@@ -68,6 +68,7 @@ class VeiculoIn(BaseModel):
     marca: str = ""
     tipo: str = "truck"
     filial_id: Optional[int] = None
+    km_atual: Optional[float] = None
 
 class PneuIn(BaseModel):
     numero_fogo: str
@@ -162,6 +163,7 @@ def post_veiculo(body: VeiculoIn):
         return criar_veiculo(
             placa=body.placa, frota=body.frota, modelo=body.modelo,
             marca=body.marca, tipo=body.tipo, filial_id=body.filial_id,
+            km_atual=body.km_atual or 0,
         )
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -175,10 +177,11 @@ def get_veiculo_detail(veiculo_id: int):
 
 @router.put("/veiculos/{veiculo_id}")
 def put_veiculo(veiculo_id: int, body: VeiculoIn):
-    result = atualizar_veiculo(
-        veiculo_id, placa=body.placa, frota=body.frota, modelo=body.modelo,
-        marca=body.marca, tipo=body.tipo, filial_id=body.filial_id,
-    )
+    update_data = dict(placa=body.placa, frota=body.frota, modelo=body.modelo,
+                       marca=body.marca, tipo=body.tipo, filial_id=body.filial_id)
+    if body.km_atual is not None:
+        update_data["km_atual"] = body.km_atual
+    result = atualizar_veiculo(veiculo_id, **update_data)
     if not result:
         raise HTTPException(status_code=404, detail="Veículo não encontrado")
     return result

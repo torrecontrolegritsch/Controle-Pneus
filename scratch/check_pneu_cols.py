@@ -1,0 +1,27 @@
+import os
+import requests
+import json
+from dotenv import load_dotenv
+
+load_dotenv()
+
+project_id = "dpvdjldocvdsdgvmnsvu"
+supa_url = f"https://{project_id}.supabase.co"
+supa_key = os.getenv("SUPABASE_KEY")
+
+api_url = f"{supa_url}/rest/v1/gp_pneus"
+headers = {
+    "apikey": supa_key,
+    "Authorization": f"Bearer {supa_key}",
+    "Range": "0-0"
+}
+
+response = requests.get(api_url, headers=headers)
+if response.status_code == 200:
+    data = response.json()
+    if data:
+        print("Keys in gp_pneus:", list(data[0].keys()))
+    else:
+        print("No tires found")
+else:
+    print("Error:", response.status_code, response.text)

@@ -36,6 +36,7 @@ def _salvar_no_supabase(dados: dict):
         "modelo": dados.get("modelo", ""),
         "marca": dados.get("marca", ""),
         "frota": str(dados.get("frota", "")),
+        "km_atual": float(dados.get("km_atual") or 0),
     }
 
     try:
@@ -108,7 +109,8 @@ def buscar_veiculo_por_placa(placa: str):
         cursor = conn.cursor(as_dict=True)
         query = (
             "SELECT TOP 1 Placa as placa, Modelo as modelo, Montadora as marca, "
-            "CAST(IdVeiculo AS VARCHAR) as frota "
+            "CAST(IdVeiculo AS VARCHAR) as frota, "
+            "ISNULL(OdometroComfirmado, 0) as km_atual "
             "FROM Veiculos WHERE Placa = %s OR Placa = %s"
         )
         cursor.execute(query, (placa_limpa, placa_hifen))
@@ -162,7 +164,9 @@ def sincronizar_todos_do_sql(limite: int = 5000) -> dict:
         cursor = conn.cursor(as_dict=True)
         cursor.execute(
             f"SELECT TOP {limite} Placa as placa, Modelo as modelo, Montadora as marca, "
-            f"CAST(IdVeiculo AS VARCHAR) as frota FROM Veiculos WHERE Placa IS NOT NULL AND Placa != ''"
+            f"CAST(IdVeiculo AS VARCHAR) as frota, "
+            f"ISNULL(OdometroComfirmado, 0) as km_atual "
+            f"FROM Veiculos WHERE Placa IS NOT NULL AND Placa != '' ORDER BY IdVeiculo DESC"
         )
         rows = cursor.fetchall()
         conn.close()
@@ -181,6 +185,7 @@ def sincronizar_todos_do_sql(limite: int = 5000) -> dict:
                 "modelo": str(r.get("modelo", "") or "").strip(),
                 "marca": str(r.get("marca", "") or "").strip(),
                 "frota": str(r.get("frota", "") or "").strip(),
+                "km_atual": float(r.get("km_atual") or 0),
             })
 
         # Envia em lotes de 200 para o Supabase

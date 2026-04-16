@@ -165,7 +165,8 @@ def criar_veiculo(placa, frota="", modelo="", marca="", tipo="truck", filial_id=
     payload = {
         "placa": placa.strip().upper().replace("-",""),
         "frota": str(frota).strip(), "modelo": str(modelo).strip(),
-        "marca": str(marca).strip(), "tipo": tipo, "filial_id": f_id, "km_atual": float(km_atual or 0)
+        "marca": str(marca).strip(), "tipo": tipo, "filial_id": f_id, "km_atual": float(km_atual or 0),
+        "ativo": 1
     }
     res = _api_request("POST", "gp_veiculos", params={"on_conflict": "placa"}, payload=payload)
     return res[0] if res and isinstance(res, list) else (res if res else {})
@@ -187,6 +188,11 @@ def obter_veiculo_com_pneus(veiculo_id):
     return veiculo
 
 def desativar_veiculo(veiculo_id):
+    # Verifica se há pneus em uso no veículo
+    pneus = listar_pneus(veiculo_id=veiculo_id, status="em_uso")
+    if pneus and len(pneus) > 0:
+        raise ValueError(f"Não é possível excluir este veículo pois ele possui {len(pneus)} pneu(s) alocado(s). Desinstale os pneus antes de excluir.")
+    
     return _api_request("PATCH", "gp_veiculos", params={"id": f"eq.{veiculo_id}"}, payload={"ativo": 0})
 
 # ── PNEUS ──────────────────────────────────────────────────────────────────
@@ -341,31 +347,46 @@ def remover_pneu(pneu_id, destino="estoque", km_momento=0, observacao="", filial
     current = obter_pneu(pneu_id)
     veiculo_id = current.get("veiculo_id")
     posicao = current.get("posicao")
-    
-    # 2. Atualiza o status do pneu
-    new_status = destino if destino in ("descarte", "recapagem") else "estoque"
+
+    # 2. Resolve filial destino — nunca deixa null para não quebrar constraint
     f_dest_id = int(filial_destino_id) if filial_destino_id and str(filial_destino_id).isdigit() else None
-    
+
+    if not f_dest_id:
+        # Tenta usara filial do próprio pneu
+        f_dest_id = current.get("filial_id")
+
+    if not f_dest_id and veiculo_id:
+        # Busca a filial do veículo onde o pneu está instalado
+        v_res = _api_request("GET", "gp_veiculos", params={"id": f"eq.{veiculo_id}", "select": "filial_id"})
+        if v_res and isinstance(v_res, list) and v_res[0].get("filial_id"):
+            f_dest_id = v_res[0]["filial_id"]
+
+    # 3. Atualiza o status do pneu
+    new_status = destino if destino in ("descarte", "recapagem") else "estoque"
+
     payload = {"status": new_status, "veiculo_id": None, "posicao": None}
-    if f_dest_id: payload["filial_id"] = f_dest_id
-    
+    if f_dest_id:
+        payload["filial_id"] = f_dest_id
+
     _api_request("PATCH", "gp_pneus", params={"id": f"eq.{pneu_id}"}, payload=payload)
-    
-    # 3. Registra a movimentação com o contexto completo (de onde saiu -> para onde foi)
+
+    # 4. Registra a movimentação com contexto completo
     _registrar_movimentacao(
-        pneu_id, 
-        "remocao", 
-        veiculo_id=veiculo_id, 
-        posicao=posicao, 
-        km_momento=km_momento, 
+        pneu_id,
+        "remocao",
+        veiculo_id=veiculo_id,
+        posicao=posicao,
+        km_momento=km_momento,
         observacao=observacao,
-        filial_id=f_dest_id
+        filial_id=f_dest_id,
+        filial_destino_id=f_dest_id,
     )
-    
+
     return obter_pneu(pneu_id)
 
 def _registrar_movimentacao(pneu_id, tipo, **kw):
     f_id = int(kw.get("filial_id")) if kw.get("filial_id") and str(kw.get("filial_id")).isdigit() else None
+    f_dest_id = int(kw.get("filial_destino_id")) if kw.get("filial_destino_id") and str(kw.get("filial_destino_id")).isdigit() else f_id
     
     payload = {
         "pneu_id": pneu_id, "tipo": tipo,
@@ -374,7 +395,7 @@ def _registrar_movimentacao(pneu_id, tipo, **kw):
         "km_momento": float(kw.get("km_momento", 0)),
         "observacao": kw.get("observacao", ""),
         "filial_id": f_id,             # Filial onde ocorreu (obrigatório se houver RLS)
-        "filial_destino_id": f_id       # No caso de remoção/transferência
+        "filial_destino_id": f_dest_id   # No caso de remoção/transferência
     }
     return _api_request("POST", "gp_movimentacoes", payload=payload)
 

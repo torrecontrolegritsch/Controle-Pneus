@@ -738,6 +738,16 @@
           </div>
         </div>
 
+        <div class="form-row">
+          <div class="form-group">
+            <label style="display:flex;justify-content:space-between;align-items:center;">
+              KM Odômetro Confirmado
+              <span style="font-size:10px;color:var(--s5);font-weight:400;">preenchido automático via SQL</span>
+            </label>
+            <input type="number" v-model.number="veiculoForm.km_atual" placeholder="0" min="0" />
+          </div>
+        </div>
+
         <!-- Preview da Configuração -->
         <div class="config-preview-box" v-if="veiculoForm.tipo && vehicleConfigs[veiculoForm.tipo]">
           <div class="preview-info">
@@ -1520,7 +1530,13 @@ async function loadAll() {
   loadPneusGeral()
   loadMovs()
 }
-async function loadVeiculos() { try { veiculos.value = await fetchVeiculos({ filial_id: filtroFilialV.value }) } catch(e) { console.error(e) } }
+async function loadVeiculos() { 
+  try { 
+    const v = await fetchVeiculos({ filial_id: filtroFilialV.value })
+    // Filtra apenas veículos que possuem frota preenchida para manter a lista limpa
+    veiculos.value = (v || []).filter(item => item.frota && item.frota.trim() !== '')
+  } catch(e) { console.error(e) } 
+}
 async function loadPneus() { try { pneusList.value = await fetchPneusList({ filial_id: filtroFilialP.value, status: filtroStatus.value }) } catch(e) { console.error(e) } }
 async function loadPneusGeral() { try { pneusGeral.value = await fetchPneusList({}) } catch(e) { console.error(e) } }
 async function loadMovs() { try { movs.value = await fetchMovimentacoes({ tipo: filtroTipoMov.value }) } catch(e) { console.error(e) } }
@@ -1551,7 +1567,9 @@ async function removeFilial(f) {
 // Veículos CRUD
 function openVeiculoForm(v = null) {
   editingVeiculo.value = v
-  veiculoForm.value = v ? { placa: v.placa, frota: v.frota || '', modelo: v.modelo || '', marca: v.marca || '', tipo: v.tipo || 'truck', filial_id: v.filial_id } : { placa: '', frota: '', modelo: '', marca: '', tipo: 'truck', filial_id: null }
+  veiculoForm.value = v
+    ? { placa: v.placa, frota: v.frota || '', modelo: v.modelo || '', marca: v.marca || '', tipo: v.tipo || 'truck', filial_id: v.filial_id, km_atual: v.km_atual || 0 }
+    : { placa: '', frota: '', modelo: '', marca: '', tipo: 'truck', filial_id: null, km_atual: 0 }
   showVeiculoModal.value = true
 }
 
@@ -1571,6 +1589,7 @@ async function buscarPlacaSQL() {
       if (res.frota) veiculoForm.value.frota = res.frota;
       if (res.tipo) veiculoForm.value.tipo = res.tipo;
       if (res.placa) veiculoForm.value.placa = res.placa;
+      if (res.km_atual && res.km_atual > 0) veiculoForm.value.km_atual = res.km_atual;
 
       // Mensagem diferenciada por fonte
       const fonteMsgs = {
