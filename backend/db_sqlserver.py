@@ -110,7 +110,7 @@ def buscar_veiculo_por_placa(placa: str):
         query = (
             "SELECT TOP 1 Placa as placa, Modelo as modelo, Montadora as marca, "
             "CAST(IdVeiculo AS VARCHAR) as frota, "
-            "ISNULL(OdometroComfirmado, 0) as km_atual "
+            "ISNULL(OdometroConfirmado, 0) as km_atual "
             "FROM Veiculos WHERE Placa = %s OR Placa = %s"
         )
         cursor.execute(query, (placa_limpa, placa_hifen))
@@ -165,7 +165,7 @@ def sincronizar_todos_do_sql(limite: int = 5000) -> dict:
         cursor.execute(
             f"SELECT TOP {limite} Placa as placa, Modelo as modelo, Montadora as marca, "
             f"CAST(IdVeiculo AS VARCHAR) as frota, "
-            f"ISNULL(OdometroComfirmado, 0) as km_atual "
+            f"ISNULL(OdometroConfirmado, 0) as km_atual "
             f"FROM Veiculos WHERE Placa IS NOT NULL AND Placa != '' ORDER BY IdVeiculo DESC"
         )
         rows = cursor.fetchall()

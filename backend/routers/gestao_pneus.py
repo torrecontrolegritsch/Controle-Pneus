@@ -182,9 +182,9 @@ def put_veiculo(veiculo_id: int, body: VeiculoIn):
     if body.km_atual is not None:
         update_data["km_atual"] = body.km_atual
     result = atualizar_veiculo(veiculo_id, **update_data)
-    if not result:
+    if result is None or result is False:
         raise HTTPException(status_code=404, detail="Veículo não encontrado")
-    return result
+    return result or {"ok": True}
 
 @router.delete("/veiculos/{veiculo_id}")
 def delete_veiculo(veiculo_id: int):
