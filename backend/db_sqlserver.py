@@ -37,6 +37,7 @@ def _salvar_no_supabase(dados: dict):
         "marca": dados.get("marca", ""),
         "frota": str(dados.get("frota", "")),
         "km_atual": float(dados.get("km_atual") or 0),
+        "filial_nome": str(dados.get("filial_nome", "") or "").strip()
     }
 
     try:
@@ -58,41 +59,16 @@ def _salvar_no_supabase(dados: dict):
 
 def buscar_veiculo_por_placa(placa: str):
     """
-    Busca dados do veículo (Placa, Modelo, Marca, Frota).
-    Ordem de prioridade:
-    1. Supabase (veiculos_referencia) — sempre tentado, disponível via HTTPS.
-    2. SQL Server corporativo — apenas local (Windows), falha silenciosamente em produção.
-       → Quando encontrado, automaticamente salva no Supabase para cache futuro.
+    Busca dados do veículo AO VIVO direto do SQL Server Corporativo.
+    Garante que os dados (Odômetro e Filial) estejam sempre 100% atualizados,
+    sem depender de sincronismo de cache. Funciona no Vercel via pytds.
     """
     placa_limpa = placa.replace("-", "").upper().strip()
     placa_hifen = f"{placa_limpa[:3]}-{placa_limpa[3:]}" if len(placa_limpa) == 7 else placa_limpa
 
-    # --- 1. BUSCA NO SUPABASE (Sempre disponível via HTTPS — funciona no Vercel) ---
+    # --- BUSCA DIRETA NO SQL SERVER ---
     try:
-        supa_key = os.getenv("SUPABASE_KEY")
-        if supa_key:
-            api_url = f"{SUPABASE_URL}/rest/v1/{SUPA_TABLE}"
-            params = {
-                "placa": f"in.({placa_limpa},{placa_hifen})",
-                "select": "*",
-            }
-            headers = {"apikey": supa_key, "Authorization": f"Bearer {supa_key}"}
-            res = requests.get(api_url, headers=headers, params=params, timeout=10)
-
-            if res.status_code == 200:
-                data = res.json()
-                if data:
-                    row = data[0]
-                    logger.info(f"Veiculo {placa_limpa} encontrado no Supabase.")
-                    row["tipo"] = "bitruck" if "BITRUCK" in str(row.get("modelo", "")).upper() else "simples"
-                    row["fonte"] = "supabase"
-                    return row
-    except Exception as e:
-        logger.warning(f"Falha ao buscar no Supabase: {e}")
-
-    # --- 2. BUSCA NO SQL SERVER (Funciona apenas localmente com pymssql instalado) ---
-    try:
-        import pymssql
+        import pytds
 
         host = os.getenv("SQLSERVER_HOST", "bi.bluefleet.com.br").replace('"', "")
         port_val = os.getenv("SQLSERVER_PORT", "1433").replace('"', "")
@@ -101,12 +77,12 @@ def buscar_veiculo_por_placa(placa: str):
         password = os.getenv("SQLSERVER_PASSWORD", "JSoo2iS*hdfbs5f2gdsf").replace('"', "")
         db = os.getenv("SQLSERVER_DB", "referencia").replace('"', "")
 
-        logger.info(f"Buscando {placa_limpa} no SQL Server corporativo...")
-        conn = pymssql.connect(
+        logger.info(f"Buscando {placa_limpa} ao vivo no SQL Server corporativo...")
+        conn = pytds.connect(
             server=host, user=user, password=password,
             database=db, port=port, login_timeout=5, timeout=10,
         )
-        cursor = conn.cursor(as_dict=True)
+        cursor = conn.cursor()
         query = (
             "SELECT TOP 1 Placa as placa, Modelo as modelo, Montadora as marca, "
             "CAST(IdVeiculo AS VARCHAR) as frota, "
@@ -116,22 +92,27 @@ def buscar_veiculo_por_placa(placa: str):
         )
         cursor.execute(query, (placa_limpa, placa_hifen))
         row = cursor.fetchone()
+        
+        if row:
+            # Transforma array em dict
+            columns = [col[0].lower() for col in cursor.description]
+            row_dict = dict(zip(columns, row))
+            
+            logger.info(f"Veiculo {placa_limpa} retornado pelo SQL Server.")
+            row_dict["tipo"] = "bitruck" if "BITRUCK" in str(row_dict.get("modelo", "")).upper() else "simples"
+            row_dict["fonte"] = "sqlserver"
+            
+            conn.close()
+            return row_dict
+            
         conn.close()
 
-        if row:
-            logger.info(f"Veiculo {placa_limpa} encontrado no SQL Server.")
-            row["tipo"] = "bitruck" if "BITRUCK" in str(row.get("modelo", "")).upper() else "simples"
-            row["fonte"] = "sqlserver"
-
-            # ✅ CACHE: Salva automaticamente no Supabase para funcionar no Vercel nas próximas buscas
-            _salvar_no_supabase(row)
-
-            return row
     except ImportError:
-        logger.warning("pymssql nao instalado. SQL Server indisponivel.")
+        logger.warning("pytds nao instalado. Driver puro de SQL indisponivel.")
     except Exception as e:
-        logger.warning(f"SQL Server inacessivel: {e}")
+        logger.warning(f"SQL Server inacessivel ou erro de query: {e}")
 
+    # Fallback silencioso não existe mais: só retorna None. Cuidamos do fallback do sistema no router.
     return None
 
 

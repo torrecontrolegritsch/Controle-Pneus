@@ -704,10 +704,18 @@
         
         <div class="form-row">
           <div class="form-group">
-            <label style="display: flex; justify-content: space-between;">
-              Placa 
-              <span v-if="!editingVeiculo && veiculoForm.placa && veiculoForm.placa.length >= 7" 
-                    @click="buscarPlacaSQL()" 
+            <label style="display: flex; justify-content: space-between; align-items: center;">
+              Placa
+              <span v-if="buscandoPlaca"
+                    style="color: var(--brand); font-size: 11px; display:flex; align-items:center; gap:4px;">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                     style="animation: spin 1s linear infinite;">
+                  <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                </svg>
+                Buscando...
+              </span>
+              <span v-else-if="!editingVeiculo && veiculoForm.placa && veiculoForm.placa.replace('-','').length >= 7"
+                    @click="buscarPlacaSQL()"
                     style="color: var(--brand); cursor: pointer; text-transform: none; font-size: 11px;">
                 🔍 Autocompletar (SQL)
               </span>
@@ -730,8 +738,12 @@
             </select>
           </div>
           <div class="form-group">
-            <label>Filial Responsável</label>
-            <select v-model="veiculoForm.filial_id">
+            <label style="display:flex; justify-content:space-between; align-items:center;">
+              Filial Responsável
+              <span v-if="autoPreenchido.filial" style="font-size:10px; color:#16a34a; font-weight:600;">✓ preenchido via SQL</span>
+            </label>
+            <select v-model="veiculoForm.filial_id"
+                    :style="autoPreenchido.filial ? 'border-color:#16a34a; background:#f0fdf4;' : ''">
               <option :value="null">— Selecione —</option>
               <option v-for="f in filiais" :key="f.id" :value="f.id">{{ f.nome }}</option>
             </select>
@@ -742,9 +754,11 @@
           <div class="form-group">
             <label style="display:flex;justify-content:space-between;align-items:center;">
               KM Odômetro Confirmado
-              <span style="font-size:10px;color:var(--s5);font-weight:400;">preenchido automático via SQL</span>
+              <span v-if="autoPreenchido.km" style="font-size:10px; color:#16a34a; font-weight:600;">✓ preenchido via SQL</span>
+              <span v-else style="font-size:10px;color:var(--s5);font-weight:400;">preenchido automático via SQL</span>
             </label>
-            <input type="number" v-model.number="veiculoForm.km_atual" placeholder="0" min="0" />
+            <input type="number" v-model.number="veiculoForm.km_atual" placeholder="0" min="0"
+                   :style="autoPreenchido.km ? 'border-color:#16a34a; background:#f0fdf4;' : ''" />
           </div>
         </div>
 
@@ -1260,6 +1274,8 @@ const valorLoteCtx = ref(null)
 const fileInput = ref(null)
 const filialForm = ref({ nome: '', estado: '' })
 const veiculoForm = ref({ placa: '', frota: '', modelo: '', marca: '', tipo: 'truck', filial_id: null })
+const buscandoPlaca = ref(false)
+const autoPreenchido = ref({ km: false, filial: false })
 const pneuForm = ref({ numero_fogo: '', marca: '', modelo: '', medida: '', dot: '', valor: 0, vida: 1, filial_id: null, sulco_atual: 0 })
 const reciclagemForm = ref({ data_envio: new Date().toISOString().split('T')[0], observacao: '' })
 const valorLoteForm = ref({ valor_total: 0 })
@@ -1606,42 +1622,78 @@ function openVeiculoForm(v = null) {
 async function buscarPlacaSQL() {
   if (editingVeiculo.value) return;
   let p = veiculoForm.value.placa;
-  if (!p || p.length < 7) return;
+  if (!p || p.replace('-', '').length < 7) return;
 
-  // Normaliza a placa para busca
+  // Normaliza a placa
   p = p.trim().toUpperCase().replace('-', '');
+
+  buscandoPlaca.value = true;
+  autoPreenchido.value = { km: false, filial: false };
 
   try {
     const res = await fetchBuscaVeiculoSql(p);
     if (res) {
       if (res.modelo) veiculoForm.value.modelo = res.modelo;
-      if (res.marca) veiculoForm.value.marca = res.marca;
-      if (res.frota) veiculoForm.value.frota = res.frota;
-      if (res.tipo) veiculoForm.value.tipo = res.tipo;
-      if (res.placa) veiculoForm.value.placa = res.placa;
-      if (res.km_atual && res.km_atual > 0) veiculoForm.value.km_atual = res.km_atual;
-      if (res.filial_nome) {
-        // Encontra uma filial onde o nome bata parcialmente com o que vem do SQL
-        const f = filiais.value.find(fi => fi.nome.toUpperCase().includes(res.filial_nome.toUpperCase()) || res.filial_nome.toUpperCase().includes(fi.nome.toUpperCase()));
-        if (f) veiculoForm.value.filial_id = f.id;
+      if (res.marca)  veiculoForm.value.marca  = res.marca;
+      if (res.frota)  veiculoForm.value.frota  = res.frota;
+      if (res.tipo)   veiculoForm.value.tipo   = res.tipo;
+      if (res.placa)  veiculoForm.value.placa  = res.placa;
+
+      // ── KM Odômetro ──────────────────────────────────────────────────
+      if (res.km_atual && Number(res.km_atual) > 0) {
+        veiculoForm.value.km_atual = Number(res.km_atual);
+        autoPreenchido.value.km = true;
       }
 
-      // Mensagem diferenciada por fonte
+      // ── Filial Operacional (matching inteligente) ─────────────────────
+      if (res.filial_nome) {
+        const normalizar = (s) => s.toUpperCase()
+          .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // remove acentos
+          .replace(/[^A-Z0-9\s]/g, '')
+          .trim();
+        const nomeSql = normalizar(res.filial_nome);
+
+        // 1. Tentativa: qualquer palavra da filial SQL está contida no cadastro
+        let f = filiais.value.find(fi => {
+          const nomeCad = normalizar(fi.nome);
+          return nomeCad.includes(nomeSql) || nomeSql.includes(nomeCad);
+        });
+
+        // 2. Fallback: pelo menos 1 palavra significativa (>= 4 letras) em comum
+        if (!f) {
+          const palavrasSql = nomeSql.split(/\s+/).filter(w => w.length >= 4);
+          f = filiais.value.find(fi => {
+            const nomeCad = normalizar(fi.nome);
+            return palavrasSql.some(w => nomeCad.includes(w));
+          });
+        }
+
+        if (f) {
+          veiculoForm.value.filial_id = f.id;
+          autoPreenchido.value.filial = true;
+        } else {
+          // Exibe o nome retornado pelo SQL para o usuário selecionar manualmente
+          showToast(`Filial "${res.filial_nome}" não encontrada no cadastro. Selecione manualmente.`, 'warning');
+        }
+      }
+
       const fonteMsgs = {
-        supabase: 'Dados preenchidos automaticamente ✓',
-        sqlserver: 'Encontrado no SQL corporativo ✓',
-        sistema: 'Dados carregados do cadastro do sistema ✓',
+        supabase:   '✅ Dados preenchidos via Supabase',
+        sqlserver:  '✅ Dados preenchidos via SQL Server corporativo',
+        sistema:    '✅ Dados carregados do cadastro do sistema',
       };
-      showToast(fonteMsgs[res.fonte] || 'Veiculo encontrado!', 'success');
+      showToast(fonteMsgs[res.fonte] || '✅ Veículo encontrado!', 'success');
     }
   } catch (e) {
     const detail = e.message || '';
-    if (detail.includes('nao encontrado') || detail.includes('n\u00e3o encontrado') || detail.includes('404')) {
-      showToast('Placa n\u00e3o encontrada nas bases. Preencha os dados manualmente.', 'warning');
+    if (detail.includes('nao encontrado') || detail.includes('não encontrado') || detail.includes('404')) {
+      showToast('Placa não encontrada nas bases. Preencha os dados manualmente.', 'warning');
     } else {
       console.error(e);
-      showToast('Erro ao consultar bases de veiculo.', 'error');
+      showToast('Erro ao consultar bases de veículo.', 'error');
     }
+  } finally {
+    buscandoPlaca.value = false;
   }
 }
 
