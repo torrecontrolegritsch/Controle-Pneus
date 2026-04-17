@@ -201,7 +201,11 @@
                 <div class="stock-list" @dragover.prevent @drop="handleDropOnRemoval('estoque')">
                   <div v-for="p in filteredStock" :key="p.id" 
                        class="tire-card-stock" 
-                       :class="{ 'tire-pending': p.recebido === 0, 'tire-new': (Number(p.vida) == 1 || String(p.vida).startsWith('1')) && p.recebido === 1 }"
+                       :class="{ 
+                         'tire-pending': p.recebido === 0, 
+                         'tire-new': p.recebido === 1 && (p.km_total || 0) <= 0 && (Number(p.vida) == 1 || String(p.vida).startsWith('1')),
+                         'tire-used': p.recebido === 1 && (p.km_total || 0) > 0
+                       }"
                        draggable="true" @dragstart="handleDragStartFromStock($event, p)">
                     <div class="tire-mini-visual"></div>
                     <div class="tire-card-info">
@@ -2494,6 +2498,9 @@ onMounted(loadAll)
 .tire-card-stock.tire-pending::after { content: 'PENDENTE'; position: absolute; bottom: 4px; right: 8px; font-size: 8px; font-weight: 800; color: #ef4444; }
 .tire-card-stock.tire-new { border: 2px solid #22c55e; background: #f0fdf4; position: relative; }
 .tire-card-stock.tire-new::after { content: 'NOVO'; position: absolute; bottom: 4px; right: 8px; font-size: 8px; font-weight: 800; color: #22c55e; }
+
+.tire-card-stock.tire-used { border: 2px solid #ef4444; background: #fef2f2; position: relative; }
+.tire-card-stock.tire-used::after { content: 'USADO'; position: absolute; bottom: 4px; right: 8px; font-size: 8px; font-weight: 800; color: #ef4444; }
 .tire-mini-visual { 
   width: 24px; height: 56px; 
   background: linear-gradient(to right, #1a1a1a 0%, #4a4a4a 50%, #1a1a1a 100%);
