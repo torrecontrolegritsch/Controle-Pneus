@@ -1405,7 +1405,13 @@ async function handleDropOnSlot(pos) {
         return
       }
       alocarCtx.value = { fromEixo: true, posicao: pos }
-      alocarForm.value = { pneu_id: p.id, veiculo_id: veiculoDetail.value.id, posicao: pos, km_instalacao: 0, observacao: 'Montado via diagrama' }
+      alocarForm.value = { 
+        pneu_id: p.id, 
+        veiculo_id: veiculoDetail.value.id, 
+        posicao: pos, 
+        km_instalacao: veiculoDetail.value.km_atual || 0, 
+        observacao: 'Montado via diagrama' 
+      }
       showAlocarModal.value = true
     } 
     else if (source === 'vehicle') {
@@ -1839,7 +1845,13 @@ async function handleFileUpload(event) {
 // Alocar
 function openAlocarModal(p) {
   alocarCtx.value = { fromEixo: false, posicao: '' }
-  alocarForm.value = { pneu_id: p.id, veiculo_id: null, posicao: '', km_instalacao: 0, observacao: '' }
+  alocarForm.value = { 
+    pneu_id: p.id, 
+    veiculo_id: veiculoDetail.value?.id || null, 
+    posicao: '', 
+    km_instalacao: veiculoDetail.value?.km_atual || 0, 
+    observacao: '' 
+  }
   showAlocarModal.value = true
 }
 async function loadPosDisponiveis() {
@@ -1855,6 +1867,11 @@ async function loadPosDisponiveis() {
   } catch(e) { posDisponiveis.value = [] }
 }
 async function doAlocar() {
+  const v = veiculos.value.find(x => x.id === alocarForm.value.veiculo_id)
+  if (v && alocarForm.value.km_instalacao < (v.km_atual || 0)) {
+    if (!confirm(`Atenção: O KM informado (${alocarForm.value.km_instalacao}) é menor que o KM atual do veículo (${v.km_atual}). Deseja continuar mesmo assim?`)) return
+  }
+
   try {
     await alocarPneu(alocarForm.value)
     showAlocarModal.value = false
@@ -1873,6 +1890,11 @@ function openRemoverModal(p) {
   showRemoverModal.value = true
 }
 async function doRemover() {
+  const v = veiculoDetail.value
+  if (v && removerForm.value.km_momento < (v.km_atual || 0)) {
+     if (!confirm(`Atenção: O KM informado (${removerForm.value.km_momento}) é menor que o KM atual do veículo (${v.km_atual}). Deseja continuar mesmo assim?`)) return
+  }
+
   try {
     await removerPneu({ pneu_id: removerCtx.value.id, ...removerForm.value })
     showRemoverModal.value = false
@@ -1887,6 +1909,11 @@ async function doRemover() {
 
 async function doRodizio() {
   try {
+    const v = veiculoDetail.value
+    if (v && rodizioForm.value.km_momento < (v.km_atual || 0)) {
+       showToast(`KM do rodízio (${rodizioForm.value.km_momento}) não pode ser menor que o atual do veículo (${v.km_atual}).`, 'error')
+       return
+    }
     if (rodizioForm.value.km_momento <= 0) {
       showToast('Por favor, informe um KM válido.', 'error')
       return
