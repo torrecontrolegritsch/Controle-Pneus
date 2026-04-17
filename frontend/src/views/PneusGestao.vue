@@ -1014,7 +1014,22 @@
             <option v-for="f in filiais" :key="f.id" :value="f.id">{{ f.nome }}</option>
           </select>
         </div>
-        <div class="form-group"><label>KM Atual</label><input type="number" v-model.number="removerForm.km_momento" /></div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="form-group">
+            <label>KM Inicial (Instalação)</label>
+            <input type="number" :value="removerCtx?.km_instalacao || 0" disabled style="background: #f1f5f9; cursor: not-allowed;" />
+          </div>
+          <div class="form-group">
+            <label>KM Atual (Remoção)</label>
+            <input type="number" v-model.number="removerForm.km_momento" />
+          </div>
+        </div>
+        
+        <div class="percorrido-preview" v-if="removerForm.km_momento > (removerCtx?.km_instalacao || 0)" style="margin-bottom: 12px; padding: 10px; background: #f0fdf4; border-radius: 8px; border: 1px solid #bbf7d0; display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-size: 13px; font-weight: 500; color: #166534;">KM Percorrido nesta vida:</span>
+          <span style="font-size: 16px; font-weight: 700; color: #15803d;">+ {{ (removerForm.km_momento - (removerCtx?.km_instalacao || 0)).toLocaleString() }} KM</span>
+        </div>
+
         <div class="form-group"><label>Observação</label><input v-model="removerForm.observacao" /></div>
         <div class="modal-actions">
           <button class="btn-secondary" @click="showRemoverModal = false">Cancelar</button>
