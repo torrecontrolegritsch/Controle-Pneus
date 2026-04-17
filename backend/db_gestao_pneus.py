@@ -481,8 +481,16 @@ def mover_pneu_veiculo(veiculo_id, pos_origem, pos_destino, observacao="", km_mo
     return True
 
 def enviar_para_recicladora(pneu_id, data_envio, observacao=''):
-    payload = {"status": "reciclagem", "data_envio_reciclagem": data_envio, "observacao_reciclagem": observacao}
-    return _api_request("PATCH", "gp_pneus", params={"id": f"eq.{pneu_id}"}, payload=payload)
+    payload = {"status": "reciclagem"}
+    res = _api_request("PATCH", "gp_pneus", params={"id": f"eq.{pneu_id}"}, payload=payload)
+    
+    # Registra a movimentação de envio para reciclagem para guardar a data e observação
+    _registrar_movimentacao(
+        pneu_id, 
+        "envio_recicladora", 
+        observacao=f"Data Envio: {data_envio} | Obs: {observacao}"
+    )
+    return res
 
 def listar_lotes_reciclagem(filial_id=None):
     params = {"status": "eq.reciclagem", "select": "*,gp_filiais(nome)"}
@@ -496,7 +504,9 @@ def listar_lotes_reciclagem(filial_id=None):
     # Agrupa por Data de Envio para simular lotes
     lotes = {}
     for p in pneus:
-        data = p.get("data_envio_reciclagem") or "Sem Data"
+        # Usa atualizado_em como data do lote (quando mudou para reciclagem)
+        dt_raw = p.get("atualizado_em") or ""
+        data = dt_raw.split("T")[0] if "T" in dt_raw else "Sem Data"
         f_nome = p.get("gp_filiais", {}).get("nome", "Geral")
         key = f"{data}_{f_nome}"
         
