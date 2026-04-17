@@ -46,6 +46,7 @@ def login(req: LoginRequest):
             return {
                 "id": data["user"]["id"],
                 "email": data["user"]["email"],
+                "role": data["user"].get("user_metadata", {}).get("role", "operador"),
                 "access_token": data["access_token"],
                 "refresh_token": data["refresh_token"]
             }

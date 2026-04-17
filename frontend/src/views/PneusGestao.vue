@@ -1886,6 +1886,15 @@ async function loadPosDisponiveis() {
   } catch(e) { posDisponiveis.value = [] }
 }
 async function doAlocar() {
+  // Validação de Pneu Usado vs Perfil
+  const pneuParaAlocar = pneusGeral.value.find(p => p.id === alocarForm.value.pneu_id)
+  const isUsado = pneuParaAlocar && (pneuParaAlocar.km_total > 0 || pneuParaAlocar.vida > 1)
+  
+  if (isUsado && props.user?.role !== 'adm') {
+    showToast('Ação Bloqueada: Pneus USADOS só podem ser alocados por administradores.', 'error')
+    return
+  }
+
   const v = veiculos.value.find(x => x.id === alocarForm.value.veiculo_id)
   if (v && alocarForm.value.km_instalacao < (v.km_atual || 0)) {
     if (!confirm(`Atenção: O KM informado (${alocarForm.value.km_instalacao}) é menor que o KM atual do veículo (${v.km_atual}). Deseja continuar mesmo assim?`)) return
