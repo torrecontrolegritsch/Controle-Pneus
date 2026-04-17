@@ -1025,7 +1025,12 @@
           </div>
           <div class="form-group">
             <label>KM Atual (Remoção)</label>
-            <input type="number" v-model.number="removerForm.km_momento" />
+            <input 
+              type="number" 
+              v-model.number="removerForm.km_momento" 
+              :disabled="removerCtx?.ja_no_estoque"
+              :style="removerCtx?.ja_no_estoque ? 'background: #f1f5f9; cursor: not-allowed;' : ''"
+            />
           </div>
         </div>
         
@@ -1486,12 +1491,12 @@ async function handleDropOnRemoval(target = 'estoque') {
       showToast('Filial "SUCATA" não encontrada. Verifique o cadastro de filiais.', 'error')
       return
     }
-    removerCtx.value = p
+    removerCtx.value = { ...p, ja_no_estoque: true }
     removerForm.value = { 
       pneu_id: p.id, 
       destino: 'descarte', 
       filial_destino_id: sucata.id, 
-      km_momento: 0, 
+      km_momento: p.km_total || 0, 
       observacao: 'Descarte direto do almoxarifado' 
     }
     showRemoverModal.value = true
