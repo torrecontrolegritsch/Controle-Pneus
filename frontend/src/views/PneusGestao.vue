@@ -1497,13 +1497,13 @@ const countPneusAlocados = (veiculo_id) => {
 }
 const statusLabel = (p) => {
   const s = typeof p === 'string' ? p : p.status
-  if (s === 'estoque' && typeof p === 'object' && p.km_instalacao > 0 && !p.veiculo_id) return 'Estoque (Usado)'
-  return { estoque: 'Estoque Novo', em_uso: 'Em Uso', descarte: 'Sucata', recapagem: 'Recapagem' }[s] || s
+  if (s === 'estoque' && typeof p === 'object' && (p.km_total > 0 || p.km_instalacao > 0) && !p.veiculo_id) return 'Estoque (Usado)'
+  return { estoque: 'Estoque Novo', em_uso: 'Em Uso', descarte: 'Sucata', recapagem: 'Recapagem', reciclagem: 'Reciclagem' }[s] || s
 }
 const statusClass = (p) => {
   const s = typeof p === 'string' ? p : p.status
-  if (s === 'estoque' && typeof p === 'object' && p.km_instalacao > 0 && !p.veiculo_id) return 'badge-red'
-  return { estoque: 'badge-green', em_uso: 'badge-blue', descarte: 'badge-red', recapagem: 'badge-yellow' }[s] || ''
+  if (s === 'estoque' && typeof p === 'object' && (p.km_total > 0 || p.km_instalacao > 0) && !p.veiculo_id) return 'badge-red'
+  return { estoque: 'badge-green', em_uso: 'badge-blue', descarte: 'badge-red', recapagem: 'badge-yellow', reciclagem: 'badge-purple' }[s] || ''
 }
 const movLabel = (t) => ({ entrada_estoque: 'Entrada', alocacao: 'Alocação', remocao: 'Remoção', descarte: 'Descarte', transferencia: 'Transferência', recapagem: 'Recapagem', recebimento_sucata: 'Confirmação Sucata', rodizio: 'Rodízio / Troca' }[t] || t)
 const movClass = (t) => ({ entrada_estoque: 'badge-green', alocacao: 'badge-blue', remocao: 'badge-yellow', descarte: 'badge-red', transferencia: 'badge-purple', recapagem: 'badge-yellow', recebimento_sucata: 'badge-green', rodizio: 'badge-purple' }[t] || '')

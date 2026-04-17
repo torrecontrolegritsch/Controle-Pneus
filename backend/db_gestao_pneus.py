@@ -361,10 +361,21 @@ def remover_pneu(pneu_id, destino="estoque", km_momento=0, observacao="", filial
         if v_res and isinstance(v_res, list) and v_res[0].get("filial_id"):
             f_dest_id = v_res[0]["filial_id"]
 
-    # 3. Atualiza o status do pneu
+    # 3. Atualiza o status do pneu e KM Total
     new_status = destino if destino in ("descarte", "recapagem") else "estoque"
+    
+    # Calcula KM percorrido nesta vida
+    km_instalado = float(current.get("km_instalacao") or 0)
+    km_na_remocao = float(km_momento or 0)
+    percorrido = max(0, km_na_remocao - km_instalado)
+    km_total_atual = float(current.get("km_total") or 0)
 
-    payload = {"status": new_status, "veiculo_id": None, "posicao": None}
+    payload = {
+        "status": new_status, 
+        "veiculo_id": None, 
+        "posicao": None, 
+        "km_total": km_total_atual + percorrido
+    }
     
     # Se vai para sucata, entra como aguardando
     if new_status == "descarte":
@@ -442,9 +453,42 @@ def enviar_para_recicladora(pneu_id, data_envio, observacao=''):
     return _api_request("PATCH", "gp_pneus", params={"id": f"eq.{pneu_id}"}, payload=payload)
 
 def listar_lotes_reciclagem(filial_id=None):
-    # Por enquanto retorna vazio pois não temos tabela de lotes, 
-    # mas poderíamos agrupar os pneus em status 'reciclagem'
-    return []
+    params = {"status": "eq.reciclagem", "select": "*,gp_filiais(nome)"}
+    if filial_id:
+        params["filial_id"] = f"eq.{filial_id}"
+    
+    pneus = _api_request("GET", "gp_pneus", params=params)
+    if not pneus or not isinstance(pneus, list):
+        return []
+    
+    # Agrupa por Data de Envio para simular lotes
+    lotes = {}
+    for p in pneus:
+        data = p.get("data_envio_reciclagem") or "Sem Data"
+        f_nome = p.get("gp_filiais", {}).get("nome", "Geral")
+        key = f"{data}_{f_nome}"
+        
+        if key not in lotes:
+            lotes[key] = {
+                "id": str(key).replace(" ", "_"),
+                "numero_lote": f"Lote {data} - {f_nome}",
+                "data_envio": data if data != "Sem Data" else None,
+                "valor_total": 0,
+                "valor_pneu": 0,
+                "pneus": []
+            }
+        
+        # Adiciona pneu ao lote e formata
+        p["filial_origem_nome"] = f_nome
+        lotes[key]["pneus"].append(p)
+        lotes[key]["valor_total"] += float(p.get("valor_arrecadado", 0) or 0)
+
+    # Calcula valor por pneu
+    for l in lotes.values():
+        if len(l["pneus"]) > 0:
+            l["valor_pneu"] = l["valor_total"] / len(l["pneus"])
+
+    return sorted(list(lotes.values()), key=lambda x: x['data_envio'] or '', reverse=True)
 
 def atualizar_valor_lote_reciclagem(lote_id, valor_total):
     return True
