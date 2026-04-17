@@ -191,7 +191,7 @@
                   <span class="stock-count">{{ pneusEstoqueFilial.length }}</span>
                 </div>
                 <div class="stock-filters" style="padding: 0 15px 10px;">
-                  <select v-model="almoxarifadoFilialId" class="filter-select" style="width:100%; min-width:0; padding: 6px;" @change="loadEstoqueAlmoxarifado">
+                  <select v-model="almoxarifadoFilialId" :disabled="!!veiculoDetail" class="filter-select" :style="{ width: '100%', minWidth: '0', padding: '6px', opacity: !!veiculoDetail ? '0.7' : '1', cursor: !!veiculoDetail ? 'not-allowed' : 'pointer' }" @change="loadEstoqueAlmoxarifado">
                     <option v-for="f in filiais" :key="f.id" :value="f.id">{{ f.nome }}</option>
                   </select>
                 </div>
