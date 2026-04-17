@@ -92,8 +92,8 @@
               <span class="v-modelo">{{ v.modelo }}</span>
             </div>
             <div class="v-card-status">
-               <span class="badge" :class="v.pneus_alocados === v.total_posicoes ? 'badge-green' : 'badge-yellow'">
-                 {{ v.pneus_alocados }}/{{ v.total_posicoes }}
+               <span class="badge" :class="countPneusAlocados(v.id) === countPneus(v.tipo) ? 'badge-green' : 'badge-yellow'">
+                 {{ countPneusAlocados(v.id) }}/{{ countPneus(v.tipo) }}
                </span>
             </div>
           </div>
@@ -310,7 +310,7 @@
                 <option v-for="f in filiais" :key="f.id" :value="f.id">{{ f.nome }}</option>
               </select>
             </td>
-            <td><span class="badge" :class="v.pneus_alocados === v.total_posicoes ? 'badge-green' : 'badge-yellow'">{{ v.pneus_alocados }}/{{ v.total_posicoes }}</span></td>
+            <td><span class="badge" :class="countPneusAlocados(v.id) === countPneus(v.tipo) ? 'badge-green' : 'badge-yellow'">{{ countPneusAlocados(v.id) }}/{{ countPneus(v.tipo) }}</span></td>
             <td>
               <span v-if="v.km_atual" class="badge badge-purple" style="font-weight: 800">{{ (v.km_atual || 0).toLocaleString('pt-BR') }} <span style="font-size: 9px; opacity: 0.8">KM</span></span>
               <span v-else style="color: var(--text3); font-size: 11px;">Sem dados</span>
@@ -1505,6 +1505,10 @@ const countPneus = (tipo) => {
   if (!cfg) return 0
   const eixos = cfg.eixos.reduce((acc, e) => acc + e.posicoes.length, 0)
   return eixos + cfg.estepes.length
+}
+const countPneusAlocados = (veiculo_id) => {
+  if (!pneusGeral.value) return 0
+  return pneusGeral.value.filter(p => p.veiculo_id === veiculo_id && p.status === 'em_uso').length
 }
 const statusLabel = (s) => ({ estoque: 'Estoque', em_uso: 'Em Uso', descarte: 'Descartado', recapagem: 'Recapagem' }[s] || s)
 const statusClass = (s) => ({ estoque: 'badge-green', em_uso: 'badge-blue', descarte: 'badge-red', recapagem: 'badge-yellow' }[s] || '')
