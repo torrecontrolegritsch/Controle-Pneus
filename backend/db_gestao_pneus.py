@@ -198,16 +198,23 @@ def desativar_veiculo(veiculo_id):
 # ── PNEUS ──────────────────────────────────────────────────────────────────
 
 def listar_pneus(filial_id=None, status=None, veiculo_id=None):
-    params = {"select": "*,gp_filiais(nome),gp_veiculos(placa)", "order": "numero_fogo"}
+    params = {
+        "select": "*,gp_filiais!filial_id(nome),origem:gp_filiais!filial_origem_id(nome),gp_veiculos(placa)", 
+        "order": "numero_fogo"
+    }
     if filial_id: params["filial_id"] = f"eq.{filial_id}"
     if status: params["status"] = f"eq.{status}"
     if veiculo_id: params["veiculo_id"] = f"eq.{veiculo_id}"
     res = _api_request("GET", "gp_pneus", params=params)
     if not isinstance(res, list): return []
     for r in res:
-        # Proteção contra campos nulos em Joins
-        filial_obj = r.get("gp_filiais")
-        r["filial_nome"] = filial_obj.get("nome", "") if isinstance(filial_obj, dict) else ""
+        # Pega nome da filial atual
+        f_obj = r.get("gp_filiais")
+        r["filial_nome"] = f_obj.get("nome", "") if isinstance(f_obj, dict) else ""
+        
+        # Pega nome da filial de origem (de onde veio para sucata)
+        o_obj = r.get("origem")
+        r["filial_origem_nome"] = o_obj.get("nome", "") if isinstance(o_obj, dict) else ""
         
         veiculo_obj = r.get("gp_veiculos")
         r["veiculo_placa"] = veiculo_obj.get("placa", "") if isinstance(veiculo_obj, dict) else ""
@@ -322,13 +329,21 @@ def importar_pneus_lote(pneus_data):
     return {"count": len(pneus_list), "novos": novos_count, "atualizados": atualizados_count, "message": msg, "success": True}
 
 def obter_pneu(pneu_id):
-    params = {"id": f"eq.{pneu_id}", "select": "*,gp_filiais(nome),gp_veiculos(placa)"}
+    params = {"id": f"eq.{pneu_id}", "select": "*,gp_filiais!filial_id(nome),origem:gp_filiais!filial_origem_id(nome),gp_veiculos(placa)"}
     res = _api_request("GET", "gp_pneus", params=params)
-    if not res: return {}
-    p = res[0]
-    p["filial_nome"] = (p.get("gp_filiais") or {}).get("nome", "")
-    p["veiculo_placa"] = (p.get("gp_veiculos") or {}).get("placa", "")
-    return p
+    if res and isinstance(res, list):
+        p = res[0]
+        # Filial Atual
+        f_obj = p.get("gp_filiais")
+        p["filial_nome"] = f_obj.get("nome", "") if isinstance(f_obj, dict) else ""
+        # Filial Origem
+        o_obj = p.get("origem")
+        p["filial_origem_nome"] = o_obj.get("nome", "") if isinstance(o_obj, dict) else ""
+        # Veículo
+        v_obj = p.get("gp_veiculos")
+        p["veiculo_placa"] = v_obj.get("placa", "") if isinstance(v_obj, dict) else ""
+        return p
+    return {}
 
 def atualizar_pneu(pneu_id, **kwargs):
     if "filial_id" in kwargs:
@@ -377,9 +392,17 @@ def remover_pneu(pneu_id, destino="estoque", km_momento=0, observacao="", filial
         "km_total": km_total_atual + percorrido
     }
     
-    # Se vai para sucata, entra como aguardando
+    # Se vai para sucata, entra como aguardando e salva de qual filial veio
     if new_status == "descarte":
         payload["recebido"] = 0
+        # A filial de origem é de onde o pneu estava saindo agora
+        payload["filial_origem_id"] = current.get("filial_id")
+        
+        # Se estava em veiculo mas o pneu não tinha filial_id setado, tenta a do veiculo
+        if not payload["filial_origem_id"] and veiculo_id:
+            v_res = _api_request("GET", "gp_veiculos", params={"id": f"eq.{veiculo_id}", "select": "filial_id"})
+            if v_res and isinstance(v_res, list) and v_res[0].get("filial_id"):
+                payload["filial_origem_id"] = v_res[0]["filial_id"]
 
     if f_dest_id:
         payload["filial_id"] = f_dest_id
