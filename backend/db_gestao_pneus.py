@@ -199,7 +199,7 @@ def desativar_veiculo(veiculo_id):
 
 def listar_pneus(filial_id=None, status=None, veiculo_id=None):
     params = {
-        "select": "*,gp_filiais!filial_id(nome),origem:gp_filiais!filial_origem_id(nome),gp_veiculos(placa)", 
+        "select": "*,gp_filiais(nome),gp_veiculos(placa)", 
         "order": "numero_fogo"
     }
     if filial_id: params["filial_id"] = f"eq.{filial_id}"
@@ -207,14 +207,18 @@ def listar_pneus(filial_id=None, status=None, veiculo_id=None):
     if veiculo_id: params["veiculo_id"] = f"eq.{veiculo_id}"
     res = _api_request("GET", "gp_pneus", params=params)
     if not isinstance(res, list): return []
+    
+    # Mapeamento de filiais para filial_origem_nome
+    filiais_map = {f['id']: f['nome'] for f in listar_filiais()}
+    
     for r in res:
-        # Pega nome da filial atual
+        # Pega nome da filial atual (via join automático)
         f_obj = r.get("gp_filiais")
         r["filial_nome"] = f_obj.get("nome", "") if isinstance(f_obj, dict) else ""
         
-        # Pega nome da filial de origem (de onde veio para sucata)
-        o_obj = r.get("origem")
-        r["filial_origem_nome"] = o_obj.get("nome", "") if isinstance(o_obj, dict) else ""
+        # Pega nome da filial de origem (via mapeamento manual)
+        origem_id = r.get("filial_origem_id")
+        r["filial_origem_nome"] = filiais_map.get(origem_id, "") if origem_id else ""
         
         veiculo_obj = r.get("gp_veiculos")
         r["veiculo_placa"] = veiculo_obj.get("placa", "") if isinstance(veiculo_obj, dict) else ""
@@ -329,16 +333,21 @@ def importar_pneus_lote(pneus_data):
     return {"count": len(pneus_list), "novos": novos_count, "atualizados": atualizados_count, "message": msg, "success": True}
 
 def obter_pneu(pneu_id):
-    params = {"id": f"eq.{pneu_id}", "select": "*,gp_filiais!filial_id(nome),origem:gp_filiais!filial_origem_id(nome),gp_veiculos(placa)"}
+    params = {"id": f"eq.{pneu_id}", "select": "*,gp_filiais(nome),gp_veiculos(placa)"}
     res = _api_request("GET", "gp_pneus", params=params)
     if res and isinstance(res, list):
         p = res[0]
         # Filial Atual
         f_obj = p.get("gp_filiais")
         p["filial_nome"] = f_obj.get("nome", "") if isinstance(f_obj, dict) else ""
-        # Filial Origem
-        o_obj = p.get("origem")
-        p["filial_origem_nome"] = o_obj.get("nome", "") if isinstance(o_obj, dict) else ""
+        # Filial Origem (Busca nome se houver id)
+        origem_id = p.get("filial_origem_id")
+        if origem_id:
+            all_f = listar_filiais()
+            f_origem = next((f for f in all_f if f['id'] == origem_id), None)
+            p["filial_origem_nome"] = f_origem['nome'] if f_origem else ""
+        else:
+            p["filial_origem_nome"] = ""
         # Veículo
         v_obj = p.get("gp_veiculos")
         p["veiculo_placa"] = v_obj.get("placa", "") if isinstance(v_obj, dict) else ""
