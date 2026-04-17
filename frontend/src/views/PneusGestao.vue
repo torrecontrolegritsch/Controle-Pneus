@@ -369,7 +369,7 @@
               </div>
             </td>
             <td>
-              <span class="badge" :class="statusClass(p.status)">{{ statusLabel(p.status) }}</span>
+              <span class="badge" :class="statusClass(p)">{{ statusLabel(p) }}</span>
               <span v-if="p.recebido === 0" class="badge badge-yellow" style="margin-top: 4px; display: block; font-size: 9px;">EM TRÂNSITO</span>
             </td>
             <td>{{ p.filial_nome || '—' }}</td>
@@ -1495,8 +1495,16 @@ const countPneusAlocados = (veiculo_id) => {
   if (!pneusGeral.value) return 0
   return pneusGeral.value.filter(p => p.veiculo_id === veiculo_id && p.status === 'em_uso').length
 }
-const statusLabel = (s) => ({ estoque: 'Estoque', em_uso: 'Em Uso', descarte: 'Descartado', recapagem: 'Recapagem' }[s] || s)
-const statusClass = (s) => ({ estoque: 'badge-green', em_uso: 'badge-blue', descarte: 'badge-red', recapagem: 'badge-yellow' }[s] || '')
+const statusLabel = (p) => {
+  const s = typeof p === 'string' ? p : p.status
+  if (s === 'estoque' && typeof p === 'object' && p.km_instalacao > 0 && !p.veiculo_id) return 'Estoque (Usado)'
+  return { estoque: 'Estoque Novo', em_uso: 'Em Uso', descarte: 'Sucata', recapagem: 'Recapagem' }[s] || s
+}
+const statusClass = (p) => {
+  const s = typeof p === 'string' ? p : p.status
+  if (s === 'estoque' && typeof p === 'object' && p.km_instalacao > 0 && !p.veiculo_id) return 'badge-red'
+  return { estoque: 'badge-green', em_uso: 'badge-blue', descarte: 'badge-red', recapagem: 'badge-yellow' }[s] || ''
+}
 const movLabel = (t) => ({ entrada_estoque: 'Entrada', alocacao: 'Alocação', remocao: 'Remoção', descarte: 'Descarte', transferencia: 'Transferência', recapagem: 'Recapagem', recebimento_sucata: 'Confirmação Sucata', rodizio: 'Rodízio / Troca' }[t] || t)
 const movClass = (t) => ({ entrada_estoque: 'badge-green', alocacao: 'badge-blue', remocao: 'badge-yellow', descarte: 'badge-red', transferencia: 'badge-purple', recapagem: 'badge-yellow', recebimento_sucata: 'badge-green', rodizio: 'badge-purple' }[t] || '')
 const movIcon = (t) => {

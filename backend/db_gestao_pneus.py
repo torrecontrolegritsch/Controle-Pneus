@@ -365,6 +365,11 @@ def remover_pneu(pneu_id, destino="estoque", km_momento=0, observacao="", filial
     new_status = destino if destino in ("descarte", "recapagem") else "estoque"
 
     payload = {"status": new_status, "veiculo_id": None, "posicao": None}
+    
+    # Se vai para sucata, entra como aguardando
+    if new_status == "descarte":
+        payload["recebido"] = 0
+
     if f_dest_id:
         payload["filial_id"] = f_dest_id
 
