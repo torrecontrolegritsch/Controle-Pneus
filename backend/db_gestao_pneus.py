@@ -203,7 +203,7 @@ def desativar_filial(filial_id):
 # ── VEÍCULOS ───────────────────────────────────────────────────────────────
 
 def listar_veiculos(filial_id=None, apenas_ativos=True):
-    cache_key = f"veiculos:{filial_id}:{apenas_ativas}"
+    cache_key = f"veiculos:{filial_id}:{apenas_ativos}"
     cached = get_cached(cache_key)
     if cached is not None:
         return cached
