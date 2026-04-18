@@ -17,11 +17,23 @@ SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
 if not SUPABASE_URL:
-    project_id = os.getenv("SUPABASE_PROJECT_ID")
-    if project_id:
-        SUPABASE_URL = f"https://{project_id}.supabase.co"
-    else:
-        raise ValueError("SUPABASE_URL ou SUPABASE_PROJECT_ID não configurado")
+    # 1. Tenta extrair do DB_URL (comum em setups que usam porta 443)
+    db_url = os.getenv("SUPABASE_DB_URL")
+    if db_url and "postgres." in db_url:
+        try:
+            ref = db_url.split("postgres.")[1].split(":")[0]
+            SUPABASE_URL = f"https://{ref}.supabase.co"
+        except:
+            pass
+            
+    # 2. Tenta do Project ID explícito
+    if not SUPABASE_URL:
+        project_id = os.getenv("SUPABASE_PROJECT_ID")
+        if project_id:
+            SUPABASE_URL = f"https://{project_id}.supabase.co"
+        else:
+            # Não lança erro aqui para permitir que o app inicie mas falhe nos endpoints específicos com erro amigável
+            SUPABASE_URL = None
 
 if not SUPABASE_KEY:
     raise ValueError("SUPABASE_KEY não configurado")

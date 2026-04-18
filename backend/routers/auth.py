@@ -21,8 +21,7 @@ from backend.auth import (
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/auth", tags=["Auth"])
 
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+from backend.config_app import SUPABASE_URL, SUPABASE_KEY
 
 class LoginRequest(BaseModel):
     email: str
