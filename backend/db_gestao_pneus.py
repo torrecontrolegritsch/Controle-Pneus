@@ -224,12 +224,18 @@ def criar_veiculo(placa, frota="", modelo="", marca="", tipo="truck", filial_id=
     f_id = int(filial_id) if filial_id and str(filial_id).isdigit() else None
     payload = {
         "placa": placa.strip().upper().replace("-",""),
-        "frota": str(frota).strip(), "modelo": str(modelo).strip(),
-        "marca": str(marca).strip(), "tipo": tipo, "filial_id": f_id, "km_atual": float(km_atual or 0),
+        "frota": str(frota).strip() if frota else "", 
+        "modelo": str(modelo).strip() if modelo else "",
+        "marca": str(marca).strip() if marca else "", 
+        "tipo": tipo, 
+        "km_atual": float(km_atual or 0),
         "ativo": 1
     }
+    if f_id:
+        payload["filial_id"] = f_id
+    
     res = _api_request("POST", "gp_veiculos", params={"on_conflict": "placa"}, payload=payload)
-    invalidate_pattern("veiculos")  # Limpa cache
+    invalidate_pattern("veiculos")
     return res[0] if res and isinstance(res, list) else (res if res else {})
 
 def atualizar_veiculo(veiculo_id, **kwargs):
@@ -640,18 +646,33 @@ def obter_dashboard():
         if not isinstance(pneus, list): pneus = []
         if not isinstance(veiculos, list): veiculos = []
         
+        # Contagem por status
+        status_counts = {}
+        for p in pneus:
+            status = str(p.get('status', '')).lower()
+            status_counts[status] = status_counts.get(status, 0) + 1
+        
+        # Contagem por vida
+        por_vida = {}
+        for p in pneus:
+            vida = int(p.get('vida', 1) or 1)
+            por_vida[vida] = por_vida.get(vida, 0) + 1
+        
         return {
             "total_pneus": len(pneus),
-            "em_estoque": len([p for p in pneus if str(p.get('status')).lower() == 'estoque']),
-            "em_uso": len([p for p in pneus if str(p.get('status')).lower() == 'em_uso']),
-            "descartados": len([p for p in pneus if str(p.get('status')).lower() == 'descarte']),
+            "em_estoque": status_counts.get('estoque', 0),
+            "em_uso": status_counts.get('em_uso', 0),
+            "descartados": status_counts.get('descarte', 0),
+            "em_reciclagem": status_counts.get('reciclagem', 0),
             "total_veiculos": len(veiculos),
             "valor_estoque": sum(float(p.get('valor', 0) or 0) for p in pneus if str(p.get('status')).lower() == 'estoque'),
+            "por_vida": por_vida,
             "alertas_rodizio": []
         }
     except Exception as e:
         logger.error(f"Falha ao processar dados do dashboard: {e}")
         return {
             "total_pneus": 0, "em_estoque": 0, "em_uso": 0, "descartados": 0, 
-            "total_veiculos": 0, "valor_estoque": 0, "alertas_rodizio": [], "error": str(e)
+            "em_reciclagem": 0, "total_veiculos": 0, "valor_estoque": 0, 
+            "por_vida": {}, "alertas_rodizio": [], "error": str(e)
         }
