@@ -20,7 +20,7 @@ try:
         listar_pneus, criar_pneu, atualizar_pneu, obter_pneu, alocar_pneu, remover_pneu, transferir_pneu,
         mover_pneu_veiculo, listar_movimentacoes, obter_dashboard, confirmar_recebimento,
         enviar_para_recicladora, listar_lotes_reciclagem, atualizar_valor_lote_reciclagem,
-        obter_relatorio_financeiro_reciclagem, importar_pneus_lote
+        obter_relatorio_financeiro_reciclagem, importar_pneus_lote, criar_lote_reciclagem
     )
 except ImportError:
     from db_gestao_pneus import (
@@ -29,7 +29,7 @@ except ImportError:
         listar_pneus, criar_pneu, atualizar_pneu, obter_pneu, alocar_pneu, remover_pneu, transferir_pneu,
         mover_pneu_veiculo, listar_movimentacoes, obter_dashboard, confirmar_recebimento,
         enviar_para_recicladora, listar_lotes_reciclagem, atualizar_valor_lote_reciclagem,
-        obter_relatorio_financeiro_reciclagem, importar_pneus_lote
+        obter_relatorio_financeiro_reciclagem, importar_pneus_lote, criar_lote_reciclagem
     )
 try:
     from backend.db_sqlserver import buscar_veiculo_por_placa, sincronizar_todos_do_sql
@@ -411,6 +411,13 @@ def get_lotes_reciclagem(filial_id: Optional[int] = Query(None)):
 def post_atualizar_valor_lote(body: dict):
     try:
         return atualizar_valor_lote_reciclagem(lote_id=body["lote_id"], valor_total=body["valor_total"])
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.post("/reciclagem/criar-lote")
+def post_criar_lote_reciclagem(body: dict, current_user: TokenData = Depends(get_current_user)):
+    try:
+        return criar_lote_reciclagem(pneu_ids=body["pneu_ids"], filial_id=body["filial_id"])
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 

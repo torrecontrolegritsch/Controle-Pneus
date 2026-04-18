@@ -149,3 +149,4 @@ export const fetchLotesReciclagem = (params = {}) => get(`${P}/reciclagem/lotes`
 export const enviarParaReciclagem = (data) => post(`${P}/reciclagem/enviar`, data)
 export const atualizarValorLote = (data) => post(`${P}/reciclagem/atualizar-valor`, data)
 export const fetchRelatorioFinanceiroReciclagem = (params = {}) => get(`${P}/reciclagem/relatorio-financeiro`, params)
+export const criarLoteReciclagem = (data) => post(`${P}/reciclagem/criar-lote`, data)

@@ -455,7 +455,7 @@ def remover_pneu(pneu_id, destino="estoque", km_momento=0, observacao="", filial
             f_dest_id = v_res[0]["filial_id"]
 
     # 3. Atualiza o status do pneu e KM Total
-    new_status = destino if destino in ("descarte", "recapagem") else "estoque"
+    new_status = destino if destino in ("descarte", "recapagem", "reciclagem") else "estoque"
     
     # Calcula KM percorrido nesta vida
     km_instalado = float(current.get("km_instalacao") or 0)
@@ -470,8 +470,10 @@ def remover_pneu(pneu_id, destino="estoque", km_momento=0, observacao="", filial
         "km_total": km_total_atual + percorrido
     }
     
-    # Se vai para sucata, entra como aguardando e salva de qual filial veio
-    if new_status == "descarte":
+    # Se vai para sucata ou reciclagem, entra como aguardando e salva de qual filial veio
+    if new_status in ("descarte", "reciclagem"):
+        payload["recebido"] = 0
+        payload["lote_id"] = None
         payload["recebido"] = 0
         # A filial de origem é de onde o pneu estava saindo agora
         payload["filial_origem_id"] = current.get("filial_id")
@@ -602,7 +604,29 @@ def listar_lotes_reciclagem(filial_id=None):
     return sorted(list(lotes.values()), key=lambda x: x['data_envio'] or '', reverse=True)
 
 def atualizar_valor_lote_reciclagem(lote_id, valor_total):
+    # Como não temos tabela de lotes fixa, atualizamos o valor_arrecadado nos pneus do lote
+    pneus = _api_request("GET", "gp_pneus", params={"lote_id": f"eq.{lote_id}"})
+    if not pneus or len(pneus) == 0: return False
+    
+    valor_por_pneu = float(valor_total) / len(pneus)
+    for p in pneus:
+        _api_request("PATCH", "gp_pneus", params={"id": f"eq.{p['id']}"}, payload={"valor_arrecadado": valor_por_pneu})
     return True
+
+def criar_lote_reciclagem(pneu_ids, filial_id):
+    import datetime
+    timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M")
+    lote_id = f"LOTE-{filial_id}-{timestamp}"
+    
+    for pid in pneu_ids:
+        _api_request("PATCH", "gp_pneus", params={"id": f"eq.{pid}"}, payload={
+            "lote_id": lote_id,
+            "status": "reciclagem",
+            "recebido": 1 # Agora está 'processado' no lote
+        })
+        _registrar_movimentacao(pid, "envio_reciclagem", observacao=f"Lote Gerado: {lote_id}")
+    
+    return {"ok": True, "lote_id": lote_id}
 
 def obter_relatorio_financeiro_reciclagem(mes=None, filial_id=None):
     # Busca pneus que estão em reciclagem

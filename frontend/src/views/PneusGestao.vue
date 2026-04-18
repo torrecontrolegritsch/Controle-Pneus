@@ -1009,6 +1009,7 @@
           <select v-model="removerForm.destino">
             <option value="estoque">Voltar ao Estoque</option>
             <option value="descarte">Descarte</option>
+            <option value="reciclagem">Reciclagem</option>
             <option value="recapagem">Recapagem</option>
           </select>
         </div>
