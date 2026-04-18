@@ -3,22 +3,38 @@ import logging
 import pymssql
 import requests
 import json
+from pathlib import Path
 from dotenv import load_dotenv
 
-load_dotenv()
+# Carrega .env
+BASE_DIR = Path(__file__).parent.parent
+env_path = BASE_DIR / '.env'
+if env_path.exists():
+    load_dotenv(env_path)
+else:
+    load_dotenv()
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("SYNC_HTTPS")
 
 def sync():
-    # 1. Configurações SQL Server
-    sql_host = "bi.bluefleet.com.br"
-    sql_user = "referencia"
-    sql_pass = "JSoo2iS*hdfbs5f2gdsf"
-    sql_db = "referencia"
+    # 1. Configurações SQL Server (DO .ENV!)
+    sql_host = os.getenv("SQLSERVER_HOST")
+    sql_user = os.getenv("SQLSERVER_USER")
+    sql_pass = os.getenv("SQLSERVER_PASSWORD")
+    sql_db = os.getenv("SQLSERVER_DB")
+    
+    if not all([sql_host, sql_user, sql_pass, sql_db]):
+        logger.error("SQL Server credentials não configuradas no .env")
+        return {"ok": False, "erro": "Credentials não configuradas"}
 
-    # 2. Configurações Supabase API (Pula o Firewall da porta 5432)
-    supa_url = "https://dpvdjldocvdsdgvmnsvu.supabase.co"
+    # 2. Configurações Supabase API (DO .ENV!)
+    supa_url = os.getenv("SUPABASE_URL")
     supa_key = os.getenv("SUPABASE_KEY")
+    
+    if not supa_url or not supa_key:
+        logger.error("Supabase não configurado no .env")
+        return {"ok": False, "erro": "Supabase não configurado"}
     
     # Endpoint da tabela via REST
     api_url = f"{supa_url}/rest/v1/veiculos_referencia"

@@ -65,32 +65,21 @@ const errorMsg = ref('')
 const handleLogin = async () => {
   loading.value = true
   errorMsg.value = ''
-  
-  // Detecta a BASE API de forma resiliente
-  const BASE = import.meta.env.VITE_API_URL && import.meta.env.MODE === 'development' 
-    ? import.meta.env.VITE_API_URL 
-    : '';
 
   try {
-    const response = await fetch(`${BASE}/api/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: email.value, password: password.value })
-    })
-
-    if (!response.ok) {
-      const data = await response.json()
-      throw new Error(data.detail || 'Falha na autenticação')
-    }
-
-    const userData = await response.json()
+    const { authLogin, setToken } = await import('../api/gestaoPneus.js')
+    const response = await authLogin(email.value, password.value)
     
-    // Sucesso! Salva no localStorage e emite o evento
-    localStorage.setItem('gp_user', JSON.stringify(userData))
-    emit('authenticated', userData)
+    // Sucesso! Salva o token e emite o evento
+    if (response.access_token) {
+      setToken(response.access_token, true)
+      emit('authenticated', response)
+    } else {
+      throw new Error('Resposta inválida do servidor')
+    }
     
   } catch (err) {
-    errorMsg.value = err.message
+    errorMsg.value = err.message || 'Falha na autenticação'
   } finally {
     loading.value = false
   }

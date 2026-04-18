@@ -6,5 +6,17 @@ export default defineConfig({
   base: './',
   server: {
     port: 5173
+  },
+  build: {
+    target: 'esnext',
+    minify: 'esbuild',
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['vue']
+        }
+      }
+    },
+    chunkSizeWarningLimit: 500
   }
 })

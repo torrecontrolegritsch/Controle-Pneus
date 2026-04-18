@@ -1028,8 +1028,8 @@
             <input 
               type="number" 
               v-model.number="removerForm.km_momento" 
-              :disabled="removerCtx?.ja_no_estoque"
-              :style="removerCtx?.ja_no_estoque ? 'background: #f1f5f9; cursor: not-allowed;' : ''"
+              :disabled="removerCtx?.ja_no_estoque || removerForm.destino === 'descarte'"
+              :style="(removerCtx?.ja_no_estoque || removerForm.destino === 'descarte') ? 'background: #f1f5f9; cursor: not-allowed;' : ''"
             />
           </div>
         </div>
@@ -2367,7 +2367,7 @@ onMounted(loadAll)
 .badge-blue { background: var(--blue2); color: #1e40af; }
 .badge-red { background: var(--red2); color: #991b1b; }
 .badge-yellow { background: var(--yellow2); color: #92400e; }
-.badge-purple { background: #ede9fe; color: #5b21b6; }
+.badge-purple { background: #e0e7ff; color: #3730a3; } /* Indigo em vez de Purple p/ cumprir Purple Ban */
 
 /* Buttons */
 .btn-primary { padding: 10px 20px; background: linear-gradient(180deg, var(--brand) 0%, var(--brand-dark) 100%); color: #fff; border: 1px solid var(--brand-dark); border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap; box-shadow: 0 1px 2px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.1); text-shadow: 0 1px 1px rgba(0,0,0,0.2); }

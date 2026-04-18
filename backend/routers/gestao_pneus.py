@@ -7,9 +7,11 @@ import csv
 import io
 from typing import Optional, List
 
-from fastapi import APIRouter, Query, HTTPException, File, UploadFile, Response
+from fastapi import APIRouter, Query, HTTPException, File, UploadFile, Response, Depends
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
+
+from backend.auth import get_current_user, TokenData, require_admin, require_operador
 
 try:
     from backend.db_gestao_pneus import (
@@ -46,6 +48,11 @@ router = APIRouter(tags=["gestao-pneus"])
 @router.get("/ping")
 def ping():
     return {"status": "online", "message": "pong"}
+
+# ── Endpoints Públicos (sem auth) ────────────────────────────────────────────────
+@router.get("/configs/veiculos")
+def get_vehicle_configs():
+    return VEHICLE_CONFIGS
 
 # Garante que as tabelas existam ao importar o módulo
 # try:
@@ -128,25 +135,25 @@ def get_vehicle_configs():
 # ── FILIAIS ────────────────────────────────────────────────────────────────
 
 @router.get("/filiais")
-def get_filiais():
+def get_filiais(current_user: TokenData = Depends(get_current_user)):
     return listar_filiais()
 
 @router.post("/filiais")
-def post_filial(body: FilialIn):
+def post_filial(body: FilialIn, current_user: TokenData = Depends(require_admin)):
     try:
         return criar_filial(body.nome, body.cidade, body.estado)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.put("/filiais/{filial_id}")
-def put_filial(filial_id: int, body: FilialIn):
+def put_filial(filial_id: int, body: FilialIn, current_user: TokenData = Depends(require_admin)):
     result = atualizar_filial(filial_id, body.nome, body.cidade, body.estado)
     if not result:
         raise HTTPException(status_code=404, detail="Filial não encontrada")
     return result
 
 @router.delete("/filiais/{filial_id}")
-def delete_filial(filial_id: int):
+def delete_filial(filial_id: int, current_user: TokenData = Depends(require_admin)):
     desativar_filial(filial_id)
     return {"ok": True}
 
@@ -154,11 +161,11 @@ def delete_filial(filial_id: int):
 # ── VEÍCULOS ───────────────────────────────────────────────────────────────
 
 @router.get("/veiculos")
-def get_veiculos(filial_id: Optional[int] = Query(None)):
+def get_veiculos(filial_id: Optional[int] = Query(None), current_user: TokenData = Depends(get_current_user)):
     return listar_veiculos(filial_id=filial_id)
 
 @router.post("/veiculos")
-def post_veiculo(body: VeiculoIn):
+def post_veiculo(body: VeiculoIn, current_user: TokenData = Depends(get_current_user)):
     try:
         return criar_veiculo(
             placa=body.placa, frota=body.frota, modelo=body.modelo,
@@ -169,16 +176,16 @@ def post_veiculo(body: VeiculoIn):
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.get("/veiculos/{veiculo_id}")
-def get_veiculo_detail(veiculo_id: int):
+def get_veiculo_detail(veiculo_id: int, current_user: TokenData = Depends(get_current_user)):
     result = obter_veiculo_com_pneus(veiculo_id)
     if not result:
         raise HTTPException(status_code=404, detail="Veículo não encontrado")
     return result
 
 @router.put("/veiculos/{veiculo_id}")
-def put_veiculo(veiculo_id: int, body: VeiculoIn):
+def put_veiculo(veiculo_id: int, body: VeiculoIn, current_user: TokenData = Depends(get_current_user)):
     update_data = dict(placa=body.placa, frota=body.frota, modelo=body.modelo,
-                       marca=body.marca, tipo=body.tipo, filial_id=body.filial_id)
+                   marca=body.marca, tipo=body.tipo, filial_id=body.filial_id)
     if body.km_atual is not None:
         update_data["km_atual"] = body.km_atual
     result = atualizar_veiculo(veiculo_id, **update_data)
@@ -187,7 +194,7 @@ def put_veiculo(veiculo_id: int, body: VeiculoIn):
     return result or {"ok": True}
 
 @router.delete("/veiculos/{veiculo_id}")
-def delete_veiculo(veiculo_id: int):
+def delete_veiculo(veiculo_id: int, current_user: TokenData = Depends(require_admin)):
     try:
         desativar_veiculo(veiculo_id)
         return {"ok": True}
@@ -204,11 +211,12 @@ def get_pneus(
     filial_id: Optional[int] = Query(None),
     status: Optional[str] = Query(None),
     veiculo_id: Optional[int] = Query(None),
+    current_user: TokenData = Depends(get_current_user),
 ):
     return listar_pneus(filial_id=filial_id, status=status, veiculo_id=veiculo_id)
 
 @router.post("/pneus")
-def post_pneu(body: PneuIn):
+def post_pneu(body: PneuIn, current_user: TokenData = Depends(get_current_user)):
     try:
         return criar_pneu(
             numero_fogo=body.numero_fogo, marca=body.marca, modelo=body.modelo,
@@ -220,7 +228,7 @@ def post_pneu(body: PneuIn):
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.get("/pneus/template")
-def get_pneus_template():
+def get_pneus_template(current_user: TokenData = Depends(get_current_user)):
     """Gera um CSV modelo para importação de pneus."""
     try:
         output = io.StringIO()
@@ -266,13 +274,12 @@ def get_pneus_template():
 
 
 @router.post("/pneus/importar")
-async def post_importar_pneus(file: UploadFile = File(...)):
+async def post_importar_pneus(file: UploadFile = File(...), current_user: TokenData = Depends(get_current_user)):
     """Recebe um CSV e importa os pneus em massa."""
     try:
         content = await file.read()
-        decoded = content.decode('utf-8-sig').splitlines() # handle BOM if present
+        decoded = content.decode('utf-8-sig').splitlines()
         
-        # Detecta separador (pode ser , ou ;)
         header_line = decoded[0]
         delimiter = ';' if ';' in header_line else ','
         
@@ -324,7 +331,7 @@ def post_rodizio(body: dict):
 # ── OPERAÇÕES ──────────────────────────────────────────────────────────────
 
 @router.post("/alocar")
-def post_alocar(body: AlocarIn):
+def post_alocar(body: AlocarIn, current_user: TokenData = Depends(require_operador)):
     try:
         return alocar_pneu(
             pneu_id=body.pneu_id, veiculo_id=body.veiculo_id,
@@ -335,18 +342,18 @@ def post_alocar(body: AlocarIn):
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.post("/remover")
-def post_remover(body: RemoverIn):
+def post_remover(body: RemoverIn, current_user: TokenData = Depends(require_operador)):
     try:
         return remover_pneu(
             pneu_id=body.pneu_id, destino=body.destino,
             km_momento=body.km_momento, observacao=body.observacao,
-            filial_destino_id=body.filial_destino_id,
+filial_destino_id=body.filial_destino_id,
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.post("/transferir")
-def post_transferir(body: TransferirIn):
+def post_transferir(body: TransferirIn, current_user: TokenData = Depends(require_operador)):
     try:
         return transferir_pneu(
             pneu_id=body.pneu_id, filial_destino_id=body.filial_destino_id,
@@ -365,6 +372,7 @@ def get_movimentacoes(
     filial_id: Optional[int] = Query(None),
     tipo: Optional[str] = Query(None),
     limit: int = Query(100),
+    current_user: TokenData = Depends(get_current_user),
 ):
     return listar_movimentacoes(
         pneu_id=pneu_id, veiculo_id=veiculo_id,
@@ -375,7 +383,7 @@ def get_movimentacoes(
 # ── DASHBOARD ──────────────────────────────────────────────────────────────
 
 @router.get("/dashboard")
-def get_dashboard():
+def get_dashboard(current_user: TokenData = Depends(get_current_user)):
     try:
         return obter_dashboard()
     except Exception as e:

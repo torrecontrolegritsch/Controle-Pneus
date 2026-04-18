@@ -6,9 +6,11 @@ import logging
 import os
 import requests
 import json
+import time
 from dotenv import load_dotenv
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Any
+from functools import wraps
 
 # Localiza o arquivo .env na raiz do projeto (Pneus/.env)
 import sys
@@ -18,7 +20,6 @@ env_path = os.path.join(BASE_DIR, '.env')
 if os.path.exists(env_path):
     load_dotenv(dotenv_path=env_path)
 else:
-    # Tenta carregar do ambiente direto (Vercel)
     load_dotenv()
 
 if BASE_DIR not in sys.path:
@@ -26,6 +27,47 @@ if BASE_DIR not in sys.path:
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(name)s: %(message)s')
 logger = logging.getLogger(__name__)
+
+# ── CACHE IN-MEMORY ─────────────────────────────────────────────────────────────
+_cache = {}
+_cache_ttl = 30  # 30 segundos padrão
+
+def get_cached(key: str) -> Optional[Any]:
+    """Retorna valor do cache se existir e não expirado."""
+    entry = _cache.get(key)
+    if entry is None:
+        return None
+    expiry, value = entry
+    if time.time() > expiry:
+        del _cache[key]
+        return None
+    return value
+
+def set_cached(key: str, value: Any, ttl: int = _cache_ttl):
+    """Define valor no cache."""
+    expiry = time.time() + ttl
+    _cache[key] = (expiry, value)
+
+def invalidate_pattern(pattern: str):
+    """Invalid chaves que contém pattern."""
+    keys = [k for k in _cache.keys() if pattern in k]
+    for k in keys:
+        del _cache[k]
+
+def cached(ttl: int = 30, key_fn=None):
+    """Decorator para cachear funções."""
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            key = f"{func.__name__}:{key_fn(*args, **kwargs) if key_fn else args}"
+            result = get_cached(key)
+            if result is not None:
+                return result
+            result = func(*args, **kwargs)
+            set_cached(key, result, ttl)
+            return result
+        return wrapper
+    return decorator
 
 # ── PONTE HTTPS PARA SUPABASE (Contorna Firewall) ─────────────────────────
 def _api_request(method, table, params=None, payload=None):
@@ -35,12 +77,10 @@ def _api_request(method, table, params=None, payload=None):
             logger.error("!!! SUPABASE_KEY não encontrada !!!")
             return None
             
-        # Tenta pegar a URL do Supabase do .env ou usa o ID fixo se falhar
         supa_url = os.getenv("SUPABASE_URL")
         if not supa_url:
-            # Se não tiver URL, tenta extrair do ID que já conhecemos
-            project_id = "dpvdjldocvdsdgvmnsvu"
-            supa_url = f"https://{project_id}.supabase.co"
+            logger.error("!!! SUPABASE_URL não configurada !!!")
+            return None
             
         api_url = f"{supa_url.rstrip('/')}/rest/v1/{table}"
         headers = {
@@ -131,26 +171,43 @@ def ensure_tables():
 # ── FILIAIS ────────────────────────────────────────────────────────────────
 
 def listar_filiais(apenas_ativas=True):
+    cache_key = f"filiais:{apenas_ativas}"
+    cached = get_cached(cache_key)
+    if cached is not None:
+        return cached
+    
     params = {"select": "*", "order": "nome"}
     if apenas_ativas: params["ativo"] = "eq.1"
     res = _api_request("GET", "gp_filiais", params=params)
-    return res if res else []
+    result = res if res else []
+    set_cached(cache_key, result, ttl=60)  # Cache por 60s
+    return result
 
 def criar_filial(nome, cidade="", estado=""):
     payload = {"nome": nome, "cidade": cidade, "estado": estado}
     res = _api_request("POST", "gp_filiais", payload=payload)
+    invalidate_pattern("filiais")  # Limpa cache
     return res[0] if res else {}
 
 def atualizar_filial(filial_id, nome, cidade="", estado=""):
     payload = {"nome": nome, "cidade": cidade, "estado": estado}
-    return _api_request("PATCH", "gp_filiais", params={"id": f"eq.{filial_id}"}, payload=payload)
+    result = _api_request("PATCH", "gp_filiais", params={"id": f"eq.{filial_id}"}, payload=payload)
+    invalidate_pattern("filiais")  # Limpa cache
+    return result
 
 def desativar_filial(filial_id):
-    return _api_request("PATCH", "gp_filiais", params={"id": f"eq.{filial_id}"}, payload={"ativo": 0})
+    result = _api_request("PATCH", "gp_filiais", params={"id": f"eq.{filial_id}"}, payload={"ativo": 0})
+    invalidate_pattern("filiais")  # Limpa cache
+    return result
 
 # ── VEÍCULOS ───────────────────────────────────────────────────────────────
 
 def listar_veiculos(filial_id=None, apenas_ativos=True):
+    cache_key = f"veiculos:{filial_id}:{apenas_ativas}"
+    cached = get_cached(cache_key)
+    if cached is not None:
+        return cached
+    
     params = {"select": "*,gp_filiais(nome)", "order": "placa"}
     if apenas_ativos: params["ativo"] = "eq.1"
     if filial_id: params["filial_id"] = f"eq.{filial_id}"
@@ -158,7 +215,10 @@ def listar_veiculos(filial_id=None, apenas_ativos=True):
     if not res: return []
     for r in res:
         r["filial_nome"] = r.get("gp_filiais", {}).get("nome", "") if r.get("gp_filiais") else ""
-    return res
+    
+    result = res
+    set_cached(cache_key, result, ttl=60)  # Cache por 60s
+    return result
 
 def criar_veiculo(placa, frota="", modelo="", marca="", tipo="truck", filial_id=None, km_atual=0):
     f_id = int(filial_id) if filial_id and str(filial_id).isdigit() else None
@@ -169,12 +229,15 @@ def criar_veiculo(placa, frota="", modelo="", marca="", tipo="truck", filial_id=
         "ativo": 1
     }
     res = _api_request("POST", "gp_veiculos", params={"on_conflict": "placa"}, payload=payload)
+    invalidate_pattern("veiculos")  # Limpa cache
     return res[0] if res and isinstance(res, list) else (res if res else {})
 
 def atualizar_veiculo(veiculo_id, **kwargs):
     if "filial_id" in kwargs:
          kwargs["filial_id"] = int(kwargs["filial_id"]) if kwargs["filial_id"] and str(kwargs["filial_id"]).isdigit() else None
-    return _api_request("PATCH", "gp_veiculos", params={"id": f"eq.{veiculo_id}"}, payload=kwargs)
+    result = _api_request("PATCH", "gp_veiculos", params={"id": f"eq.{veiculo_id}"}, payload=kwargs)
+    invalidate_pattern("veiculos")  # Limpa cache
+    return result
 
 def obter_veiculo_com_pneus(veiculo_id):
     params = {"id": f"eq.{veiculo_id}", "select": "*,gp_filiais(nome)"}

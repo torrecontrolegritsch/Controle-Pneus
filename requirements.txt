@@ -6,3 +6,6 @@ python-multipart
 pandas
 openpyxl
 python-tds
+python-jose[cryptography]
+passlib[bcrypt]
+slowapi

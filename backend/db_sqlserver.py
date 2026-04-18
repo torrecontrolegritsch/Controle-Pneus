@@ -2,10 +2,18 @@ import os
 import logging
 import requests
 import json
+from pathlib import Path
+from dotenv import load_dotenv
+
+# Carrega .env
+BASE_DIR = Path(__file__).parent.parent
+env_path = BASE_DIR / '.env'
+if env_path.exists():
+    load_dotenv(env_path)
 
 logger = logging.getLogger(__name__)
 
-SUPABASE_URL = "https://dpvdjldocvdsdgvmnsvu.supabase.co"
+SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPA_TABLE = "veiculos_referencia"
 
 
@@ -70,12 +78,16 @@ def buscar_veiculo_por_placa(placa: str):
     try:
         import pytds
 
-        host = os.getenv("SQLSERVER_HOST", "bi.bluefleet.com.br").replace('"', "")
+        host = os.getenv("SQLSERVER_HOST")
         port_val = os.getenv("SQLSERVER_PORT", "1433").replace('"', "")
         port = int(port_val) if port_val.isdigit() else 1433
-        user = os.getenv("SQLSERVER_USER", "referencia").replace('"', "")
-        password = os.getenv("SQLSERVER_PASSWORD", "JSoo2iS*hdfbs5f2gdsf").replace('"', "")
-        db = os.getenv("SQLSERVER_DB", "referencia").replace('"', "")
+        user = os.getenv("SQLSERVER_USER")
+        password = os.getenv("SQLSERVER_PASSWORD")
+        db = os.getenv("SQLSERVER_DB")
+        
+        if not all([host, user, password, db]):
+            logger.warning("SQL Server credentials não configuradas")
+            return None
 
         logger.info(f"Buscando {placa_limpa} ao vivo no SQL Server corporativo...")
         conn = pytds.connect(
@@ -131,12 +143,15 @@ def sincronizar_todos_do_sql(limite: int = 5000) -> dict:
         return {"ok": False, "erro": "SUPABASE_KEY nao configurada."}
 
     try:
-        host = os.getenv("SQLSERVER_HOST", "bi.bluefleet.com.br").replace('"', "")
+        host = os.getenv("SQLSERVER_HOST")
         port_val = os.getenv("SQLSERVER_PORT", "1433").replace('"', "")
         port = int(port_val) if port_val.isdigit() else 1433
-        user = os.getenv("SQLSERVER_USER", "referencia").replace('"', "")
-        password = os.getenv("SQLSERVER_PASSWORD", "JSoo2iS*hdfbs5f2gdsf").replace('"', "")
-        db = os.getenv("SQLSERVER_DB", "referencia").replace('"', "")
+        user = os.getenv("SQLSERVER_USER")
+        password = os.getenv("SQLSERVER_PASSWORD")
+        db = os.getenv("SQLSERVER_DB")
+        
+        if not all([host, user, password, db]):
+            return {"ok": False, "erro": "SQL Server credentials não configuradas."}
 
         logger.info("Conectando ao SQL Server para sincronizacao em lote...")
         conn = pymssql.connect(
