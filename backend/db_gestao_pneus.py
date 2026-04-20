@@ -572,7 +572,7 @@ def enviar_para_recicladora(pneu_id, data_envio, observacao=''):
 
 def listar_pneus_aguardando_lote(filial_id=None):
     # Pneus que estão em reciclagem mas ainda não foram agrupados em um lote real (lote_id is null)
-    params = {"status": "eq.reciclagem", "lote_id": "is.null", "select": "*,gp_filiais(nome)"}
+    params = {"status": "eq.reciclagem", "lote_id": "is.null"}
     if filial_id:
         params["filial_id"] = f"eq.{filial_id}"
     
@@ -580,32 +580,37 @@ def listar_pneus_aguardando_lote(filial_id=None):
     if not pneus or not isinstance(pneus, list):
         return []
     
-    for p in pneus:
-        filial_obj = p.get("gp_filiais")
-        p["filial_origem_nome"] = filial_obj.get("nome", "Geral") if isinstance(filial_obj, dict) else "Geral"
+    if pneus:
+        # Busca todas as filiais para mapear o nome
+        filiais_list = _api_request("GET", "gp_filiais")
+        f_map = {f["id"]: f["nome"] for f in filiais_list} if isinstance(filiais_list, list) else {}
+        for p in pneus:
+            p["filial_origem_nome"] = f_map.get(p.get("filial_id"), "Geral")
     
     return pneus
 
 def listar_lotes_reciclagem(filial_id=None):
     # Agora só listamos pneus que REALMENTE têm um lote_id (foram agrupados)
-    params = {"status": "eq.reciclagem", "lote_id": "not.is.null", "select": "*,gp_filiais(nome)"}
+    params = {"status": "eq.reciclagem", "lote_id": "not.is.null"}
     if filial_id:
         params["filial_id"] = f"eq.{filial_id}"
     
     pneus = _api_request("GET", "gp_pneus", params=params)
     if not pneus or not isinstance(pneus, list):
         return []
+    
+    # Busca todas as filiais para mapear o nome (manual join)
+    filiais_list = _api_request("GET", "gp_filiais")
+    f_map = {f["id"]: f["nome"] for f in filiais_list} if isinstance(filiais_list, list) else {}
     
     lotes = {}
     for p in pneus:
         lote_id = p.get("lote_id")
         if not lote_id: continue
         
-        filial_obj = p.get("gp_filiais")
-        f_nome = filial_obj.get("nome", "Geral") if isinstance(filial_obj, dict) else "Geral"
+        f_nome = f_map.get(p.get("filial_id"), "Geral")
         
         if lote_id not in lotes:
-            # Tenta pegar a data da movimentação do lote ou usa atualizado_em
             dt_raw = p.get("atualizado_em") or ""
             data = dt_raw.split("T")[0] if "T" in dt_raw else "N/A"
             
