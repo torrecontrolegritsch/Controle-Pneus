@@ -146,6 +146,7 @@ export const fetchSincronizarVeiculosSql = (limite = 5000) =>
 
 // Reciclagem e Financeiro
 export const fetchLotesReciclagem = (params = {}) => get(`${P}/reciclagem/lotes`, params)
+export const fetchPneusAguardandoLote = (params = {}) => get(`${P}/reciclagem/aguardando`, params)
 export const enviarParaReciclagem = (data) => post(`${P}/reciclagem/enviar`, data)
 export const atualizarValorLote = (data) => post(`${P}/reciclagem/atualizar-valor`, data)
 export const fetchRelatorioFinanceiroReciclagem = (params = {}) => get(`${P}/reciclagem/relatorio-financeiro`, params)

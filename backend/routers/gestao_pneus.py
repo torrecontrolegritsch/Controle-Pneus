@@ -407,6 +407,10 @@ def post_enviar_reciclagem(body: dict):
 def get_lotes_reciclagem(filial_id: Optional[int] = Query(None)):
     return listar_lotes_reciclagem(filial_id=filial_id)
 
+@router.get("/reciclagem/aguardando")
+def get_pneus_aguardando_lote(filial_id: Optional[int] = Query(None)):
+    return listar_pneus_aguardando_lote(filial_id=filial_id)
+
 @router.post("/reciclagem/atualizar-valor")
 def post_atualizar_valor_lote(body: dict):
     try:

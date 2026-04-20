@@ -26,8 +26,8 @@
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
           </div>
           <div class="u-info">
-            <span class="u-name">{{ user.email.split('@')[0] }}</span>
-            <span class="u-tag">Administrador</span>
+            <span class="u-name">{{ user?.email?.split('@')[0] }}</span>
+            <span class="u-tag">{{ user?.role === 'admin' ? 'Administrador' : (user?.role === 'gerente' ? 'Gerente' : 'Operador') }}</span>
           </div>
           <button class="mini-logout" @click="$emit('logout')" title="Sair">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
@@ -558,6 +558,47 @@
           <h2>Lotes de Reciclagem</h2>
           <p class="sec-subtitle">Acompanhamento de pneus enviados para descarte/compra</p>
         </div>
+      </div>
+
+      <div v-if="pneusAguardandoLote.length > 0" class="aguardando-lote-box">
+        <div class="box-header">
+          <div class="title-group">
+            <h3>📦 Pneus em Espera ({{ pneusAguardandoLote.length }})</h3>
+            <p>Selecione os pneus para agrupar em um novo lote de coleta.</p>
+          </div>
+          <button 
+            class="btn-primary" 
+            :disabled="selectedPneusReciclagem.length === 0"
+            @click="doGerarLoteManual"
+            style="padding: 10px 20px; font-weight: 600;"
+          >
+            Gerar Lote com {{ selectedPneusReciclagem.length }} Selecionados
+          </button>
+        </div>
+        <div class="aguardando-grid">
+           <div 
+             v-for="p in pneusAguardandoLote" 
+             :key="p.id" 
+             class="pneu-selection-card"
+             :class="{ selected: selectedPneusReciclagem.includes(p.id) }"
+             @click="togglePneuSelection(p.id)"
+           >
+             <div class="selection-indicator">
+               <div class="check-circle">
+                 <svg v-if="selectedPneusReciclagem.includes(p.id)" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4"><polyline points="20 6 9 17 4 12"></polyline></svg>
+               </div>
+             </div>
+             <div class="pneu-brief">
+               <span class="pneu-fogo">{{ p.numero_fogo }}</span>
+               <span class="pneu-model">{{ p.marca }} {{ p.modelo }}</span>
+               <span class="pneu-origin">Origem: {{ p.filial_origem_nome }}</span>
+             </div>
+           </div>
+        </div>
+      </div>
+
+      <div v-if="pneusAguardandoLote.length > 0 && lotesReciclagem.length > 0" class="section-divider">
+        <span>Lotes já Processados</span>
       </div>
 
       <div class="lotes-container">
@@ -1248,6 +1289,8 @@ const movs = ref([])
 const vehicleConfigs = ref({})
 const modeloSelecionado = ref(null)
 const sincronizando = ref(false)
+const pneusAguardandoLote = ref([])
+const selectedPneusReciclagem = ref([])
 
 // Filters
 const filtroFilialV = ref('')
@@ -1331,7 +1374,7 @@ const pneusSucataPendentes = computed(() => {
   return list
 })
 const pneusSucataConfirmados = computed(() => {
-  let list = pneusGeral.value.filter(p => p.recebido === 1 && !p.lote_id && (p.status === 'descarte' || (p.filial_nome || '').toUpperCase().includes('SUCATA')))
+  let list = pneusGeral.value.filter(p => p.recebido === 1 && !p.lote_id && (p.status === 'descarte' || (p.filial_nome || '').toUpperCase().includes('SUCATA')) && p.status !== 'reciclagem')
   if (filtroFilialSucata.value) {
     list = list.filter(p => p.filial_origem_id === Number(filtroFilialSucata.value))
   }
@@ -1896,7 +1939,7 @@ async function doAlocar() {
   const pneuParaAlocar = pneusGeral.value.find(p => p.id === alocarForm.value.pneu_id)
   const isUsado = pneuParaAlocar && (pneuParaAlocar.km_total > 0 || pneuParaAlocar.vida > 1)
   
-  if (isUsado && props.user?.role !== 'adm') {
+  if (isUsado && props.user?.role !== 'admin') {
     showToast('Ação Bloqueada: Pneus USADOS só podem ser alocados por administradores.', 'error')
     return
   }
@@ -1982,7 +2025,12 @@ async function doTransferir() {
 }
 
 // Reciclagem
-async function loadLotes() { try { lotesReciclagem.value = await fetchLotesReciclagem() } catch(e) { console.error(e) } }
+async function loadLotes() { 
+  try { 
+    lotesReciclagem.value = await fetchLotesReciclagem() 
+    pneusAguardandoLote.value = await fetchPneusAguardandoLote()
+  } catch(e) { console.error(e) } 
+}
 async function loadFinanceiro() { 
   try { 
     relatorioFinanceiro.value = await fetchRelatorioFinanceiroReciclagem({ 
@@ -2006,12 +2054,33 @@ async function doEnviarParaRecicladora() {
       data_envio: reciclagemForm.value.data_envio,
       observacao: reciclagemForm.value.observacao
     })
-    // Atualização otimista: remove da lista local na hora
-    pneusGeral.value = pneusGeral.value.filter(p => p.id !== pId)
     
     showReciclagemModal.value = false
     showToast('Pneu enviado para reciclagem!')
-    await loadPneusGeral(); loadPneus(); refreshDash()
+    await loadPneusGeral(); 
+    await loadPneus(); 
+    await loadLotes();
+    refreshDash()
+  } catch(e) { showToast(e.message, 'error') }
+}
+
+function togglePneuSelection(pId) {
+  const idx = selectedPneusReciclagem.value.indexOf(pId)
+  if (idx > -1) selectedPneusReciclagem.value.splice(idx, 1)
+  else selectedPneusReciclagem.value.push(pId)
+}
+
+async function doGerarLoteManual() {
+  if (selectedPneusReciclagem.value.length === 0) return
+  try {
+    const res = await criarLoteReciclagem({
+      pneu_ids: selectedPneusReciclagem.value,
+      filial_id: filtroFilialSucata.value || (pneusAguardandoLote.value[0]?.filial_id) || 1
+    })
+    showToast(`Lote ${res.lote_id} gerado com sucesso!`)
+    selectedPneusReciclagem.value = []
+    await loadLotes()
+    await loadPneusGeral()
   } catch(e) { showToast(e.message, 'error') }
 }
 
@@ -2782,5 +2851,75 @@ onMounted(loadAll)
 .print-signature p { margin: 0; font-size: 12px; }
 
 .print-date-footer { margin-top: 40px; font-size: 10px; text-align: center; color: #999; border-top: 1px dotted #ccc; padding-top: 10px; }
+
+
+.aguardando-lote-box { 
+  background: white; 
+  border: 2px dashed var(--border); 
+  border-radius: 16px; 
+  padding: 24px; 
+  margin-bottom: 32px; 
+}
+.aguardando-lote-box .box-header { 
+  display: flex; 
+  justify-content: space-between; 
+  align-items: center; 
+  margin-bottom: 24px; 
+}
+.aguardando-lote-box .title-group h3 { margin: 0 0 4px 0; font-size: 20px; color: var(--text); }
+.aguardando-lote-box .title-group p { margin: 0; font-size: 14px; color: #64748b; }
+
+.aguardando-grid { 
+  display: grid; 
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); 
+  gap: 16px; 
+}
+.pneu-selection-card { 
+  display: flex; 
+  align-items: center; 
+  gap: 16px; 
+  padding: 16px; 
+  background: #f8fafc; 
+  border: 1px solid #e2e8f0; 
+  border-radius: 12px; 
+  cursor: pointer; 
+  transition: all 0.2s; 
+}
+.pneu-selection-card:hover { border-color: #cbd5e1; background: white; }
+.pneu-selection-card.selected { 
+  background: #eff6ff; 
+  border-color: #3b82f6; 
+  box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.1); 
+}
+
+.selection-indicator .check-circle { 
+  width: 24px; 
+  height: 24px; 
+  border-radius: 50%; 
+  border: 2px solid #cbd5e1; 
+  display: flex; 
+  align-items: center; 
+  justify-content: center; 
+  color: white; 
+  transition: all 0.2s; 
+}
+.pneu-selection-card.selected .check-circle { 
+  background: #3b82f6; 
+  border-color: #3b82f6; 
+}
+
+.pneu-brief { display: flex; flex-direction: column; gap: 2px; }
+.pneu-brief .pneu-fogo { font-weight: 800; font-size: 15px; color: var(--text); }
+.pneu-brief .pneu-model { font-size: 13px; color: #64748b; }
+.pneu-brief .pneu-origin { font-size: 11px; color: #94a3b8; margin-top: 4px; text-transform: uppercase; font-weight: 600; }
+
+.section-divider { 
+  display: flex; 
+  align-items: center; 
+  gap: 16px; 
+  margin: 40px 0 24px 0; 
+}
+.section-divider::before, .section-divider::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+.section-divider span { font-size: 12px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; }
 
 </style>

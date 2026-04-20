@@ -83,11 +83,17 @@ def _api_request(method, table, params=None, payload=None):
             return None
             
         api_url = f"{supa_url.rstrip('/')}/rest/v1/{table}"
+        prefer = ""
+        if method == "POST":
+            prefer = "return=representation,resolution=merge-duplicates"
+        elif method == "PATCH":
+            prefer = "return=representation"
+
         headers = {
             "apikey": supa_key,
             "Authorization": f"Bearer {supa_key}",
             "Content-Type": "application/json",
-            "Prefer": "return=representation,resolution=merge-duplicates" if method == "POST" else ""
+            "Prefer": prefer
         }
         
         if method == "GET":
@@ -191,9 +197,9 @@ def criar_filial(nome, cidade="", estado=""):
 
 def atualizar_filial(filial_id, nome, cidade="", estado=""):
     payload = {"nome": nome, "cidade": cidade, "estado": estado}
-    result = _api_request("PATCH", "gp_filiais", params={"id": f"eq.{filial_id}"}, payload=payload)
+    res = _api_request("PATCH", "gp_filiais", params={"id": f"eq.{filial_id}"}, payload=payload)
     invalidate_pattern("filiais")  # Limpa cache
-    return result
+    return res[0] if res and isinstance(res, list) else (res if res else None)
 
 def desativar_filial(filial_id):
     result = _api_request("PATCH", "gp_filiais", params={"id": f"eq.{filial_id}"}, payload={"ativo": 0})
@@ -241,9 +247,9 @@ def criar_veiculo(placa, frota="", modelo="", marca="", tipo="truck", filial_id=
 def atualizar_veiculo(veiculo_id, **kwargs):
     if "filial_id" in kwargs:
          kwargs["filial_id"] = int(kwargs["filial_id"]) if kwargs["filial_id"] and str(kwargs["filial_id"]).isdigit() else None
-    result = _api_request("PATCH", "gp_veiculos", params={"id": f"eq.{veiculo_id}"}, payload=kwargs)
+    res = _api_request("PATCH", "gp_veiculos", params={"id": f"eq.{veiculo_id}"}, payload=kwargs)
     invalidate_pattern("veiculos")  # Limpa cache
-    return result
+    return res[0] if res and isinstance(res, list) else (res if res else None)
 
 def obter_veiculo_com_pneus(veiculo_id):
     params = {"id": f"eq.{veiculo_id}", "select": "*,gp_filiais(nome)"}
@@ -427,7 +433,7 @@ def atualizar_pneu(pneu_id, **kwargs):
     if "filial_id" in kwargs:
          kwargs["filial_id"] = int(kwargs["filial_id"]) if kwargs["filial_id"] and str(kwargs["filial_id"]).isdigit() else None
     res = _api_request("PATCH", "gp_pneus", params={"id": f"eq.{pneu_id}"}, payload=kwargs)
-    return res[0] if res and isinstance(res, list) else {}
+    return res[0] if res and isinstance(res, list) else None
 
 def alocar_pneu(pneu_id, veiculo_id, posicao, km_instalacao=0, observacao=""):
     payload = {"status": "em_uso", "veiculo_id": veiculo_id, "posicao": posicao, "km_instalacao": float(km_instalacao)}
@@ -552,7 +558,8 @@ def mover_pneu_veiculo(veiculo_id, pos_origem, pos_destino, observacao="", km_mo
     return True
 
 def enviar_para_recicladora(pneu_id, data_envio, observacao=''):
-    payload = {"status": "reciclagem"}
+    # Ao enviar para reciclagem, o status muda e ele deixa de pertencer a uma filial física de estoque
+    payload = {"status": "reciclagem", "recebido": 1}
     res = _api_request("PATCH", "gp_pneus", params={"id": f"eq.{pneu_id}"}, payload=payload)
     
     # Registra a movimentação de envio para reciclagem para guardar a data e observação
@@ -563,8 +570,9 @@ def enviar_para_recicladora(pneu_id, data_envio, observacao=''):
     )
     return res
 
-def listar_lotes_reciclagem(filial_id=None):
-    params = {"status": "eq.reciclagem", "select": "*,gp_filiais(nome)"}
+def listar_pneus_aguardando_lote(filial_id=None):
+    # Pneus que estão em reciclagem mas ainda não foram agrupados em um lote real (lote_id is null)
+    params = {"status": "eq.reciclagem", "lote_id": "is.null", "select": "*,gp_filiais(nome)"}
     if filial_id:
         params["filial_id"] = f"eq.{filial_id}"
     
@@ -572,29 +580,45 @@ def listar_lotes_reciclagem(filial_id=None):
     if not pneus or not isinstance(pneus, list):
         return []
     
-    # Agrupa por Data de Envio para simular lotes
+    for p in pneus:
+        p["filial_origem_nome"] = p.get("gp_filiais", {}).get("nome", "Geral")
+    
+    return pneus
+
+def listar_lotes_reciclagem(filial_id=None):
+    # Agora só listamos pneus que REALMENTE têm um lote_id (foram agrupados)
+    params = {"status": "eq.reciclagem", "lote_id": "not.is.null", "select": "*,gp_filiais(nome)"}
+    if filial_id:
+        params["filial_id"] = f"eq.{filial_id}"
+    
+    pneus = _api_request("GET", "gp_pneus", params=params)
+    if not pneus or not isinstance(pneus, list):
+        return []
+    
     lotes = {}
     for p in pneus:
-        # Usa atualizado_em como data do lote (quando mudou para reciclagem)
-        dt_raw = p.get("atualizado_em") or ""
-        data = dt_raw.split("T")[0] if "T" in dt_raw else "Sem Data"
-        f_nome = p.get("gp_filiais", {}).get("nome", "Geral")
-        key = f"{data}_{f_nome}"
+        lote_id = p.get("lote_id")
+        if not lote_id: continue
         
-        if key not in lotes:
-            lotes[key] = {
-                "id": str(key).replace(" ", "_"),
-                "numero_lote": f"Lote {data} - {f_nome}",
-                "data_envio": data if data != "Sem Data" else None,
+        f_nome = p.get("gp_filiais", {}).get("nome", "Geral")
+        
+        if lote_id not in lotes:
+            # Tenta pegar a data da movimentação do lote ou usa atualizado_em
+            dt_raw = p.get("atualizado_em") or ""
+            data = dt_raw.split("T")[0] if "T" in dt_raw else "N/A"
+            
+            lotes[lote_id] = {
+                "id": lote_id,
+                "numero_lote": lote_id,
+                "data_envio": data,
                 "valor_total": 0,
                 "valor_pneu": 0,
                 "pneus": []
             }
         
-        # Adiciona pneu ao lote e formata
         p["filial_origem_nome"] = f_nome
-        lotes[key]["pneus"].append(p)
-        lotes[key]["valor_total"] += float(p.get("valor_arrecadado", 0) or 0)
+        lotes[lote_id]["pneus"].append(p)
+        lotes[lote_id]["valor_total"] += float(p.get("valor_arrecadado", 0) or 0)
 
     # Calcula valor por pneu
     for l in lotes.values():
