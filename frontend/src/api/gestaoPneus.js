@@ -127,7 +127,7 @@ export const importPneusCsv = (data) => postForm(`${P}/pneus/importar`, data)
 export const alocarPneu = (data) => post(`${P}/alocar`, data)
 export const removerPneu = (data) => post(`${P}/remover`, data)
 export const transferirPneu = (data) => post(`${P}/transferir`, data)
-export const confirmarRecebimento = (pneuId) => post(`${P}/confirmar-recebimento`, { pneumatic_id: pneId })
+export const confirmarRecebimento = (pneuId) => post(`${P}/confirmar-recebimento`, { pneu_id: pneuId })
 export const rodizioPneu = (data) => post(`${P}/rodizio`, data)
 
 // Movimentações

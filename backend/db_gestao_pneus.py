@@ -581,7 +581,8 @@ def listar_pneus_aguardando_lote(filial_id=None):
         return []
     
     for p in pneus:
-        p["filial_origem_nome"] = p.get("gp_filiais", {}).get("nome", "Geral")
+        filial_obj = p.get("gp_filiais")
+        p["filial_origem_nome"] = filial_obj.get("nome", "Geral") if isinstance(filial_obj, dict) else "Geral"
     
     return pneus
 
@@ -600,7 +601,8 @@ def listar_lotes_reciclagem(filial_id=None):
         lote_id = p.get("lote_id")
         if not lote_id: continue
         
-        f_nome = p.get("gp_filiais", {}).get("nome", "Geral")
+        filial_obj = p.get("gp_filiais")
+        f_nome = filial_obj.get("nome", "Geral") if isinstance(filial_obj, dict) else "Geral"
         
         if lote_id not in lotes:
             # Tenta pegar a data da movimentação do lote ou usa atualizado_em
