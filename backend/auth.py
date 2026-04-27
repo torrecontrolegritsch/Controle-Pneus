@@ -15,7 +15,7 @@ if os.path.exists(env_path):
 else:
     load_dotenv()
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Query
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import JWTError, jwt
 from passlib.context import CryptContext
@@ -76,17 +76,24 @@ def decode_token(token: str) -> Optional[TokenData]:
 
 
 async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security)
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    token: Optional[str] = Query(None)
 ) -> TokenData:
-    if credentials is None:
+    # Tenta obter o token do header Authorization ou do query parameter 'token'
+    token_str = None
+    if credentials:
+        token_str = credentials.credentials
+    elif token:
+        token_str = token
+
+    if not token_str:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token de autenticação não fornecido",
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    token = credentials.credentials
-    token_data = decode_token(token)
+    token_data = decode_token(token_str)
     
     if token_data is None:
         raise HTTPException(
@@ -96,6 +103,7 @@ async def get_current_user(
         )
     
     return token_data
+
 
 
 async def get_current_active_user(
