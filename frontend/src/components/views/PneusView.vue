@@ -14,7 +14,6 @@
           <option :value="null">Todas as filiais</option>
           <option v-for="f in filiais" :key="f.id" :value="f.id">{{ f.nome }}</option>
         </select>
-        <button class="btn-primary" @click="showModal = true">+ Novo Pneu</button>
       </div>
     </div>
 

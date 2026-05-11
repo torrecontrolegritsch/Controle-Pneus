@@ -311,7 +311,7 @@ def criar_pneu(numero_fogo, marca, medida, filial_id, modelo="", dot="", valor=0
     res = _api_request("POST", "gp_pneus", params={"on_conflict": "numero_fogo"}, payload=payload)
     return res[0] if res and isinstance(res, list) else (res if res else {})
 
-def importar_pneus_lote(pneus_data):
+def importar_pneus_lote(pneus_data, filial_id_override=None):
     """Importa uma lista de pneus em lote para o Supabase."""
     if not pneus_data:
         return {"count": 0, "message": "Nenhum dado recebido"}
@@ -359,7 +359,7 @@ def importar_pneus_lote(pneus_data):
     pneus_list = []
     for p_raw in pneus_data:
         f_name = find_val(p_raw, "filial")
-        f_id = get_filial_id(f_name)
+        f_id = filial_id_override or get_filial_id(f_name)
         
         p_norm = {
             "numero_fogo": str(find_val(p_raw, "numero_fogo") or "").strip().upper(),

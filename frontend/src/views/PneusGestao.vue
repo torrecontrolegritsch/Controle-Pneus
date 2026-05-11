@@ -68,6 +68,9 @@
         </div>
       </header>
 
+    <!-- TAB: ESTOQUE CENTRAL (NOVO) -->
+    <EstoqueCentralView v-if="tab === 'estoque_central'" :filiais="filiais" />
+
     <!-- TAB: ALOCAÇÕES (NOVA) -->
     <section v-if="tab === 'alocacoes'" class="gp-section alocacao-layout">
       <!-- SIDEBAR BUSCA -->
@@ -335,16 +338,6 @@
             <option value="descarte">Descartados</option>
             <option value="recapagem">Em Recapagem</option>
           </select>
-          <button class="btn-secondary" @click="downloadTemplate" style="gap: 6px;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            Baixar Modelo
-          </button>
-          <button class="btn-secondary" @click="triggerImport" style="gap: 6px;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-            Importar Estoque
-          </button>
-          <input type="file" ref="fileInput" style="display: none;" accept=".csv" @change="handleFileUpload" />
-          <button class="btn-primary" @click="openPneuForm()" style="box-shadow: 0 4px 12px rgba(196,18,48,0.25);">+ Registrar Pneu</button>
         </div>
       </div>
       <div class="table-responsive" v-if="pneusList.length">
@@ -390,7 +383,7 @@
       <div v-else class="empty-state">
         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 16px;"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="M5 5l1.5 1.5"/></svg>
         <p>Nenhum pneu atende aos filtros atuais.</p>
-        <p style="font-size: 11px; color: var(--text3); margin-top: 4px;">Clique em "Registrar Pneu" para iniciar o inventário.</p>
+        <p style="font-size: 11px; color: var(--text3); margin-top: 4px;">Utilize a aba "Estoque Central" para realizar novos cadastros.</p>
       </div>
     </section>
 
@@ -1258,8 +1251,10 @@ import {
   confirmarRecebimento, rodizioPneu,
   fetchLotesReciclagem, enviarParaReciclagem, atualizarValorLote, fetchRelatorioFinanceiroReciclagem
 } from '../api/gestaoPneus.js'
+import EstoqueCentralView from '../components/views/EstoqueCentralView.vue'
 
 const tabs = [
+  { id: 'estoque_central', label: 'Estoque Central', icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>` },
   { id: 'alocacoes', label: 'Alocações', icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>` },
   { id: 'veiculos', label: 'Frota', icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 17h4V5H2v12h3"/><path d="M20 17h2v-9h-4V5h-4v12h3"/><path d="M10 9h4"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>` },
   { id: 'filiais', label: 'Unidades', icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>` },
@@ -1271,7 +1266,7 @@ const tabs = [
 ]
 
 const currentTabLabel = computed(() => tabs.find(t => t.id === tab.value)?.label || '')
-const tab = ref('alocacoes')
+const tab = ref('estoque_central')
 const toast = ref(null)
 const dash = ref(null)
 const loteImpressao = ref(null)

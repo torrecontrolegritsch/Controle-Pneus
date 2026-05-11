@@ -274,7 +274,11 @@ def get_pneus_template(current_user: TokenData = Depends(get_current_user)):
 
 
 @router.post("/pneus/importar")
-async def post_importar_pneus(file: UploadFile = File(...), current_user: TokenData = Depends(get_current_user)):
+async def post_importar_pneus(
+    file: UploadFile = File(...), 
+    filial_id: Optional[int] = Query(None),
+    current_user: TokenData = Depends(get_current_user)
+):
     """Recebe um CSV e importa os pneus em massa."""
     try:
         content = await file.read()
@@ -288,7 +292,7 @@ async def post_importar_pneus(file: UploadFile = File(...), current_user: TokenD
         for row in reader:
             pneus_data.append(row)
             
-        return importar_pneus_lote(pneus_data)
+        return importar_pneus_lote(pneus_data, filial_id_override=filial_id)
     except Exception as e:
         logger.error(f"Erro na importação CSV: {e}")
         raise HTTPException(status_code=400, detail=f"Erro ao processar CSV: {str(e)}")

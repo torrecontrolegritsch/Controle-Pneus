@@ -57,8 +57,12 @@ async function post(path, body = {}) {
   return handleRes(res)
 }
 
-async function postForm(path, body) {
-  const res = await fetch(`${BASE}${path}`, {
+async function postForm(path, body, params = {}) {
+  const url = new URL(`${BASE}${path}`, location.origin)
+  Object.entries(params).forEach(([k, v]) => {
+    if (v !== null && v !== undefined && v !== '') url.searchParams.set(k, v)
+  })
+  const res = await fetch(url, {
     method: 'POST',
     headers: getAuthHeaders(),
     body,
@@ -121,7 +125,7 @@ export const fetchPneusTemplate = () => {
   const baseUrl = `${BASE}${P}/pneus/template`
   return token ? `${baseUrl}?token=${token}` : baseUrl
 }
-export const importPneusCsv = (data) => postForm(`${P}/pneus/importar`, data)
+export const importPneusCsv = (data, filialId = null) => postForm(`${P}/pneus/importar`, data, { filial_id: filialId })
 
 // Operações
 export const alocarPneu = (data) => post(`${P}/alocar`, data)
