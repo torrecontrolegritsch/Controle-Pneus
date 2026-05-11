@@ -356,7 +356,7 @@ def importar_pneus_lote(pneus_data, filial_id_override=None):
         except:
             return 0.0
 
-    pneus_list = []
+    pneus_dict = {}
     for p_raw in pneus_data:
         f_name = find_val(p_raw, "filial")
         f_id = filial_id_override or get_filial_id(f_name)
@@ -378,7 +378,10 @@ def importar_pneus_lote(pneus_data, filial_id_override=None):
         }
         
         if p_norm["numero_fogo"] and p_norm["marca"] and p_norm["medida"]:
-            pneus_list.append(p_norm)
+            # Mantém apenas um registro por numero_fogo no lote para evitar erro do Postgres
+            pneus_dict[p_norm["numero_fogo"]] = p_norm
+    
+    pneus_list = list(pneus_dict.values())
     
     if not pneus_list:
         return {"count": 0, "error": "Nenhum pneu válido encontrado. Verifique se as colunas obrigatórias estão presentes (Fogo, Marca, Medida)."}
