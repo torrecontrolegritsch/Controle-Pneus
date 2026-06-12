@@ -1248,6 +1248,19 @@
       </div>
     </div>
 
+    <!-- TAB: CONTROLE POR MEDIDA -->
+    <EstoqueMedidasView
+      v-if="tab === 'medidas'"
+      :pneus="pneusGeral"
+      :filiais="filiais"
+      :carregando="loadingPneusGeral"
+    />
+
+    <!-- TAB: RELATÓRIO NF -->
+    <RelatorioNFView
+      v-if="tab === 'relatorio_nf'"
+      :fetchPneusPorNF="fetchPneusPorNFWrapper"
+    />
 
       </main>
       <div v-if="toast" class="toast" :class="toast.type">{{ toast.msg }}</div>
@@ -1260,7 +1273,7 @@ import {
   fetchVehicleConfigs, fetchFiliais, createFilial, updateFilial, deleteFilial,
   fetchVeiculos, fetchVeiculo, createVeiculo, updateVeiculo, deleteVeiculo,
   fetchPneusList, createPneu, updatePneu as updatePneuApi,
-  fetchPneusTemplate, importPneusCsv,
+  fetchPneusTemplate, importPneusCsv, fetchPneusPorNF,
   alocarPneu, removerPneu, transferirPneu,
   fetchMovimentacoes, fetchGPDashboard,
   fetchBuscaVeiculoSql, fetchSincronizarVeiculosSql,
@@ -1269,6 +1282,8 @@ import {
   atualizarValorLote, criarLoteReciclagem, fetchRelatorioFinanceiroReciclagem
 } from '../api/gestaoPneus.js'
 import EstoqueCentralView from '../components/views/EstoqueCentralView.vue'
+import EstoqueMedidasView from './EstoqueMedidasView.vue'
+import RelatorioNFView from './RelatorioNFView.vue'
 
 const tabs = [
   { id: 'estoque_central', label: 'Estoque Central', icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>` },
@@ -1279,7 +1294,9 @@ const tabs = [
   { id: 'financeiro', label: 'Financeiro', icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>` },
   { id: 'sucata', label: 'Sucata', icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>` },
   { id: 'recicladora', label: 'Reciclagem', icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 20V9c0-2 2-3 4-3s4 1 4 3v11"></path><path d="M14 20V5c0-2 2-3 4-3s4 1 4 3v15"></path><path d="M2 20h20"></path><path d="M22 7l-4-4-4 4"></path></svg>` },
-  { id: 'historico', label: 'Histórico', icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>` }
+  { id: 'historico', label: 'Histórico', icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>` },
+  { id: 'medidas', label: 'Por Medida', icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/><path d="M6 8h.01M6 12h.01M10 8h4M10 12h4"/></svg>` },
+  { id: 'relatorio_nf', label: 'Relatório NF', icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>` }
 ]
 
 const currentTabLabel = computed(() => tabs.find(t => t.id === tab.value)?.label || '')
@@ -1297,6 +1314,7 @@ const filiais = ref([])
 const veiculos = ref([])
 const pneusList = ref([])
 const pneusGeral = ref([])
+const loadingPneusGeral = ref(false)
 const movs = ref([])
 const vehicleConfigs = ref({})
 const modeloSelecionado = ref(null)
@@ -1672,9 +1690,18 @@ async function loadVeiculos() {
   } catch(e) { console.error(e) } 
 }
 async function loadPneus() { try { pneusList.value = await fetchPneusList({ filial_id: filtroFilialP.value, status: filtroStatus.value }) } catch(e) { console.error(e) } }
-async function loadPneusGeral() { try { pneusGeral.value = await fetchPneusList({}) } catch(e) { console.error(e) } }
+async function loadPneusGeral() {
+  loadingPneusGeral.value = true
+  try { pneusGeral.value = await fetchPneusList({}) } catch(e) { console.error(e) } finally { loadingPneusGeral.value = false }
+}
 async function loadMovs() { try { movs.value = await fetchMovimentacoes({ tipo: filtroTipoMov.value }) } catch(e) { console.error(e) } }
 async function refreshDash() { try { dash.value = await fetchGPDashboard() } catch(e) {} }
+
+// Relatório NF — wrapper para o componente filho
+async function fetchPneusPorNFWrapper(nf) {
+  const lista = await fetchPneusPorNF(nf)
+  return Array.isArray(lista) ? lista : []
+}
 
 // Filiais CRUD
 function openFilialForm(f = null) {
@@ -2162,11 +2189,12 @@ async function mandarPneuParaSucata(p) {
   } catch(e) { showToast(e.message, 'error') }
 }
 
-watch(tab, (t) => { 
-  if (t === 'historico') loadMovs() 
+watch(tab, (t) => {
+  if (t === 'historico') loadMovs()
   if (t === 'sucata') loadPneusGeral()
   if (t === 'recicladora') loadLotes()
   if (t === 'financeiro') loadFinanceiro()
+  if (t === 'medidas' && !pneusGeral.value.length) loadPneusGeral()
 })
 watch([filtroMesFinanceiro, filtroFilialFinanceiro], () => {
   if (tab.value === 'financeiro') loadFinanceiro()

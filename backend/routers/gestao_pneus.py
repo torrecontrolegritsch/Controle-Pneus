@@ -202,9 +202,10 @@ def get_pneus(
     filial_id: Optional[int] = Query(None),
     status: Optional[str] = Query(None),
     veiculo_id: Optional[int] = Query(None),
+    nf: Optional[str] = Query(None),
     current_user: TokenData = Depends(get_current_user),
 ):
-    return listar_pneus(filial_id=filial_id, status=status, veiculo_id=veiculo_id)
+    return listar_pneus(filial_id=filial_id, status=status, veiculo_id=veiculo_id, nf=nf)
 
 @router.post("/pneus")
 def post_pneu(body: PneuIn, current_user: TokenData = Depends(get_current_user)):

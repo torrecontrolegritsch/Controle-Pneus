@@ -271,14 +271,15 @@ def desativar_veiculo(veiculo_id):
 
 # ── PNEUS ──────────────────────────────────────────────────────────────────
 
-def listar_pneus(filial_id=None, status=None, veiculo_id=None):
+def listar_pneus(filial_id=None, status=None, veiculo_id=None, nf=None):
     params = {
-        "select": "*,gp_filiais(nome),gp_veiculos(placa)", 
+        "select": "*,gp_filiais(nome),gp_veiculos(placa)",
         "order": "numero_fogo"
     }
     if filial_id: params["filial_id"] = f"eq.{filial_id}"
     if status: params["status"] = f"eq.{status}"
     if veiculo_id: params["veiculo_id"] = f"eq.{veiculo_id}"
+    if nf: params["nf"] = f"eq.{nf}"
     res = _api_request("GET", "gp_pneus", params=params)
     if not isinstance(res, list): return []
     

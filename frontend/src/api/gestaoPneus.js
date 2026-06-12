@@ -118,6 +118,7 @@ export const fetchPneusList = (params = {}) => get(`${P}/pneus`, params)
 export const fetchPneuDetail = (id) => get(`${P}/pneus/${id}`)
 export const createPneu = (data) => post(`${P}/pneus`, data)
 export const updatePneu = (id, data) => put(`${P}/pneus/${id}`, data)
+export const fetchPneusPorNF = (nf) => get(`${P}/pneus`, { nf })
 
 // Importação
 export const fetchPneusTemplate = () => {
