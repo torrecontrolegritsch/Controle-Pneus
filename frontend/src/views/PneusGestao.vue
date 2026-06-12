@@ -1187,7 +1187,7 @@
           <div class="pm-company-name">TRANSPORTES GRITSCH LTDA</div>
           <div class="pm-company-info">RUA FRANCISCO NUNES, 1990 — PRADO VELHO</div>
           <div class="pm-company-info">80215-202 — CURITIBA / PR</div>
-          <div class="pm-company-info">Fone: (41) 3072-1100 &nbsp;|&nbsp; nao_responder@grupogritsch.com.br</div>
+          <div class="pm-company-info">Fone: (41) 3072-1100 &nbsp;|&nbsp; pneus@gritsch.com.br</div>
         </div>
         <div class="pm-title-cell">
           <div class="pm-title-main">MANIFESTO</div>
