@@ -1177,61 +1177,74 @@
 
     <!-- ELEMENTO PARA IMPRESSÃO (OCULTO NA TELA) -->
     <div id="printable-lote" class="print-only" v-if="loteImpressao">
-      <div class="print-header">
-        <div class="print-logo-box">
+
+      <div class="pm-header">
+        <div class="pm-logo-cell">
+          <img src="/logo.jpg" alt="Gritsch" class="pm-logo" />
+          <span class="pm-system-label">CONTROLE DE PNEUS</span>
         </div>
-        <div class="print-header-info">
-          <strong>TRANSPORTES GRITSCH LTDA</strong><br>
-          RUA FRANCISCO NUNES, 1990 - PRADO VELHO<br>
-          80215-202 - CURITIBA / PR<br>
-          Fone: (41) 30721100<br>
-          nao_responder@grupogritsch.com.br
+        <div class="pm-company-cell">
+          <div class="pm-company-name">TRANSPORTES GRITSCH LTDA</div>
+          <div class="pm-company-info">RUA FRANCISCO NUNES, 1990 — PRADO VELHO</div>
+          <div class="pm-company-info">80215-202 — CURITIBA / PR</div>
+          <div class="pm-company-info">Fone: (41) 3072-1100 &nbsp;|&nbsp; nao_responder@grupogritsch.com.br</div>
         </div>
-        <div class="print-doc-type">
-          <strong>MANIFESTO DE ENVIO</strong><br>
-          RECICLAGEM DE PNEUS
+        <div class="pm-title-cell">
+          <div class="pm-title-main">MANIFESTO</div>
+          <div class="pm-title-main">DE ENVIO</div>
+          <div class="pm-title-sub">RECICLAGEM DE PNEUS</div>
         </div>
       </div>
 
-      <div class="print-body">
-        <div class="print-summary">
-          <p><strong>Lote:</strong> {{ loteImpressao.numero_lote }}</p>
-          <p><strong>Data de Envio:</strong> {{ new Date(loteImpressao.data_envio).toLocaleDateString('pt-BR') }}</p>
-          <p><strong>Quantidade:</strong> {{ loteImpressao.pneus.length }} pneus</p>
+      <div class="pm-meta">
+        <div class="pm-meta-item">
+          <span class="pm-meta-label">LOTE</span>
+          <span class="pm-meta-value">{{ loteImpressao.numero_lote }}</span>
         </div>
+        <div class="pm-meta-item">
+          <span class="pm-meta-label">DATA DE ENVIO</span>
+          <span class="pm-meta-value">{{ new Date(loteImpressao.data_envio).toLocaleDateString('pt-BR') }}</span>
+        </div>
+        <div class="pm-meta-item">
+          <span class="pm-meta-label">QUANTIDADE</span>
+          <span class="pm-meta-value">{{ loteImpressao.pneus.length }} pneu(s)</span>
+        </div>
+      </div>
 
-        <table class="print-table">
-          <thead>
-            <tr>
-              <th style="width: 20%">N. FOGO</th>
-              <th style="width: 50%">MARCA / MODELO</th>
-              <th style="width: 30%">OBSERVAÇÃO</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="p in loteImpressao.pneus" :key="p.id">
-              <td>{{ p.numero_fogo }}</td>
-              <td>{{ p.marca }} {{ p.modelo }}</td>
-              <td>____________________</td>
-            </tr>
-          </tbody>
-        </table>
+      <table class="pm-table">
+        <thead>
+          <tr>
+            <th style="width:18%">N. FOGO</th>
+            <th style="width:42%">MARCA / MODELO</th>
+            <th style="width:20%">MEDIDA</th>
+            <th style="width:20%">OBSERVAÇÃO</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="(p, i) in loteImpressao.pneus" :key="p.id" :class="i % 2 === 0 ? 'pm-tr-even' : ''">
+            <td><strong>{{ p.numero_fogo }}</strong></td>
+            <td>{{ p.marca }} {{ p.modelo }}</td>
+            <td>{{ p.medida || '—' }}</td>
+            <td></td>
+          </tr>
+        </tbody>
+      </table>
 
-        <div class="print-footer">
-          <div class="print-signature">
-            <div class="sig-line"></div>
-            <p>Responsável Gritsch (Expedição)</p>
-          </div>
-          <div class="print-signature">
-            <div class="sig-line"></div>
-            <p>Responsável Recicladora (Recebimento)</p>
-            <p style="font-size: 10px; opacity: 0.7;">Nome Legível / RG</p>
-          </div>
+      <div class="pm-signatures">
+        <div class="pm-sig-block">
+          <div class="pm-sig-line"></div>
+          <p class="pm-sig-label">Responsável Gritsch — Expedição</p>
+          <p class="pm-sig-sub">Nome / Matrícula</p>
         </div>
-        
-        <div class="print-date-footer">
-          Gerado em: {{ new Date().toLocaleString('pt-BR') }} - Sistema KPIs Torre de Controle
+        <div class="pm-sig-block">
+          <div class="pm-sig-line"></div>
+          <p class="pm-sig-label">Responsável Recicladora — Recebimento</p>
+          <p class="pm-sig-sub">Nome Legível / RG</p>
         </div>
+      </div>
+
+      <div class="pm-footer">
+        Documento gerado em {{ new Date().toLocaleString('pt-BR') }} — Sistema Torre de Controle Gritsch
       </div>
     </div>
 
@@ -2790,71 +2803,250 @@ onMounted(loadAll)
 .print-only { display: none; }
 
 @media print {
-  /* Esconde especificamente os elementos do layout global e da página */
-  nav.sidebar, 
-  .sec-toolbar, 
-  .gp-section, 
-  .modal-overlay, 
-  .sidebar-spacer, 
-  .nav-group,
-  button, 
-  .toast { 
-    display: none !important; 
+  /* Oculta TUDO do app exceto o manifesto */
+  body > *,
+  .app-layout > *,
+  .sidebar,
+  aside.sidebar,
+  .main-content,
+  .content-header,
+  .header-kpis,
+  .gp-section,
+  .modal-overlay,
+  .toast,
+  button {
+    display: none !important;
+    visibility: hidden !important;
   }
 
-  /* Remove margens e estruturas que empurram o conteúdo */
-  .shell { display: block !important; }
-  .main-content { 
-    margin: 0 !important; 
-    padding: 0 !important; 
-    display: block !important; 
-    width: 100% !important;
-  }
-
-  /* Garante que o relatório seja o único soberano na página */
+  /* O manifesto toma conta da página inteira */
   #printable-lote {
     display: block !important;
     visibility: visible !important;
-    position: absolute !important;
-    left: 0 !important;
-    top: 0 !important;
-    width: 100% !important;
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100vw !important;
+    min-height: 100vh !important;
     margin: 0 !important;
     padding: 0 !important;
-    background: white !important;
-    z-index: 9999;
+    background: #fff !important;
+    z-index: 99999 !important;
   }
-  
+
   #printable-lote * {
     visibility: visible !important;
   }
 
   @page {
-    margin: 0;
+    size: A4 portrait;
+    margin: 15mm 15mm 15mm 15mm;
   }
 }
 
-#printable-lote { font-family: 'Inter', sans-serif; color: #1a1a1a; padding: 40px !important; }
-.print-header { display: flex; border: 2px solid #000; margin-bottom: 20px; }
-.print-logo-box { width: 180px; padding: 10px; border-right: 2px solid #000; display: flex; align-items: center; justify-content: center; }
-.print-logo-img { width: 100%; height: auto; display: block; }
+/* ── MANIFESTO DE IMPRESSÃO ─────────────────────────────── */
+#printable-lote {
+  font-family: 'Inter', Arial, sans-serif;
+  color: #111;
+  background: #fff;
+  padding: 32px;
+  box-sizing: border-box;
+}
 
-.print-header-info { flex: 1; padding: 10px; font-size: 11px; line-height: 1.4; border-right: 2px solid #000; }
-.print-doc-type { width: 180px; padding: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; background: #f0f0f0; }
+/* CABEÇALHO */
+.pm-header {
+  display: flex;
+  border: 2px solid #1a1a1a;
+  margin-bottom: 0;
+}
 
-.print-summary { display: flex; gap: 30px; margin-bottom: 20px; padding: 10px; background: #f8fafc; border: 1px solid #eee; }
-.print-summary p { margin: 0; font-size: 13px; }
+.pm-logo-cell {
+  width: 160px;
+  min-width: 160px;
+  padding: 16px 12px;
+  border-right: 2px solid #1a1a1a;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #fff;
+}
 
-.print-table { width: 100%; border-collapse: collapse; margin-bottom: 40px; }
-.print-table th { background: #f0f0f0; border: 1px solid #000; padding: 10px; text-align: left; font-size: 12px; }
-.print-table td { border: 1px solid #000; padding: 8px 10px; font-size: 12px; }
+.pm-logo {
+  width: 110px;
+  height: auto;
+  display: block;
+}
 
-.print-footer { display: flex; justify-content: space-around; margin-top: 60px; }
-.print-signature { width: 250px; text-align: center; }
-.sig-line { border-top: 1px solid #000; margin-bottom: 8px; }
-.print-signature p { margin: 0; font-size: 12px; }
+.pm-system-label {
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: #555;
+  text-align: center;
+}
 
-.print-date-footer { margin-top: 40px; font-size: 10px; text-align: center; color: #999; border-top: 1px dotted #ccc; padding-top: 10px; }
+.pm-company-cell {
+  flex: 1;
+  padding: 14px 16px;
+  border-right: 2px solid #1a1a1a;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+}
+
+.pm-company-name {
+  font-size: 13px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.pm-company-info {
+  font-size: 10px;
+  color: #333;
+  line-height: 1.5;
+}
+
+.pm-title-cell {
+  width: 160px;
+  min-width: 160px;
+  padding: 14px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  background: #1a1a1a;
+  color: #fff;
+  gap: 2px;
+}
+
+.pm-title-main {
+  font-size: 16px;
+  font-weight: 900;
+  letter-spacing: 1px;
+  line-height: 1.1;
+}
+
+.pm-title-sub {
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-top: 6px;
+  opacity: 0.85;
+  border-top: 1px solid rgba(255,255,255,0.3);
+  padding-top: 6px;
+  width: 100%;
+}
+
+/* METADADOS DO LOTE */
+.pm-meta {
+  display: flex;
+  border: 2px solid #1a1a1a;
+  border-top: none;
+  margin-bottom: 24px;
+}
+
+.pm-meta-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 10px 16px;
+  border-right: 1px solid #ccc;
+  gap: 2px;
+}
+
+.pm-meta-item:last-child { border-right: none; }
+
+.pm-meta-label {
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #666;
+}
+
+.pm-meta-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: #111;
+}
+
+/* TABELA */
+.pm-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 48px;
+  font-size: 12px;
+}
+
+.pm-table th {
+  background: #1a1a1a;
+  color: #fff;
+  padding: 10px 12px;
+  text-align: left;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  border: 1px solid #1a1a1a;
+}
+
+.pm-table td {
+  border: 1px solid #ccc;
+  padding: 9px 12px;
+  color: #222;
+  vertical-align: middle;
+}
+
+.pm-tr-even td { background: #f8f8f8; }
+
+/* ASSINATURAS */
+.pm-signatures {
+  display: flex;
+  justify-content: space-between;
+  gap: 40px;
+  margin-top: 16px;
+}
+
+.pm-sig-block {
+  flex: 1;
+  text-align: center;
+}
+
+.pm-sig-line {
+  border-top: 1.5px solid #1a1a1a;
+  margin-bottom: 8px;
+  margin-top: 48px;
+}
+
+.pm-sig-label {
+  font-size: 11px;
+  font-weight: 600;
+  margin: 0;
+  color: #111;
+}
+
+.pm-sig-sub {
+  font-size: 9px;
+  color: #777;
+  margin: 3px 0 0;
+}
+
+/* RODAPÉ */
+.pm-footer {
+  margin-top: 32px;
+  font-size: 9px;
+  text-align: center;
+  color: #aaa;
+  border-top: 1px dotted #ccc;
+  padding-top: 10px;
+}
 
 
 .aguardando-lote-box { 
