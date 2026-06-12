@@ -22,7 +22,16 @@ from passlib.context import CryptContext
 from pydantic import BaseModel
 import requests
 
-SECRET_KEY = os.getenv("JWT_SECRET_KEY", "-change-this-in-production-min-32-chars!!")
+_DEFAULT_SECRET = "-change-this-in-production-min-32-chars!!"
+SECRET_KEY = os.getenv("JWT_SECRET_KEY", _DEFAULT_SECRET)
+if SECRET_KEY == _DEFAULT_SECRET:
+    import warnings
+    warnings.warn(
+        "JWT_SECRET_KEY não configurada no .env — usando chave padrão insegura. "
+        "Defina JWT_SECRET_KEY com pelo menos 32 caracteres aleatórios.",
+        stacklevel=1
+    )
+
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 horas
 

@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 from datetime import datetime
 from typing import Optional, Any
 from functools import wraps
+from fastapi import HTTPException
 
 # Localiza o arquivo .env na raiz do projeto (Pneus/.env)
 import sys
@@ -106,29 +107,27 @@ def _api_request(method, table, params=None, payload=None):
             response = requests.patch(api_url, headers=headers, params=params, data=json.dumps(payload), timeout=10)
         
         if response.status_code in [200, 201, 204]:
-            print(f"  [OK] {method} {table} - Status: {response.status_code}")
-            if not response.text or response.status_code == 204: 
+            logger.debug(f"[OK] {method} {table} - Status: {response.status_code}")
+            if not response.text or response.status_code == 204:
                 return [] if method == "GET" else {}
             res_json = response.json()
             if method == "GET" and isinstance(res_json, list):
-                print(f"  [DADOS] {len(res_json)} registros encontrados")
+                logger.debug(f"[DADOS] {len(res_json)} registros retornados de {table}")
             return res_json
         else:
-            print(f"  [ERRO] {method} {table} - Status: {response.status_code} - Resposta: {response.text}")
+            logger.error(f"[ERRO] {method} {table} - Status: {response.status_code} - Resposta: {response.text}")
             error_detail = response.text
             try:
                 err_data = response.json()
-                if isinstance(err_data, dict) and 'message' in err_data: 
+                if isinstance(err_data, dict) and 'message' in err_data:
                     error_detail = err_data['message']
-            except: pass
-            
-            from fastapi import HTTPException
+            except Exception:
+                pass
             raise HTTPException(status_code=response.status_code, detail=error_detail)
     except Exception as e:
-        if isinstance(e, requests.exceptions.HTTPError) or "HTTPException" in str(type(e)):
-             raise e
+        if isinstance(e, HTTPException):
+            raise e
         logger.error(f"Erro na requisição ({table}): {e}")
-        from fastapi import HTTPException
         raise HTTPException(status_code=500, detail=str(e))
 
 # ── CONFIGURAÇÕES ─────────────────────────────────────────────────────────
@@ -479,11 +478,17 @@ def remover_pneu(pneu_id, destino="estoque", km_momento=0, observacao="", filial
         "km_total": km_total_atual + percorrido
     }
     
-    # Se vai para sucata ou reciclagem, entra como aguardando e salva de qual filial veio
-    if new_status in ("descarte", "reciclagem"):
+    # Lógica de recebimento
+    if new_status == "estoque":
+        # Se está indo para a mesma filial onde já estava, mantém recebido=1
+        # Se está indo para outra filial, marca como recebido=0 (em trânsito)
+        if f_dest_id and f_dest_id == current.get("filial_id"):
+            payload["recebido"] = 1
+        else:
+            payload["recebido"] = 0
+    elif new_status in ("descarte", "reciclagem"):
         payload["recebido"] = 0
         payload["lote_id"] = None
-        payload["recebido"] = 0
         # A filial de origem é de onde o pneu estava saindo agora
         payload["filial_origem_id"] = current.get("filial_id")
         
@@ -558,6 +563,33 @@ def transferir_pneu(pneu_id, filial_destino_id, observacao=""):
     return obter_pneu(pneu_id)
 
 def mover_pneu_veiculo(veiculo_id, pos_origem, pos_destino, observacao="", km_momento=0):
+    pneus_origem = _api_request("GET", "gp_pneus", params={
+        "veiculo_id": f"eq.{veiculo_id}",
+        "posicao": f"eq.{pos_origem}",
+        "status": "eq.em_uso"
+    })
+    if not pneus_origem:
+        raise ValueError(f"Nenhum pneu encontrado na posição {pos_origem}")
+    pneu_a = pneus_origem[0]
+
+    pneus_destino = _api_request("GET", "gp_pneus", params={
+        "veiculo_id": f"eq.{veiculo_id}",
+        "posicao": f"eq.{pos_destino}",
+        "status": "eq.em_uso"
+    })
+
+    if pneus_destino:
+        pneu_b = pneus_destino[0]
+        _api_request("PATCH", "gp_pneus", params={"id": f"eq.{pneu_a['id']}"}, payload={"posicao": pos_destino})
+        _api_request("PATCH", "gp_pneus", params={"id": f"eq.{pneu_b['id']}"}, payload={"posicao": pos_origem})
+        _registrar_movimentacao(pneu_a['id'], "rodizio", veiculo_id=veiculo_id, posicao=pos_destino,
+                                km_momento=km_momento, observacao=f"Rodízio {pos_origem}→{pos_destino} | {observacao}")
+        _registrar_movimentacao(pneu_b['id'], "rodizio", veiculo_id=veiculo_id, posicao=pos_origem,
+                                km_momento=km_momento, observacao=f"Rodízio {pos_destino}→{pos_origem} | {observacao}")
+    else:
+        _api_request("PATCH", "gp_pneus", params={"id": f"eq.{pneu_a['id']}"}, payload={"posicao": pos_destino})
+        _registrar_movimentacao(pneu_a['id'], "rodizio", veiculo_id=veiculo_id, posicao=pos_destino,
+                                km_momento=km_momento, observacao=f"Rodízio {pos_origem}→{pos_destino} | {observacao}")
     return True
 
 def enviar_para_recicladora(pneu_id, data_envio, observacao=''):

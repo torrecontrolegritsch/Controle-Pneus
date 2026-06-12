@@ -977,7 +977,10 @@
                 <div class="tire-card-info">
                   <span class="t-fogo">{{ p.numero_fogo }}</span>
                   <span class="t-desc">{{ p.marca }} {{ p.medida }}</span>
-                  <span class="t-status">Vida: {{ p.vida }}ª | {{ p.sulco_atual }}mm</span>
+                  <div style="display: flex; gap: 4px; align-items: center; margin-top: 2px;">
+                    <span class="t-status">Vida: {{ p.vida }}ª | {{ p.sulco_atual }}mm</span>
+                    <span v-if="p.km_total > 0" class="vida-badge" style="background: #f1f5f9; color: #64748b;">USADO</span>
+                  </div>
                 </div>
               </div>
               <div v-if="!filteredStock.length" class="empty-stock">
@@ -991,7 +994,7 @@
                  @dragleave="dragOverRemoval = false"
                  @drop="handleDropOnRemoval('sucata')">
               <span class="icon">🗑️</span>
-              <span class="label">ARRANTE PARA SUCATA</span>
+              <span class="label">ARRASTE PARA SUCATA</span>
             </div>
           </div>
         </div>
@@ -1249,7 +1252,8 @@ import {
   fetchMovimentacoes, fetchGPDashboard,
   fetchBuscaVeiculoSql, fetchSincronizarVeiculosSql,
   confirmarRecebimento, rodizioPneu,
-  fetchLotesReciclagem, enviarParaReciclagem, atualizarValorLote, fetchRelatorioFinanceiroReciclagem
+  fetchLotesReciclagem, fetchPneusAguardandoLote, enviarParaReciclagem,
+  atualizarValorLote, criarLoteReciclagem, fetchRelatorioFinanceiroReciclagem
 } from '../api/gestaoPneus.js'
 import EstoqueCentralView from '../components/views/EstoqueCentralView.vue'
 
@@ -1407,7 +1411,7 @@ const modelosPreCadastrados = computed(() => {
   });
 
   // Lê os pneus carregados do banco e extrai as combinações já usadas
-  pneus.value.forEach(p => {
+  pneusGeral.value.forEach(p => {
     if (p.marca && p.medida) {
       const marca = p.marca.toUpperCase().trim();
       const modelo = p.modelo ? p.modelo.toUpperCase().trim() : '';
@@ -1634,9 +1638,14 @@ function showToast(msg, type = 'success') {
 
 // Load data
 async function loadAll() {
-  try { vehicleConfigs.value = await fetchVehicleConfigs() } catch(e) { console.error(e) }
-  try { filiais.value = await fetchFiliais() } catch(e) { console.error(e) }
-  try { dash.value = await fetchGPDashboard() } catch(e) { console.error(e) }
+  const [configs, filiaisData, dashData] = await Promise.all([
+    fetchVehicleConfigs().catch(e => { console.error(e); return {} }),
+    fetchFiliais().catch(e => { console.error(e); return [] }),
+    fetchGPDashboard().catch(e => { console.error(e); return null })
+  ])
+  vehicleConfigs.value = configs
+  filiais.value = filiaisData
+  dash.value = dashData
   loadVeiculos()
   loadPneus()
   loadPneusGeral()
@@ -1857,7 +1866,7 @@ async function savePneu() {
   try {
     // pneuForm.value contains the data
     if (editingPneu.value) {
-      await updatePneu(editingPneu.value.id, pneuForm.value)
+      await updatePneuApi(editingPneu.value.id, pneuForm.value)
     } else {
       await createPneu(pneuForm.value)
     }
@@ -1891,7 +1900,7 @@ async function handleFileUpload(event) {
     showToast('Importando pneus... favor aguardar', 'info')
     const data = await importPneusCsv(formData)
     if (data.error) {
-       alert('Erro na Planilha: ' + data.error)
+      showToast('Erro na Planilha: ' + data.error, 'error')
     } else {
        showToast(data.message || `Sucesso! ${data.count} pneus foram processados.`)
        loadPneus()
@@ -1899,7 +1908,7 @@ async function handleFileUpload(event) {
     }
   } catch (error) {
     console.error(error)
-    alert('Erro ao importar: ' + (error.response?.data?.detail || error.message))
+    showToast('Erro ao importar: ' + (error.response?.data?.detail || error.message), 'error')
   } finally {
     event.target.value = '' // Limpa o input
   }
@@ -2707,7 +2716,7 @@ onMounted(loadAll)
 .timeline-item:first-child::before { top: 20px; }
 .timeline-item:last-child::before { bottom: 20px; }
 
-.tl-date { width: 60px; display: flex; flex-direction: column; align-items: flex-end; justify-content: center; flex-shrink: 0; }
+.tl-date { width: 60px; display: flex; flex-direction: column; align-items: flex-end; }
 .tl-day { font-size: 14px; font-weight: 800; color: var(--text); }
 .tl-time { font-size: 11px; color: var(--text3); font-weight: 600; }
 
@@ -2916,5 +2925,16 @@ onMounted(loadAll)
 }
 .section-divider::before, .section-divider::after { content: ""; flex: 1; height: 1px; background: var(--border); }
 .section-divider span { font-size: 12px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; }
+
+/* Status de Pneus no Almoxarifado */
+.tire-card-stock { display: flex; align-items: center; gap: 12px; padding: 12px; background: #fff; border: 1px solid var(--border); border-radius: 12px; cursor: grab; transition: all 0.2s; position: relative; overflow: hidden; }
+.tire-card-stock:hover { border-color: var(--brand-mid); transform: translateX(4px); box-shadow: var(--shadow-sm); }
+.tire-card-stock:active { cursor: grabbing; }
+
+.tire-pending { background: #fffbeb !important; border-color: #fcd34d !important; }
+.tire-pending::after { content: 'TRÂNSITO'; position: absolute; top: 0; right: 0; font-size: 8px; font-weight: 900; color: #92400e; background: #fcd34d; padding: 2px 6px; border-bottom-left-radius: 8px; }
+
+.tire-new { border-left: 4px solid var(--green) !important; }
+.tire-new::before { content: 'NOVO'; position: absolute; bottom: 4px; right: 8px; font-size: 8px; font-weight: 900; color: #059669; opacity: 0.8; }
 
 </style>

@@ -19,8 +19,9 @@ try:
         listar_veiculos, criar_veiculo, atualizar_veiculo, obter_veiculo_com_pneus, desativar_veiculo,
         listar_pneus, criar_pneu, atualizar_pneu, obter_pneu, alocar_pneu, remover_pneu, transferir_pneu,
         mover_pneu_veiculo, listar_movimentacoes, obter_dashboard, confirmar_recebimento,
-        enviar_para_recicladora, listar_lotes_reciclagem, atualizar_valor_lote_reciclagem,
-        obter_relatorio_financeiro_reciclagem, importar_pneus_lote, criar_lote_reciclagem
+        enviar_para_recicladora, listar_lotes_reciclagem, listar_pneus_aguardando_lote,
+        atualizar_valor_lote_reciclagem, obter_relatorio_financeiro_reciclagem,
+        importar_pneus_lote, criar_lote_reciclagem
     )
 except ImportError:
     from db_gestao_pneus import (
@@ -28,8 +29,9 @@ except ImportError:
         listar_veiculos, criar_veiculo, atualizar_veiculo, obter_veiculo_com_pneus, desativar_veiculo,
         listar_pneus, criar_pneu, atualizar_pneu, obter_pneu, alocar_pneu, remover_pneu, transferir_pneu,
         mover_pneu_veiculo, listar_movimentacoes, obter_dashboard, confirmar_recebimento,
-        enviar_para_recicladora, listar_lotes_reciclagem, atualizar_valor_lote_reciclagem,
-        obter_relatorio_financeiro_reciclagem, importar_pneus_lote, criar_lote_reciclagem
+        enviar_para_recicladora, listar_lotes_reciclagem, listar_pneus_aguardando_lote,
+        atualizar_valor_lote_reciclagem, obter_relatorio_financeiro_reciclagem,
+        importar_pneus_lote, criar_lote_reciclagem
     )
 try:
     from backend.db_sqlserver import buscar_veiculo_por_placa, sincronizar_todos_do_sql
@@ -48,17 +50,6 @@ router = APIRouter(tags=["gestao-pneus"])
 @router.get("/ping")
 def ping():
     return {"status": "online", "message": "pong"}
-
-# ── Endpoints Públicos (sem auth) ────────────────────────────────────────────────
-@router.get("/configs/veiculos")
-def get_vehicle_configs():
-    return VEHICLE_CONFIGS
-
-# Garante que as tabelas existam ao importar o módulo
-# try:
-#     ensure_tables()
-# except Exception as e:
-#     logger.error(f"Falha ao criar tabelas Gestão Pneus: {e}")
 
 
 # ── Pydantic Models ────────────────────────────────────────────────────────
@@ -298,21 +289,21 @@ async def post_importar_pneus(
         raise HTTPException(status_code=400, detail=f"Erro ao processar CSV: {str(e)}")
 
 @router.get("/pneus/{pneu_id}")
-def get_pneu_detail(pneu_id: int):
+def get_pneu_detail(pneu_id: int, current_user: TokenData = Depends(get_current_user)):
     result = obter_pneu(pneu_id)
     if not result:
         raise HTTPException(status_code=404, detail="Pneu não encontrado")
     return result
 
 @router.put("/pneus/{pneu_id}")
-def put_pneu(pneu_id: int, body: PneuUpdate):
-    result = atualizar_pneu(pneu_id, **body.dict(exclude_none=True))
+def put_pneu(pneu_id: int, body: PneuUpdate, current_user: TokenData = Depends(require_operador)):
+    result = atualizar_pneu(pneu_id, **body.model_dump(exclude_none=True))
     if not result:
         raise HTTPException(status_code=404, detail="Pneu não encontrado")
     return result
 
 @router.post("/confirmar-recebimento", tags=["operacoes"])
-def post_confirmar_recebimento(body: dict):
+def post_confirmar_recebimento(body: dict, current_user: TokenData = Depends(require_operador)):
     pneu_id = body.get("pneu_id")
     if not pneu_id:
         raise HTTPException(status_code=400, detail="pneu_id é obrigatório")
@@ -321,15 +312,18 @@ def post_confirmar_recebimento(body: dict):
 
 
 @router.post("/rodizio")
-def post_rodizio(body: dict):
-    mover_pneu_veiculo(
-        veiculo_id=body["veiculo_id"],
-        pos_origem=body["pos_origem"],
-        pos_destino=body["pos_destino"],
-        observacao=body.get("observacao", ""),
-        km_momento=body.get("km_momento")
-    )
-    return {"ok": True}
+def post_rodizio(body: dict, current_user: TokenData = Depends(require_operador)):
+    try:
+        mover_pneu_veiculo(
+            veiculo_id=body["veiculo_id"],
+            pos_origem=body["pos_origem"],
+            pos_destino=body["pos_destino"],
+            observacao=body.get("observacao", ""),
+            km_momento=body.get("km_momento", 0)
+        )
+        return {"ok": True}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 # ── OPERAÇÕES ──────────────────────────────────────────────────────────────
@@ -397,7 +391,7 @@ def get_dashboard(current_user: TokenData = Depends(get_current_user)):
 # ── RECICLAGEM ─────────────────────────────────────────────────────────────
 
 @router.post("/reciclagem/enviar", tags=["operacoes"])
-def post_enviar_reciclagem(body: dict):
+def post_enviar_reciclagem(body: dict, current_user: TokenData = Depends(require_operador)):
     try:
         return enviar_para_recicladora(
             pneu_id=body["pneu_id"],
@@ -408,15 +402,15 @@ def post_enviar_reciclagem(body: dict):
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.get("/reciclagem/lotes")
-def get_lotes_reciclagem(filial_id: Optional[int] = Query(None)):
+def get_lotes_reciclagem(filial_id: Optional[int] = Query(None), current_user: TokenData = Depends(get_current_user)):
     return listar_lotes_reciclagem(filial_id=filial_id)
 
 @router.get("/reciclagem/aguardando")
-def get_pneus_aguardando_lote(filial_id: Optional[int] = Query(None)):
+def get_pneus_aguardando_lote(filial_id: Optional[int] = Query(None), current_user: TokenData = Depends(get_current_user)):
     return listar_pneus_aguardando_lote(filial_id=filial_id)
 
 @router.post("/reciclagem/atualizar-valor")
-def post_atualizar_valor_lote(body: dict):
+def post_atualizar_valor_lote(body: dict, current_user: TokenData = Depends(require_operador)):
     try:
         return atualizar_valor_lote_reciclagem(lote_id=body["lote_id"], valor_total=body["valor_total"])
     except Exception as e:
