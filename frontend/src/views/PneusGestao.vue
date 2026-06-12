@@ -2803,43 +2803,47 @@ onMounted(loadAll)
 .print-only { display: none; }
 
 @media print {
-  /* Oculta TUDO do app exceto o manifesto */
-  body > *,
-  .app-layout > *,
+  /* Oculta sidebar e cabeçalho do app */
   .sidebar,
-  aside.sidebar,
-  .main-content,
   .content-header,
   .header-kpis,
-  .gp-section,
-  .modal-overlay,
   .toast,
-  button {
+  .modal-overlay {
     display: none !important;
-    visibility: hidden !important;
   }
 
-  /* O manifesto toma conta da página inteira */
-  #printable-lote {
+  /* Oculta tudo dentro do main EXCETO o manifesto */
+  .main-content > *:not(#printable-lote) {
+    display: none !important;
+  }
+
+  /* Remove flex do layout para o manifesto fluir normalmente */
+  .app-layout {
     display: block !important;
-    visibility: visible !important;
-    position: fixed !important;
-    inset: 0 !important;
-    width: 100vw !important;
-    min-height: 100vh !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  .main-content {
+    display: block !important;
     margin: 0 !important;
     padding: 0 !important;
-    background: #fff !important;
-    z-index: 99999 !important;
+    height: auto !important;
+    overflow: visible !important;
+    width: 100% !important;
   }
 
-  #printable-lote * {
-    visibility: visible !important;
+  /* Manifesto ocupa a página toda */
+  #printable-lote {
+    display: block !important;
+    width: 100% !important;
+    position: static !important;
+    background: #fff !important;
   }
 
   @page {
     size: A4 portrait;
-    margin: 15mm 15mm 15mm 15mm;
+    margin: 15mm;
   }
 }
 
