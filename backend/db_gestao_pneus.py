@@ -684,7 +684,8 @@ def atualizar_valor_lote_reciclagem(lote_id, valor_total):
 def criar_lote_reciclagem(pneu_ids, filial_id):
     import datetime
     now = datetime.datetime.now()
-    lote_id = int(now.strftime("%Y%m%d%H%M"))  # inteiro p/ coluna INTEGER do Supabase
+    # Unix timestamp cabe em INTEGER do PostgreSQL (max 2.147.483.647 ≈ ano 2038)
+    lote_id = int(time.time())
     lote_label = f"LOTE-{filial_id}-{now.strftime('%Y%m%d%H%M')}"
 
     for pid in pneu_ids:
