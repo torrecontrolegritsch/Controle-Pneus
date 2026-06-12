@@ -202,21 +202,32 @@
                   <input v-model="searchStock" placeholder="Buscar pneu no estoque..." class="stock-input" style="padding: 6px;" />
                 </div>
                 <div class="stock-list" @dragover.prevent @drop="handleDropOnRemoval('estoque')">
-                  <div v-for="p in filteredStock" :key="p.id" 
-                       class="tire-card-stock" 
-                       :class="{ 
-                         'tire-pending': p.recebido === 0, 
-                         'tire-new': p.recebido === 1 && (p.km_total || 0) <= 0 && (Number(p.vida) == 1 || String(p.vida).startsWith('1')),
-                         'tire-used': p.recebido === 1 && (p.km_total || 0) > 0
-                       }"
-                       draggable="true" @dragstart="handleDragStartFromStock($event, p)">
-                    <div class="tire-mini-visual"></div>
-                    <div class="tire-card-info">
-                      <span class="t-fogo">{{ p.numero_fogo }}</span>
-                      <span class="t-desc">{{ p.marca }} {{ p.medida }}</span>
-                      <span class="t-status">Vida: {{ p.vida }}ª | {{ p.sulco_atual }}mm</span>
+                  <template v-for="grupo in filteredStockByMedida" :key="grupo.medida">
+                    <div class="medida-separator">
+                      <span class="medida-sep-label">{{ grupo.medida }}</span>
+                      <span class="medida-sep-count">{{ grupo.pneus.length }}</span>
                     </div>
-                  </div>
+                    <div v-for="p in grupo.pneus" :key="p.id"
+                         class="tire-card-stock"
+                         :class="{
+                           'tire-pending': p.recebido === 0,
+                           'tire-new': p.recebido === 1 && (p.km_total || 0) <= 0 && (Number(p.vida) == 1 || String(p.vida).startsWith('1')),
+                           'tire-used': p.recebido === 1 && (p.km_total || 0) > 0
+                         }"
+                         draggable="true"
+                         @dragstart="handleDragStartFromStock($event, p)"
+                         @click.stop="p.recebido === 0 && confirmarChegadaEstoque(p)"
+                         :title="p.recebido === 0 ? '✅ Clique para confirmar chegada' : ''"
+                         :style="p.recebido === 0 ? 'cursor:pointer;' : ''">
+                      <div class="tire-mini-visual"></div>
+                      <div class="tire-card-info">
+                        <span class="t-fogo">{{ p.numero_fogo }}</span>
+                        <span class="t-desc">{{ p.marca }}</span>
+                        <span class="t-status">Vida: {{ p.vida }}ª | {{ p.sulco_atual }}mm</span>
+                      </div>
+                      <div v-if="p.recebido === 0" class="pending-btn" title="Confirmar chegada">✓</div>
+                    </div>
+                  </template>
                   <div v-if="!filteredStock.length" class="empty-stock">Sem pneus</div>
                 </div>
                 <div class="removal-zone sucata-drop" :class="{ 'drag-over': dragOverRemoval }" 
@@ -968,21 +979,31 @@
             </div>
 
             <div class="stock-list" @dragover.prevent @drop="handleDropOnRemoval('estoque')">
-              <div v-for="p in filteredStock" :key="p.id" 
-                   class="tire-card-stock" 
-                   :class="{ 'tire-pending': p.recebido === 0, 'tire-new': Number(p.vida) === 1 && p.recebido === 1 }"
-                   draggable="true" 
-                   @dragstart="handleDragStartFromStock($event, p)">
-                <div class="tire-mini-visual"></div>
-                <div class="tire-card-info">
-                  <span class="t-fogo">{{ p.numero_fogo }}</span>
-                  <span class="t-desc">{{ p.marca }} {{ p.medida }}</span>
-                  <div style="display: flex; gap: 4px; align-items: center; margin-top: 2px;">
-                    <span class="t-status">Vida: {{ p.vida }}ª | {{ p.sulco_atual }}mm</span>
-                    <span v-if="p.km_total > 0" class="vida-badge" style="background: #f1f5f9; color: #64748b;">USADO</span>
-                  </div>
+              <template v-for="grupo in filteredStockByMedida" :key="grupo.medida">
+                <div class="medida-separator">
+                  <span class="medida-sep-label">{{ grupo.medida }}</span>
+                  <span class="medida-sep-count">{{ grupo.pneus.length }}</span>
                 </div>
-              </div>
+                <div v-for="p in grupo.pneus" :key="p.id"
+                     class="tire-card-stock"
+                     :class="{ 'tire-pending': p.recebido === 0, 'tire-new': Number(p.vida) === 1 && p.recebido === 1 }"
+                     draggable="true"
+                     @dragstart="handleDragStartFromStock($event, p)"
+                     @click.stop="p.recebido === 0 && confirmarChegadaEstoque(p)"
+                     :title="p.recebido === 0 ? '✅ Clique para confirmar chegada' : ''"
+                     :style="p.recebido === 0 ? 'cursor:pointer;' : ''">
+                  <div class="tire-mini-visual"></div>
+                  <div class="tire-card-info">
+                    <span class="t-fogo">{{ p.numero_fogo }}</span>
+                    <span class="t-desc">{{ p.marca }}</span>
+                    <div style="display:flex;gap:4px;align-items:center;margin-top:2px;">
+                      <span class="t-status">Vida: {{ p.vida }}ª | {{ p.sulco_atual }}mm</span>
+                      <span v-if="p.km_total > 0" class="vida-badge" style="background:#f1f5f9;color:#64748b;">USADO</span>
+                    </div>
+                  </div>
+                  <div v-if="p.recebido === 0" class="pending-btn" title="Confirmar chegada">✓</div>
+                </div>
+              </template>
               <div v-if="!filteredStock.length" class="empty-stock">
                 Nenhum pneu disponível nesta filial
               </div>
@@ -1408,11 +1429,23 @@ const pneusSucataConfirmados = computed(() => {
 const filteredStock = computed(() => {
   if (!searchStock.value) return pneusEstoqueFilial.value
   const s = searchStock.value.toLowerCase()
-  return pneusEstoqueFilial.value.filter(p => 
-    p.numero_fogo.toLowerCase().includes(s) || 
-    p.marca.toLowerCase().includes(s) || 
+  return pneusEstoqueFilial.value.filter(p =>
+    p.numero_fogo.toLowerCase().includes(s) ||
+    p.marca.toLowerCase().includes(s) ||
     p.medida.toLowerCase().includes(s)
   )
+})
+
+const filteredStockByMedida = computed(() => {
+  const mapa = {}
+  for (const p of filteredStock.value) {
+    const med = p.medida || 'Sem medida'
+    if (!mapa[med]) mapa[med] = []
+    mapa[med].push(p)
+  }
+  return Object.entries(mapa)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([medida, pneus]) => ({ medida, pneus }))
 })
 
 const modelosPreCadastrados = computed(() => {
@@ -2144,6 +2177,18 @@ async function doAtualizarValorLote() {
   } catch(e) { showToast(e.message, 'error') }
 }
 
+async function confirmarChegadaEstoque(p) {
+  if (!confirm(`Confirmar chegada do pneu ${p.numero_fogo} (${p.medida}) na filial?`)) return
+  try {
+    await confirmarRecebimento(p.id)
+    // Atualiza só o flag recebido sem alterar status
+    const idx = pneusEstoqueFilial.value.findIndex(x => x.id === p.id)
+    if (idx !== -1) pneusEstoqueFilial.value[idx].recebido = 1
+    showToast(`Pneu ${p.numero_fogo} confirmado!`)
+    loadPneus(); refreshDash()
+  } catch(e) { showToast(e.message, 'error') }
+}
+
 async function doConfirmarRecebimento(p) {
   if (!confirm(`Confirmar que o pneu ${p.numero_fogo} CHEGOU na filial ${p.filial_nome || ''}?`)) return
   try {
@@ -2612,8 +2657,39 @@ onMounted(loadAll)
   display: flex; gap: 12px; cursor: grab; transition: all 0.2s;
 }
 .tire-card-stock:hover { border-color: var(--brand); transform: translateX(4px); box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-.tire-card-stock.tire-pending { border: 2px solid #ef4444; background: #fff1f2; position: relative; }
-.tire-card-stock.tire-pending::after { content: 'PENDENTE'; position: absolute; bottom: 4px; right: 8px; font-size: 8px; font-weight: 800; color: #ef4444; }
+/* Separador de medida */
+.medida-separator {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  margin: 8px 0 2px;
+  background: linear-gradient(90deg, #f1f5f9, transparent);
+  border-left: 3px solid var(--brand, #c41230);
+  border-radius: 0 4px 4px 0;
+}
+.medida-sep-label { font-size: 11px; font-weight: 800; color: var(--text2, #475569); text-transform: uppercase; letter-spacing: .04em; }
+.medida-sep-count { font-size: 10px; font-weight: 700; color: white; background: var(--brand, #c41230); border-radius: 10px; padding: 1px 7px; }
+
+/* Botão de confirmação PENDENTE */
+.pending-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  background: #f97316;
+  color: white;
+  font-size: 14px;
+  font-weight: 800;
+  flex-shrink: 0;
+  margin-left: auto;
+  box-shadow: 0 2px 4px rgba(249,115,22,.4);
+  transition: transform .15s, background .15s;
+}
+.tire-card-stock:hover .pending-btn { transform: scale(1.15); background: #ea580c; }
+
+.tire-card-stock.tire-pending { border: 2px solid #f97316; background: #fff7ed; position: relative; }
 .tire-card-stock.tire-new { border: 2px solid #22c55e; background: #f0fdf4; position: relative; }
 .tire-card-stock.tire-new::after { content: 'NOVO'; position: absolute; bottom: 4px; right: 8px; font-size: 8px; font-weight: 800; color: #22c55e; }
 
