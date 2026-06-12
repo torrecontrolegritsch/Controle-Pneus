@@ -648,10 +648,12 @@ def listar_lotes_reciclagem(filial_id=None):
         if lote_id not in lotes:
             dt_raw = p.get("atualizado_em") or ""
             data = dt_raw.split("T")[0] if "T" in dt_raw else "N/A"
-            
+            # Formata número legível: 202506121843 → LOTE-202506121843
+            numero_lote = f"LOTE-{lote_id}" if str(lote_id).isdigit() else str(lote_id)
+
             lotes[lote_id] = {
                 "id": lote_id,
-                "numero_lote": lote_id,
+                "numero_lote": numero_lote,
                 "data_envio": data,
                 "valor_total": 0,
                 "valor_pneu": 0,
@@ -681,18 +683,19 @@ def atualizar_valor_lote_reciclagem(lote_id, valor_total):
 
 def criar_lote_reciclagem(pneu_ids, filial_id):
     import datetime
-    timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M")
-    lote_id = f"LOTE-{filial_id}-{timestamp}"
-    
+    now = datetime.datetime.now()
+    lote_id = int(now.strftime("%Y%m%d%H%M"))  # inteiro p/ coluna INTEGER do Supabase
+    lote_label = f"LOTE-{filial_id}-{now.strftime('%Y%m%d%H%M')}"
+
     for pid in pneu_ids:
         _api_request("PATCH", "gp_pneus", params={"id": f"eq.{pid}"}, payload={
             "lote_id": lote_id,
             "status": "reciclagem",
-            "recebido": 1 # Agora está 'processado' no lote
+            "recebido": 1
         })
-        _registrar_movimentacao(pid, "envio_reciclagem", observacao=f"Lote Gerado: {lote_id}")
-    
-    return {"ok": True, "lote_id": lote_id}
+        _registrar_movimentacao(pid, "envio_reciclagem", observacao=f"Lote Gerado: {lote_label}")
+
+    return {"ok": True, "lote_id": lote_label}
 
 def obter_relatorio_financeiro_reciclagem(mes=None, filial_id=None):
     # Busca pneus que estão em reciclagem
