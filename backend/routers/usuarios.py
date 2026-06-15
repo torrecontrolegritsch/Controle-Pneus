@@ -102,7 +102,14 @@ def criar_usuario(data: UsuarioCreate, current_user: TokenData = Depends(require
     })
     if insert_res.status_code not in (200, 201):
         _supa_admin(f"/users/{user_id}", method="DELETE")
-        raise HTTPException(status_code=500, detail="Erro ao salvar dados do usuário no banco")
+        err_detail = ""
+        try:
+            err_detail = insert_res.json().get("message") or insert_res.json().get("hint") or ""
+        except Exception:
+            pass
+        if "column" in err_detail.lower() or "does not exist" in err_detail.lower():
+            raise HTTPException(status_code=500, detail="Execute a migração SQL no Supabase antes de criar usuários. Acesse o SQL Editor e rode o ALTER TABLE usuarios ADD COLUMN ...")
+        raise HTTPException(status_code=500, detail=f"Erro ao salvar usuário no banco: {err_detail or insert_res.text[:200]}")
 
     return {"id": user_id, "message": "Usuário criado com sucesso"}
 
