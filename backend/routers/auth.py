@@ -66,21 +66,37 @@ def login(req: LoginRequest):
             email = supa_data["user"]["email"]
             meta_role = supa_data["user"].get("user_metadata", {}).get("role", "operador")
 
+            supa_headers = {"apikey": apikey, "Authorization": f"Bearer {apikey}", "Content-Type": "application/json", "Prefer": "return=representation"}
             user_url = f"{SUPABASE_URL}/rest/v1/usuarios?id=eq.{user_id}"
-            user_res = requests.get(user_url, headers={"apikey": apikey, "Authorization": f"Bearer {apikey}"})
+            user_res = requests.get(user_url, headers=supa_headers)
             filial_id = None
             telas = []
-            nome = ""
+            nome = supa_data["user"].get("user_metadata", {}).get("nome", email.split("@")[0])
             ativo = True
             role = meta_role
             if user_res.status_code == 200 and user_res.json():
                 user_data = user_res.json()[0]
                 filial_id = user_data.get("filial_id")
                 telas = user_data.get("telas") or []
-                nome = user_data.get("nome") or ""
+                nome = user_data.get("nome") or nome
                 ativo = user_data.get("ativo", True)
                 db_role = user_data.get("role")
                 role = db_role if db_role else meta_role
+            else:
+                # Usuário existe no Auth mas não tem registro na tabela usuarios.
+                # Auto-cria com role do user_metadata para não bloquear o acesso.
+                telas_padrao = [] if meta_role == "operador" else [
+                    'estoque_central','alocacoes','veiculos','filiais',
+                    'estoque','financeiro','sucata','recicladora','historico','relatorio_nf'
+                ]
+                requests.post(
+                    f"{SUPABASE_URL}/rest/v1/usuarios",
+                    headers=supa_headers,
+                    json={"id": user_id, "nome": nome, "email": email, "role": meta_role,
+                          "filial_id": None, "telas": telas_padrao, "ativo": True},
+                    timeout=10
+                )
+                telas = telas_padrao
 
             if not ativo:
                 raise HTTPException(status_code=403, detail="Usuário desativado. Contate o administrador.")
