@@ -11,8 +11,9 @@ venv/
 
 # Node / Frontend
 node_modules/
-dist/
 .DS_Store
+# dist/ commitado para garantir deploy no Vercel sem build
+!frontend/dist/
 
 # Vercel
 .vercel
