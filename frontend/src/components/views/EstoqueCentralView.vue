@@ -329,7 +329,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import * as api from '../../api/gestaoPneus.js'
 
 const props = defineProps({
@@ -424,6 +424,11 @@ const gruposMarca = computed(() => {
 // ── Funções ────────────────────────────────────────────
 
 onMounted(loadData)
+
+// filiais chegam assíncronas — se montou com lista vazia, recarrega quando estiver pronta
+watch(centralFilial, (nova, antiga) => {
+  if (nova && !antiga) loadData()
+})
 
 async function loadData() {
   if (!centralFilial.value) return
