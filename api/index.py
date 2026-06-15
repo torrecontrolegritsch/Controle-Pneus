@@ -4,7 +4,7 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import RedirectResponse
+from fastapi.responses import FileResponse
 from dotenv import load_dotenv
 
 # Garante que a raiz do projeto está no PATH (estamos dentro da pasta /api)
@@ -27,11 +27,13 @@ def ping():
 
 @app.get("/api/debug-server")
 def debug_server():
+    dist_path = os.path.join(BASE_DIR, "frontend", "dist")
     return {
         "status": "rodando",
         "erro_carregamento": str(ERROR_LOAD) if ERROR_LOAD else "Nenhum erro",
         "caminho_atual": os.getcwd(),
-        "arquivos_raiz": os.listdir(BASE_DIR),
+        "dist_existe": os.path.exists(dist_path),
+        "arquivos_dist": os.listdir(dist_path) if os.path.exists(dist_path) else [],
         "sys_path": sys.path
     }
 
@@ -45,21 +47,31 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Importação dos roteadores
+# Importação dos roteadores (API routes registradas ANTES do catch-all)
 from backend.routers import gestao_pneus, auth
 from backend.routers import usuarios
 app.include_router(gestao_pneus.router, prefix="/api/gestao-pneus")
 app.include_router(auth.router)
 app.include_router(usuarios.router)
 
-# Servir Frontend
+# Servir assets estáticos (JS, CSS) do dist commitado
 dist_path = os.path.join(BASE_DIR, "frontend", "dist")
-if os.path.exists(dist_path):
-    app.mount("/frontend", StaticFiles(directory=dist_path, html=True), name="frontend")
+assets_path = os.path.join(dist_path, "assets")
 
-@app.get("/")
-def home():
-    return RedirectResponse(url="/frontend/")
+if os.path.exists(assets_path):
+    app.mount("/assets", StaticFiles(directory=assets_path), name="assets")
+
+# SPA catch-all: serve index.html para qualquer rota não-API
+@app.get("/{full_path:path}", include_in_schema=False)
+async def serve_spa(full_path: str):
+    if not os.path.exists(dist_path):
+        return {"error": "Frontend nao encontrado. Execute npm run build no diretorio frontend/."}
+    # Serve arquivos estáticos que existem na raiz do dist (logo, bg, etc.)
+    file_path = os.path.join(dist_path, full_path)
+    if full_path and os.path.isfile(file_path):
+        return FileResponse(file_path)
+    # Fallback para index.html (SPA routing)
+    return FileResponse(os.path.join(dist_path, "index.html"))
 
 # Para rodar localmente com python api/index.py
 if __name__ == "__main__":
