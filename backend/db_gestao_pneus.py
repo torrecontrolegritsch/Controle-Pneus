@@ -763,6 +763,7 @@ def obter_relatorio_financeiro_reciclagem(mes=None, filial_id=None):
         # Usa filial_origem_id — a filial que enviou a carcaça para reciclagem
         origem_id = p.get("filial_origem_id")
         f_nome = f_map.get(origem_id, "Filial não identificada") if origem_id else "Filial não identificada"
+        p["filial_origem_nome"] = f_nome
         valor = float(p.get('valor_arrecadado', 0) or 0)
         total_geral += valor
         if f_nome not in resumo:

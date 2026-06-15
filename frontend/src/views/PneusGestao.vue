@@ -663,59 +663,137 @@
     <section v-if="tab === 'financeiro'" class="gp-section">
       <div class="sec-toolbar">
         <div class="toolbar-left">
-          <h2>💰 Retorno Financeiro</h2>
-          <p class="sec-subtitle">Calculo de créditos por filial referente as carcaças recicladas</p>
+          <h2 class="sec-title">Retorno Financeiro</h2>
+          <p class="sec-subtitle">Créditos por filial referente às carcaças recicladas no período</p>
         </div>
-        <div class="toolbar-right" style="display: flex; gap: 12px;">
+        <div class="toolbar-right" style="display:flex;gap:10px;align-items:center;">
           <input type="month" v-model="filtroMesFinanceiro" class="filter-select" />
           <select v-model="filtroFilialFinanceiro" class="filter-select">
             <option value="">Todas as Filiais</option>
             <option v-for="f in filiais" :key="f.id" :value="f.id">{{ f.nome }}</option>
           </select>
+          <button v-if="relatorioFinanceiro.detalhes.length" class="btn-secondary" style="display:inline-flex;align-items:center;gap:6px;white-space:nowrap" @click="exportarFinanceiroCSV">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Exportar CSV
+          </button>
         </div>
       </div>
 
-      <div class="financeiro-dashboard">
-        <div class="fin-card-main">
-          <div class="fin-stat">
-            <span class="lbl">Total Arrecadado no Período</span>
-            <span class="val big">{{ relatorioFinanceiro.total_geral.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) }}</span>
+      <!-- KPI Cards -->
+      <div class="fin-kpis">
+        <div class="fin-kpi fin-kpi-green">
+          <div class="fin-kpi-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
           </div>
-          <div class="fin-stat">
-            <span class="lbl">Total de Pneus</span>
-            <span class="val">{{ relatorioFinanceiro.detalhes.length }}</span>
+          <div>
+            <span class="fin-kpi-num">{{ relatorioFinanceiro.total_geral.toLocaleString('pt-BR',{style:'currency',currency:'BRL'}) }}</span>
+            <span class="fin-kpi-lbl">Total Arrecadado</span>
           </div>
+        </div>
+        <div class="fin-kpi">
+          <div class="fin-kpi-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 17h4V5H2v12h3"/><path d="M20 17h2v-9h-4V5h-4v12h3"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>
+          </div>
+          <div>
+            <span class="fin-kpi-num">{{ relatorioFinanceiro.detalhes.length }}</span>
+            <span class="fin-kpi-lbl">Pneus Reciclados</span>
+          </div>
+        </div>
+        <div class="fin-kpi fin-kpi-blue">
+          <div class="fin-kpi-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          </div>
+          <div>
+            <span class="fin-kpi-num">{{ relatorioFinanceiro.detalhes.length ? (relatorioFinanceiro.total_geral / relatorioFinanceiro.detalhes.length).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}) : 'R$ 0,00' }}</span>
+            <span class="fin-kpi-lbl">Média por Pneu</span>
+          </div>
+        </div>
+        <div class="fin-kpi fin-kpi-purple">
+          <div class="fin-kpi-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </div>
+          <div>
+            <span class="fin-kpi-num">{{ relatorioFinanceiro.resumo_filiais.length }}</span>
+            <span class="fin-kpi-lbl">Filiais Participantes</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sem dados -->
+      <div v-if="!relatorioFinanceiro.detalhes.length" class="empty-state">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        <p>Nenhum retorno encontrado para o período selecionado.</p>
+        <small>Verifique se há lotes de reciclagem com valor informado neste mês.</small>
+      </div>
+
+      <div v-else class="fin-body">
+
+        <!-- Retorno por Filial -->
+        <div class="fin-box">
+          <div class="fin-box-header">
+            <span class="fin-box-title">Retorno por Filial</span>
+            <span class="badge badge-green">{{ relatorioFinanceiro.resumo_filiais.length }} filial(is)</span>
+          </div>
+          <table class="gp-table fin-table">
+            <colgroup><col style="width:45%"/><col style="width:18%"/><col style="width:20%"/><col style="width:17%"/></colgroup>
+            <thead>
+              <tr>
+                <th style="text-align:left">Filial</th>
+                <th style="text-align:center">Qtd Pneus</th>
+                <th style="text-align:right">Valor p/ Receber</th>
+                <th style="text-align:right">% do Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="r in relatorioFinanceiro.resumo_filiais" :key="r.nome">
+                <td style="text-align:left">
+                  <strong>{{ r.nome }}</strong>
+                  <div class="fin-bar-wrap">
+                    <div class="fin-bar" :style="{ width: relatorioFinanceiro.total_geral ? (r.total / relatorioFinanceiro.total_geral * 100) + '%' : '0%' }"></div>
+                  </div>
+                </td>
+                <td style="text-align:center">{{ r.pneus }}</td>
+                <td style="text-align:right"><strong class="text-green">{{ r.total.toLocaleString('pt-BR',{style:'currency',currency:'BRL'}) }}</strong></td>
+                <td style="text-align:right;color:#64748b;font-size:12px">{{ relatorioFinanceiro.total_geral ? (r.total / relatorioFinanceiro.total_geral * 100).toFixed(1) + '%' : '—' }}</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
 
-        <div class="fin-grid">
-          <div class="fin-table-box">
-            <h3>Retorno por Filial</h3>
-            <table class="gp-table fin-table">
-              <colgroup>
-                <col style="width: 50%" />
-                <col style="width: 20%" />
-                <col style="width: 30%" />
-              </colgroup>
-              <thead>
-                <tr>
-                  <th style="text-align:left">Filial</th>
-                  <th style="text-align:center">Qtd Pneus</th>
-                  <th style="text-align:right">Valor p/ Receber</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="r in relatorioFinanceiro.resumo_filiais" :key="r.nome">
-                  <td style="text-align:left"><strong>{{ r.nome }}</strong></td>
-                  <td style="text-align:center">{{ r.pneus }}</td>
-                  <td style="text-align:right"><strong class="text-green">{{ r.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) }}</strong></td>
-                </tr>
-                <tr v-if="!relatorioFinanceiro.resumo_filiais.length">
-                  <td colspan="3" style="text-align:center;opacity:.5">Nenhum retorno encontrado para este filtro</td>
-                </tr>
-              </tbody>
-            </table>
+        <!-- Detalhe dos pneus -->
+        <div class="fin-box">
+          <div class="fin-box-header">
+            <span class="fin-box-title">Pneus Reciclados no Período</span>
+            <span class="badge badge-blue">{{ relatorioFinanceiro.detalhes.length }} pneu(s)</span>
           </div>
+          <table class="gp-table fin-table">
+            <thead>
+              <tr>
+                <th>N. Fogo</th>
+                <th>Marca / Modelo</th>
+                <th>Medida</th>
+                <th style="text-align:center">Vida</th>
+                <th>Lote</th>
+                <th style="text-align:right">Valor Recebido</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="p in relatorioFinanceiro.detalhes" :key="p.id">
+                <td><strong>{{ p.numero_fogo }}</strong></td>
+                <td>{{ p.marca }}<span style="color:#94a3b8;margin-left:4px;font-size:12px">{{ p.modelo }}</span></td>
+                <td>{{ p.medida }}</td>
+                <td style="text-align:center"><span class="badge" style="background:#f1f5f9;color:#475569;border:1px solid #e2e8f0">{{ p.vida }}ª</span></td>
+                <td style="font-size:12px;color:#64748b">{{ p.lote_id ? 'LOTE-' + p.lote_id : '—' }}</td>
+                <td style="text-align:right">
+                  <strong :class="p.valor_arrecadado > 0 ? 'text-green' : 'text-muted'">
+                    {{ (p.valor_arrecadado || 0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}) }}
+                  </strong>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
+
       </div>
     </section>
 
@@ -2133,13 +2211,33 @@ async function loadLotes() {
     pneusAguardandoLote.value = await fetchPneusAguardandoLote()
   } catch(e) { console.error(e) } 
 }
-async function loadFinanceiro() { 
-  try { 
-    relatorioFinanceiro.value = await fetchRelatorioFinanceiroReciclagem({ 
-      mes: filtroMesFinanceiro.value, 
-      filial_id: filtroFilialFinanceiro.value 
-    }) 
-  } catch(e) { console.error(e) } 
+async function loadFinanceiro() {
+  try {
+    relatorioFinanceiro.value = await fetchRelatorioFinanceiroReciclagem({
+      mes: filtroMesFinanceiro.value,
+      filial_id: filtroFilialFinanceiro.value
+    })
+  } catch(e) { console.error(e) }
+}
+
+function exportarFinanceiroCSV() {
+  const rf = relatorioFinanceiro.value
+  const mes = filtroMesFinanceiro.value || 'todos'
+  const sep = ';'
+  const header = ['Mes','N. Fogo','Marca','Modelo','Medida','Vida','Lote','Filial Origem','Valor Recebido']
+  const rows = rf.detalhes.map(p => [
+    mes, p.numero_fogo||'', p.marca||'', p.modelo||'',
+    p.medida||'', p.vida||'',
+    p.lote_id ? 'LOTE-'+p.lote_id : '',
+    p.filial_origem_nome || '',
+    String(p.valor_arrecadado||0).replace('.',',')
+  ])
+  const csv = [header,...rows].map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(sep)).join('\r\n')
+  const blob = new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'})
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a'); a.href=url
+  a.download = `retorno_financeiro_${mes}.csv`
+  a.click(); URL.revokeObjectURL(url)
 }
 
 function openReciclagemModal(p) {
@@ -2913,6 +3011,30 @@ onMounted(loadAll)
 .gp-table.mini th { background: transparent; padding: 12px 24px; }
 .gp-table.mini td { padding: 12px 24px; }
 
+/* ── Financeiro KPIs ── */
+.fin-kpis { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+.fin-kpi { display: flex; align-items: center; gap: 12px; background: white; border: 1px solid var(--border, #e2e8f0); border-radius: 10px; padding: 14px 20px; flex: 1; min-width: 160px; box-shadow: 0 1px 3px rgba(0,0,0,.05); }
+.fin-kpi-icon { width: 38px; height: 38px; background: #f1f5f9; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #64748b; flex-shrink: 0; }
+.fin-kpi-green { border-top: 3px solid #22c55e; }
+.fin-kpi-green .fin-kpi-icon { background: #f0fdf4; color: #16a34a; }
+.fin-kpi-blue { border-top: 3px solid #3b82f6; }
+.fin-kpi-blue .fin-kpi-icon { background: #eff6ff; color: #2563eb; }
+.fin-kpi-purple { border-top: 3px solid #8b5cf6; }
+.fin-kpi-purple .fin-kpi-icon { background: #f5f3ff; color: #7c3aed; }
+.fin-kpi-num { display: block; font-size: 20px; font-weight: 700; color: var(--text, #1e293b); line-height: 1.1; }
+.fin-kpi-lbl { display: block; font-size: 11px; color: #94a3b8; text-transform: uppercase; letter-spacing: .4px; margin-top: 2px; }
+
+/* ── Financeiro body ── */
+.fin-body { display: flex; flex-direction: column; gap: 16px; }
+.fin-box { background: white; border: 1px solid var(--border, #e2e8f0); border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,.05); }
+.fin-box-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; background: #f8fafc; border-bottom: 1px solid var(--border, #e2e8f0); }
+.fin-box-title { font-weight: 600; font-size: 14px; color: var(--text, #1e293b); }
+
+/* Barra de proporção */
+.fin-bar-wrap { height: 3px; background: #f1f5f9; border-radius: 2px; margin-top: 5px; overflow: hidden; }
+.fin-bar { height: 100%; background: #22c55e; border-radius: 2px; transition: width .4s ease; }
+
+/* Legados (mantidos para compatibilidade) */
 .financeiro-dashboard { display: flex; flex-direction: column; gap: 24px; }
 .fin-card-main { display: flex; gap: 48px; background: white; padding: 32px; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: 1px solid var(--border); }
 .fin-stat { display: flex; flex-direction: column; gap: 8px; }
