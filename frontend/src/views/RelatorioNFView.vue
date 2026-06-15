@@ -7,7 +7,7 @@
         <h2 class="sec-title">Relatório por Nota Fiscal</h2>
         <p class="sec-subtitle">Rastreie todos os pneus de uma NF — destino, status e histórico de veículo</p>
       </div>
-      <button v-if="pneus.length" class="btn-secondary" @click="exportarCSV">
+      <button v-if="pneus.length" class="nf-btn-export" @click="exportarCSV">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         Exportar CSV
       </button>
@@ -30,8 +30,8 @@
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
         </div>
-        <button class="btn-primary" @click="buscar" :disabled="!buscaNF.trim() || carregando">
-          <svg v-if="!carregando" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <button class="nf-btn-buscar" @click="buscar" :disabled="!buscaNF.trim() || carregando">
+          <svg v-if="!carregando" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           <span v-else class="nf-spin"></span>
           {{ carregando ? 'Buscando...' : 'Buscar NF' }}
         </button>
@@ -294,7 +294,7 @@ function exportarCSV() {
   background: transparent;
   font-size: 14px;
   color: var(--text1, #1e293b);
-  padding: 11px 0;
+  padding: 13px 0;
 }
 .nf-input::placeholder { color: #94a3b8; }
 
@@ -486,4 +486,65 @@ function exportarCSV() {
 .text-muted { color: var(--text3, #94a3b8); font-size: 12px; }
 
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Botões profissionais ── */
+.nf-btn-buscar {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 22px;
+  height: 44px;
+  background: linear-gradient(180deg, #c41230 0%, #a50f28 100%);
+  color: #fff;
+  border: 1px solid #8b0c22;
+  border-radius: 8px;
+  font-size: 13.5px;
+  font-weight: 700;
+  letter-spacing: .2px;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 1px 3px rgba(196,18,48,.25), inset 0 1px 0 rgba(255,255,255,.12);
+  transition: box-shadow .15s, transform .15s, opacity .15s;
+}
+.nf-btn-buscar:hover:not(:disabled) {
+  box-shadow: 0 4px 12px rgba(196,18,48,.35), inset 0 1px 0 rgba(255,255,255,.12);
+  transform: translateY(-1px);
+}
+.nf-btn-buscar:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: inset 0 2px 4px rgba(0,0,0,.15);
+}
+.nf-btn-buscar:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+
+.nf-btn-export {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 18px;
+  height: 38px;
+  background: #fff;
+  color: #374151;
+  border: 1.5px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 1px 2px rgba(0,0,0,.06);
+  transition: background .15s, border-color .15s, box-shadow .15s, transform .15s;
+}
+.nf-btn-export:hover {
+  background: #f9fafb;
+  border-color: #9ca3af;
+  box-shadow: 0 2px 6px rgba(0,0,0,.1);
+  transform: translateY(-1px);
+}
+.nf-btn-export:active {
+  transform: translateY(0);
+  box-shadow: inset 0 1px 3px rgba(0,0,0,.08);
+}
+.nf-btn-export svg { color: #6b7280; }
 </style>
