@@ -66,9 +66,14 @@ def login(req: LoginRequest):
             email = supa_data["user"]["email"]
             meta_role = supa_data["user"].get("user_metadata", {}).get("role", "operador")
 
-            supa_headers = {"apikey": apikey, "Authorization": f"Bearer {apikey}", "Content-Type": "application/json", "Prefer": "return=representation"}
+            get_headers = {"apikey": apikey, "Authorization": f"Bearer {apikey}"}
+            post_headers = {**get_headers, "Content-Type": "application/json", "Prefer": "return=representation"}
+            TODAS_TELAS = [
+                'estoque_central','alocacoes','veiculos','filiais',
+                'estoque','financeiro','sucata','recicladora','historico','relatorio_nf'
+            ]
             user_url = f"{SUPABASE_URL}/rest/v1/usuarios?id=eq.{user_id}"
-            user_res = requests.get(user_url, headers=supa_headers)
+            user_res = requests.get(user_url, headers=get_headers)
             filial_id = None
             telas = []
             nome = supa_data["user"].get("user_metadata", {}).get("nome", email.split("@")[0])
@@ -83,19 +88,24 @@ def login(req: LoginRequest):
                 db_role = user_data.get("role")
                 role = db_role if db_role else meta_role
             else:
-                # Usuário existe no Auth mas não tem registro na tabela usuarios.
-                # Auto-cria com role do user_metadata para não bloquear o acesso.
-                telas_padrao = [] if meta_role == "operador" else [
-                    'estoque_central','alocacoes','veiculos','filiais',
-                    'estoque','financeiro','sucata','recicladora','historico','relatorio_nf'
-                ]
+                # Usuário sem registro na tabela usuarios.
+                # Verifica se existe algum admin no sistema.
+                admin_res = requests.get(
+                    f"{SUPABASE_URL}/rest/v1/usuarios?role=eq.admin&select=id&limit=1",
+                    headers=get_headers
+                )
+                tem_admin = admin_res.status_code == 200 and len(admin_res.json()) > 0
+                # Se não há admin, este é o primeiro usuário — promove para admin.
+                role_final = meta_role if (tem_admin and meta_role != "operador") else ("admin" if not tem_admin else meta_role)
+                telas_padrao = TODAS_TELAS if role_final in ("admin", "gerente") else []
                 requests.post(
                     f"{SUPABASE_URL}/rest/v1/usuarios",
-                    headers=supa_headers,
-                    json={"id": user_id, "nome": nome, "email": email, "role": meta_role,
+                    headers=post_headers,
+                    json={"id": user_id, "nome": nome, "email": email, "role": role_final,
                           "filial_id": None, "telas": telas_padrao, "ativo": True},
                     timeout=10
                 )
+                role = role_final
                 telas = telas_padrao
 
             if not ativo:
