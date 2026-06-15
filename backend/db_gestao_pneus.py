@@ -282,21 +282,46 @@ def listar_pneus(filial_id=None, status=None, veiculo_id=None, nf=None):
     if nf: params["nf"] = f"eq.{nf}"
     res = _api_request("GET", "gp_pneus", params=params)
     if not isinstance(res, list): return []
-    
+
     # Mapeamento de filiais para filial_origem_nome
     filiais_map = {f['id']: f['nome'] for f in listar_filiais()}
-    
+
     for r in res:
-        # Pega nome da filial atual (via join automático)
         f_obj = r.get("gp_filiais")
         r["filial_nome"] = f_obj.get("nome", "") if isinstance(f_obj, dict) else ""
-        
-        # Pega nome da filial de origem (via mapeamento manual)
+
         origem_id = r.get("filial_origem_id")
         r["filial_origem_nome"] = filiais_map.get(origem_id, "") if origem_id else ""
-        
+
         veiculo_obj = r.get("gp_veiculos")
         r["veiculo_placa"] = veiculo_obj.get("placa", "") if isinstance(veiculo_obj, dict) else ""
+        r["ultimo_veiculo_placa"] = ""
+
+    # Para busca por NF: enriquece pneus sem veículo com o último veículo das movimentações
+    if nf:
+        sem_veiculo = [r for r in res if not r["veiculo_placa"]]
+        if sem_veiculo:
+            ids = ",".join(str(r["id"]) for r in sem_veiculo)
+            movs = _api_request("GET", "gp_movimentacoes", params={
+                "select": "pneu_id,gp_veiculos(placa)",
+                "pneu_id": f"in.({ids})",
+                "veiculo_id": "not.is.null",
+                "order": "id.desc",
+                "limit": str(len(sem_veiculo) * 5)
+            })
+            # Mapeia pneu_id → primeira (mais recente) placa encontrada
+            ultimo_veiculo = {}
+            if isinstance(movs, list):
+                for m in movs:
+                    pid = m.get("pneu_id")
+                    if pid and pid not in ultimo_veiculo:
+                        v = m.get("gp_veiculos")
+                        placa = v.get("placa", "") if isinstance(v, dict) else ""
+                        if placa:
+                            ultimo_veiculo[pid] = placa
+            for r in sem_veiculo:
+                r["ultimo_veiculo_placa"] = ultimo_veiculo.get(r["id"], "")
+
     return res
 
 def criar_pneu(numero_fogo, marca, medida, filial_id, modelo="", dot="", valor=0.0, vida=1, sulco_atual=0.0, nf="", fornecedor=""):
