@@ -20,6 +20,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from pydantic import BaseModel
+from typing import List
 import requests
 
 _DEFAULT_SECRET = "-change-this-in-production-min-32-chars!!"
@@ -44,6 +45,8 @@ class TokenData(BaseModel):
     email: str
     role: str = "operador"
     filial_id: Optional[int] = None
+    telas: List[str] = []
+    nome: str = ""
 
 
 class UserIn(BaseModel):
@@ -77,9 +80,11 @@ def decode_token(token: str) -> Optional[TokenData]:
         email: str = payload.get("email")
         role: str = payload.get("role", "operador")
         filial_id: Optional[int] = payload.get("filial_id")
+        telas: List[str] = payload.get("telas", [])
+        nome: str = payload.get("nome", "")
         if user_id is None or email is None:
             return None
-        return TokenData(user_id=user_id, email=email, role=role, filial_id=filial_id)
+        return TokenData(user_id=user_id, email=email, role=role, filial_id=filial_id, telas=telas, nome=nome)
     except JWTError:
         return None
 

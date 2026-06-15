@@ -64,22 +64,36 @@ def login(req: LoginRequest):
             supa_data = res.json()
             user_id = supa_data["user"]["id"]
             email = supa_data["user"]["email"]
-            role = supa_data["user"].get("user_metadata", {}).get("role", "operador")
-            
+            meta_role = supa_data["user"].get("user_metadata", {}).get("role", "operador")
+
             user_url = f"{SUPABASE_URL}/rest/v1/usuarios?id=eq.{user_id}"
             user_res = requests.get(user_url, headers={"apikey": apikey, "Authorization": f"Bearer {apikey}"})
             filial_id = None
+            telas = []
+            nome = ""
+            ativo = True
+            role = meta_role
             if user_res.status_code == 200 and user_res.json():
                 user_data = user_res.json()[0]
                 filial_id = user_data.get("filial_id")
-            
+                telas = user_data.get("telas") or []
+                nome = user_data.get("nome") or ""
+                ativo = user_data.get("ativo", True)
+                db_role = user_data.get("role")
+                role = db_role if db_role else meta_role
+
+            if not ativo:
+                raise HTTPException(status_code=403, detail="Usuário desativado. Contate o administrador.")
+
             access_token = create_access_token({
                 "user_id": user_id,
                 "email": email,
                 "role": role,
-                "filial_id": filial_id
+                "filial_id": filial_id,
+                "telas": telas,
+                "nome": nome
             })
-            
+
             return {
                 "access_token": access_token,
                 "token_type": "bearer",
@@ -87,7 +101,9 @@ def login(req: LoginRequest):
                     "id": user_id,
                     "email": email,
                     "role": role,
-                    "filial_id": filial_id
+                    "filial_id": filial_id,
+                    "telas": telas,
+                    "nome": nome
                 }
             }
         else:
@@ -160,5 +176,7 @@ def get_me(current_user: TokenData = Depends(get_current_user)):
         "id": current_user.user_id,
         "email": current_user.email,
         "role": current_user.role,
-        "filial_id": current_user.filial_id
+        "filial_id": current_user.filial_id,
+        "telas": current_user.telas,
+        "nome": current_user.nome
     }

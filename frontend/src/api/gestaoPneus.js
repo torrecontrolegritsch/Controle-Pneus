@@ -149,6 +149,13 @@ export const fetchSincronizarVeiculosSql = (limite = 5000) =>
     headers: getAuthHeaders()
   }).then(handleRes)
 
+// Usuários (admin)
+const U = '/api/usuarios'
+export const fetchUsuarios = () => get(U)
+export const createUsuario = (data) => post(U, data)
+export const updateUsuario = (id, data) => put(`${U}/${id}`, data)
+export const deleteUsuario = (id) => del(`${U}/${id}`)
+
 // Reciclagem e Financeiro
 export const fetchLotesReciclagem = (params = {}) => get(`${P}/reciclagem/lotes`, params)
 export const fetchPneusAguardandoLote = (params = {}) => get(`${P}/reciclagem/aguardando`, params)

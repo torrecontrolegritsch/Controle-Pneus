@@ -8,11 +8,11 @@
       </div>
 
       <nav class="sidebar-menu">
-        <button 
-          v-for="t in tabs" 
-          :key="t.id" 
-          class="menu-item" 
-          :class="{ active: tab === t.id }" 
+        <button
+          v-for="t in visibleTabs"
+          :key="t.id"
+          class="menu-item"
+          :class="{ active: tab === t.id }"
           @click="tab = t.id"
         >
           <span class="menu-icon" v-html="t.icon"></span>
@@ -26,7 +26,7 @@
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
           </div>
           <div class="u-info">
-            <span class="u-name">{{ user?.email?.split('@')[0] }}</span>
+            <span class="u-name">{{ user?.nome || user?.email?.split('@')[0] }}</span>
             <span class="u-tag">{{ user?.role === 'admin' ? 'Administrador' : (user?.role === 'gerente' ? 'Gerente' : 'Operador') }}</span>
           </div>
           <button class="mini-logout" @click="$emit('logout')" title="Sair">
@@ -1275,6 +1275,13 @@
       :fetchPneusPorNF="fetchPneusPorNFWrapper"
     />
 
+    <!-- TAB: USUÁRIOS -->
+    <UsuariosView
+      v-if="tab === 'usuarios'"
+      :filiais="filiais"
+      :showToast="showToast"
+    />
+
       </main>
       <div v-if="toast" class="toast" :class="toast.type">{{ toast.msg }}</div>
     </div>
@@ -1296,8 +1303,9 @@ import {
 } from '../api/gestaoPneus.js'
 import EstoqueCentralView from '../components/views/EstoqueCentralView.vue'
 import RelatorioNFView from './RelatorioNFView.vue'
+import UsuariosView from './UsuariosView.vue'
 
-const tabs = [
+const allTabs = [
   { id: 'estoque_central', label: 'Estoque Central', icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>` },
   { id: 'alocacoes', label: 'Alocações', icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>` },
   { id: 'veiculos', label: 'Frota', icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 17h4V5H2v12h3"/><path d="M20 17h2v-9h-4V5h-4v12h3"/><path d="M10 9h4"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>` },
@@ -1310,7 +1318,18 @@ const tabs = [
   { id: 'relatorio_nf', label: 'Relatório NF', icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>` }
 ]
 
-const currentTabLabel = computed(() => tabs.find(t => t.id === tab.value)?.label || '')
+const usuariosTab = { id: 'usuarios', label: 'Usuários', icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>` }
+
+const visibleTabs = computed(() => {
+  const user = props.user
+  if (!user || user.role === 'admin' || user.role === 'gerente') {
+    return [...allTabs, usuariosTab]
+  }
+  const telas = user.telas || []
+  return allTabs.filter(t => telas.includes(t.id))
+})
+
+const currentTabLabel = computed(() => visibleTabs.value.find(t => t.id === tab.value)?.label || '')
 const tab = ref('estoque_central')
 const toast = ref(null)
 const dash = ref(null)
