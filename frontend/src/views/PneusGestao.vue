@@ -1331,6 +1331,14 @@ const visibleTabs = computed(() => {
 
 const currentTabLabel = computed(() => visibleTabs.value.find(t => t.id === tab.value)?.label || '')
 const tab = ref('estoque_central')
+
+// Redireciona para a primeira aba disponível se o usuário não tiver acesso à aba atual
+watch(visibleTabs, (tabs) => {
+  if (tabs.length && !tabs.find(t => t.id === tab.value)) {
+    tab.value = tabs[0].id
+  }
+}, { immediate: true })
+
 const toast = ref(null)
 const dash = ref(null)
 const loteImpressao = ref(null)
