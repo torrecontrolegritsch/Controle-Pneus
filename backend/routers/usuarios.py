@@ -6,6 +6,7 @@ import logging
 
 from backend.auth import require_admin, TokenData
 from backend.config_app import SUPABASE_URL, SUPABASE_KEY
+from backend.email_sender import enviar_boas_vindas
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/usuarios", tags=["Usuários"])
@@ -104,7 +105,21 @@ def criar_usuario(data: UsuarioCreate, current_user: TokenData = Depends(require
         _supa_admin(f"/users/{user_id}", method="DELETE")
         raise HTTPException(status_code=500, detail="Erro ao salvar dados do usuário no banco")
 
-    return {"id": user_id, "message": "Usuário criado com sucesso"}
+    # Envia e-mail de boas-vindas (falha silenciosa se SMTP não configurado)
+    filial_nome = None
+    if data.filial_id:
+        f_res = _supa_rest("/filiais", params={"id": f"eq.{data.filial_id}", "select": "nome"})
+        if f_res.status_code == 200 and f_res.json():
+            filial_nome = f_res.json()[0].get("nome")
+
+    email_enviado = enviar_boas_vindas(
+        nome=data.nome,
+        email_destino=data.email,
+        role=data.role,
+        filial=filial_nome
+    )
+
+    return {"id": user_id, "message": "Usuário criado com sucesso", "email_enviado": email_enviado}
 
 
 @router.put("/{user_id}")
