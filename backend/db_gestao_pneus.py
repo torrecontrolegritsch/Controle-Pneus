@@ -732,10 +732,10 @@ def obter_relatorio_financeiro_reciclagem(mes=None, filial_id=None):
         "total_geral": total_geral
     }
 
-def obter_dashboard():
+def obter_dashboard(filial_id=None):
     try:
-        pneus = listar_pneus()
-        veiculos = listar_veiculos()
+        pneus = listar_pneus(filial_id=filial_id)
+        veiculos = listar_veiculos(filial_id=filial_id)
         
         # Garante que pneus e veiculos sejam listas
         if not isinstance(pneus, list): pneus = []

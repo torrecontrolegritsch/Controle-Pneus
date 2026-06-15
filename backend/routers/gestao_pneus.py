@@ -47,6 +47,16 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["gestao-pneus"])
 
+
+def _filial_efetiva(user: TokenData, override: Optional[int] = None) -> Optional[int]:
+    """
+    Operador com filial vinculada só enxerga dados da sua filial.
+    Admin e gerente podem filtrar livremente (ou ver tudo).
+    """
+    if user.role in ("admin", "gerente"):
+        return override
+    return user.filial_id  # força a filial do usuário, ignora qualquer filtro manual
+
 @router.get("/ping")
 def ping():
     return {"status": "online", "message": "pong"}
@@ -153,7 +163,7 @@ def delete_filial(filial_id: int, current_user: TokenData = Depends(require_admi
 
 @router.get("/veiculos")
 def get_veiculos(filial_id: Optional[int] = Query(None), current_user: TokenData = Depends(get_current_user)):
-    return listar_veiculos(filial_id=filial_id)
+    return listar_veiculos(filial_id=_filial_efetiva(current_user, filial_id))
 
 @router.post("/veiculos")
 def post_veiculo(body: VeiculoIn, current_user: TokenData = Depends(get_current_user)):
@@ -205,7 +215,7 @@ def get_pneus(
     nf: Optional[str] = Query(None),
     current_user: TokenData = Depends(get_current_user),
 ):
-    return listar_pneus(filial_id=filial_id, status=status, veiculo_id=veiculo_id, nf=nf)
+    return listar_pneus(filial_id=_filial_efetiva(current_user, filial_id), status=status, veiculo_id=veiculo_id, nf=nf)
 
 @router.post("/pneus")
 def post_pneu(body: PneuIn, current_user: TokenData = Depends(get_current_user)):
@@ -375,7 +385,7 @@ def get_movimentacoes(
 ):
     return listar_movimentacoes(
         pneu_id=pneu_id, veiculo_id=veiculo_id,
-        filial_id=filial_id, tipo=tipo, limit=limit,
+        filial_id=_filial_efetiva(current_user, filial_id), tipo=tipo, limit=limit,
     )
 
 
@@ -384,7 +394,7 @@ def get_movimentacoes(
 @router.get("/dashboard")
 def get_dashboard(current_user: TokenData = Depends(get_current_user)):
     try:
-        return obter_dashboard()
+        return obter_dashboard(filial_id=_filial_efetiva(current_user))
     except Exception as e:
         logger.error(f"Erro ao gerar dashboard: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -404,11 +414,11 @@ def post_enviar_reciclagem(body: dict, current_user: TokenData = Depends(require
 
 @router.get("/reciclagem/lotes")
 def get_lotes_reciclagem(filial_id: Optional[int] = Query(None), current_user: TokenData = Depends(get_current_user)):
-    return listar_lotes_reciclagem(filial_id=filial_id)
+    return listar_lotes_reciclagem(filial_id=_filial_efetiva(current_user, filial_id))
 
 @router.get("/reciclagem/aguardando")
 def get_pneus_aguardando_lote(filial_id: Optional[int] = Query(None), current_user: TokenData = Depends(get_current_user)):
-    return listar_pneus_aguardando_lote(filial_id=filial_id)
+    return listar_pneus_aguardando_lote(filial_id=_filial_efetiva(current_user, filial_id))
 
 @router.post("/reciclagem/atualizar-valor")
 def post_atualizar_valor_lote(body: dict, current_user: TokenData = Depends(require_operador)):
@@ -425,8 +435,8 @@ def post_criar_lote_reciclagem(body: dict, current_user: TokenData = Depends(get
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.get("/reciclagem/relatorio-financeiro")
-def get_relatorio_financeiro_reciclagem(mes: Optional[str] = Query(None), filial_id: Optional[int] = Query(None)):
-    return obter_relatorio_financeiro_reciclagem(mes=mes, filial_id=filial_id)
+def get_relatorio_financeiro_reciclagem(mes: Optional[str] = Query(None), filial_id: Optional[int] = Query(None), current_user: TokenData = Depends(get_current_user)):
+    return obter_relatorio_financeiro_reciclagem(mes=mes, filial_id=_filial_efetiva(current_user, filial_id))
 
 
 
