@@ -1,11 +1,21 @@
 import os
 import sys
+import mimetypes
 import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from dotenv import load_dotenv
+
+# Garante tipos MIME corretos em ambientes Lambda/Linux mínimos
+mimetypes.add_type('application/javascript', '.js')
+mimetypes.add_type('text/javascript', '.mjs')
+mimetypes.add_type('text/css', '.css')
+mimetypes.add_type('text/html', '.html')
+mimetypes.add_type('image/jpeg', '.jpg')
+mimetypes.add_type('image/png', '.png')
+mimetypes.add_type('image/svg+xml', '.svg')
 
 # Garante que a raiz do projeto está no PATH (estamos dentro da pasta /api)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -34,6 +44,8 @@ def debug_server():
         "caminho_atual": os.getcwd(),
         "dist_existe": os.path.exists(dist_path),
         "arquivos_dist": os.listdir(dist_path) if os.path.exists(dist_path) else [],
+        "mime_js": mimetypes.guess_type("file.js")[0],
+        "mime_css": mimetypes.guess_type("file.css")[0],
         "sys_path": sys.path
     }
 
