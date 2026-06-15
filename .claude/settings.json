@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Start-Process \"control.exe\" -ArgumentList \"/name Microsoft.CredentialManager\")",
+      "Bash(git config *)",
+      "Bash(gh auth *)",
+      "Bash(vercel --version)",
+      "Bash(vercel whoami *)",
+      "Bash(vercel deploy *)",
+      "Bash(vercel ls *)",
+      "Bash(vercel projects *)",
+      "Bash(start \"\" \"C:\\\\Users\\\\fabio.pepplow\\\\AppData\\\\Local\\\\GitHubDesktop\\\\GitHubDesktop.exe\")",
+      "Bash(start \"\" \"C:\\\\Program Files\\\\GitHub Desktop\\\\GitHubDesktop.exe\")",
+      "PowerShell(Get-ChildItem \"$env:LOCALAPPDATA\\\\GitHubDesktop\\\\\" -ErrorAction SilentlyContinue | Select-Object Name | head)",
+      "PowerShell(Get-ChildItem \"$env:LOCALAPPDATA\\\\GitHubDesktop\\\\\" -ErrorAction SilentlyContinue | Select-Object -First 10 | Format-Table Name)",
+      "PowerShell(cmdkey /delete:git:https://github.com 2>$null)",
+      "PowerShell(git credential reject \"protocol=https`nhost=github.com`n\" 2>$null)",
+      "PowerShell(\"Credencial removida\")"
+    ]
+  }
+}

@@ -367,9 +367,8 @@ async function salvar() {
       await updateUsuario(editando.value.id, payload)
       props.showToast('Usuário atualizado!')
     } else {
-      const res = await createUsuario({ nome: form.value.nome, email: form.value.email, password: form.value.password, role: form.value.role, filial_id: form.value.filial_id, telas, ativo: form.value.ativo })
-      const emailMsg = res?.email_enviado ? ' — E-mail de boas-vindas enviado!' : ''
-      props.showToast(`Usuário criado com sucesso!${emailMsg}`)
+      await createUsuario({ nome: form.value.nome, email: form.value.email, password: form.value.password, role: form.value.role, filial_id: form.value.filial_id, telas, ativo: form.value.ativo })
+      props.showToast('Usuário criado com sucesso!')
     }
     fecharModal()
     await carregar()
