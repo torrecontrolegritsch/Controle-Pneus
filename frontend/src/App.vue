@@ -1,6 +1,6 @@
 <template>
   <div class="main-app">
-    <div v-if="loading" class="loading-screen">Carregando...</div>
+    <div v-if="loading" class="loading-screen">Carregando sistema...</div>
     <Login v-else-if="!isAuthenticated" @authenticated="onAuth" />
     <PneusGestao v-else :user="user" @logout="onLogout" />
   </div>
