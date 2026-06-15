@@ -725,32 +725,44 @@ def criar_lote_reciclagem(pneu_ids, filial_id):
     return {"ok": True, "lote_id": lote_label}
 
 def obter_relatorio_financeiro_reciclagem(mes=None, filial_id=None):
-    # Busca pneus que estão em reciclagem
-    params = {"status": "eq.reciclagem", "select": "*,gp_filiais(nome)"}
+    import datetime as _dt
+    # Só busca pneus que já têm lote (foram processados na recicladora)
+    params = {"status": "eq.reciclagem", "lote_id": "not.is.null", "select": "*,gp_filiais(nome)"}
     if filial_id:
         params["filial_id"] = f"eq.{filial_id}"
-    
+
     pneus = _api_request("GET", "gp_pneus", params=params)
     if not pneus or not isinstance(pneus, list):
         return {"resumo_filiais": [], "detalhes": [], "total_geral": 0}
-    
-    # Filtrar por mês se fornecido (YYYY-MM)
+
+    # Filtrar por mês usando lote_id (Unix timestamp de criação do lote)
     if mes:
-        pneus = [p for p in pneus if p.get('data_envio_reciclagem') and p['data_envio_reciclagem'].startswith(mes)]
-    
+        try:
+            ano_f, mes_f = int(mes[:4]), int(mes[5:7])
+        except Exception:
+            ano_f, mes_f = None, None
+
+        if ano_f and mes_f:
+            def _no_mes(p):
+                try:
+                    dt = _dt.datetime.fromtimestamp(int(p["lote_id"]))
+                    return dt.year == ano_f and dt.month == mes_f
+                except Exception:
+                    return False
+            pneus = [p for p in pneus if _no_mes(p)]
+
     resumo = {}
     total_geral = 0
-    
+
     for p in pneus:
         f_nome = p.get('gp_filiais', {}).get('nome') if p.get('gp_filiais') else 'Sem Filial'
         valor = float(p.get('valor_arrecadado', 0) or 0)
-        
         total_geral += valor
         if f_nome not in resumo:
             resumo[f_nome] = {"nome": f_nome, "pneus": 0, "total": 0}
         resumo[f_nome]["pneus"] += 1
         resumo[f_nome]["total"] += valor
-        
+
     return {
         "resumo_filiais": list(resumo.values()),
         "detalhes": pneus,
