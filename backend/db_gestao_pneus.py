@@ -726,14 +726,19 @@ def criar_lote_reciclagem(pneu_ids, filial_id):
 
 def obter_relatorio_financeiro_reciclagem(mes=None, filial_id=None):
     import datetime as _dt
-    # Só busca pneus que já têm lote (foram processados na recicladora)
-    params = {"status": "eq.reciclagem", "lote_id": "not.is.null", "select": "*,gp_filiais(nome)"}
+    # Busca pneus com lote + filial_origem para saber quem enviou a carcaça
+    params = {"status": "eq.reciclagem", "lote_id": "not.is.null", "select": "*"}
+    # Filtro por filial de origem (quem enviou), não pela filial atual do pneu
     if filial_id:
-        params["filial_id"] = f"eq.{filial_id}"
+        params["filial_origem_id"] = f"eq.{filial_id}"
 
     pneus = _api_request("GET", "gp_pneus", params=params)
     if not pneus or not isinstance(pneus, list):
         return {"resumo_filiais": [], "detalhes": [], "total_geral": 0}
+
+    # Mapa de filiais para resolver nomes de filial_origem_id
+    filiais_list = _api_request("GET", "gp_filiais")
+    f_map = {f["id"]: f["nome"] for f in filiais_list} if isinstance(filiais_list, list) else {}
 
     # Filtrar por mês usando lote_id (Unix timestamp de criação do lote)
     if mes:
@@ -755,7 +760,9 @@ def obter_relatorio_financeiro_reciclagem(mes=None, filial_id=None):
     total_geral = 0
 
     for p in pneus:
-        f_nome = p.get('gp_filiais', {}).get('nome') if p.get('gp_filiais') else 'Sem Filial'
+        # Usa filial_origem_id — a filial que enviou a carcaça para reciclagem
+        origem_id = p.get("filial_origem_id")
+        f_nome = f_map.get(origem_id, "Filial não identificada") if origem_id else "Filial não identificada"
         valor = float(p.get('valor_arrecadado', 0) or 0)
         total_geral += valor
         if f_nome not in resumo:

@@ -690,22 +690,27 @@
         <div class="fin-grid">
           <div class="fin-table-box">
             <h3>Retorno por Filial</h3>
-            <table class="gp-table">
+            <table class="gp-table fin-table">
+              <colgroup>
+                <col style="width: 50%" />
+                <col style="width: 20%" />
+                <col style="width: 30%" />
+              </colgroup>
               <thead>
                 <tr>
-                  <th>Filial</th>
-                  <th class="text-center">Qtd Pneus</th>
-                  <th class="text-right">Valor p/ Receber</th>
+                  <th style="text-align:left">Filial</th>
+                  <th style="text-align:center">Qtd Pneus</th>
+                  <th style="text-align:right">Valor p/ Receber</th>
                 </tr>
               </thead>
               <tbody>
                 <tr v-for="r in relatorioFinanceiro.resumo_filiais" :key="r.nome">
-                  <td><strong>{{ r.nome }}</strong></td>
-                  <td class="text-center">{{ r.pneus }}</td>
-                  <td class="text-right text-green"><strong>{{ r.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) }}</strong></td>
+                  <td style="text-align:left"><strong>{{ r.nome }}</strong></td>
+                  <td style="text-align:center">{{ r.pneus }}</td>
+                  <td style="text-align:right"><strong class="text-green">{{ r.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) }}</strong></td>
                 </tr>
                 <tr v-if="!relatorioFinanceiro.resumo_filiais.length">
-                  <td colspan="3" class="text-center opacity-50">Nenhum retorno encontrado para este filtro</td>
+                  <td colspan="3" style="text-align:center;opacity:.5">Nenhum retorno encontrado para este filtro</td>
                 </tr>
               </tbody>
             </table>
