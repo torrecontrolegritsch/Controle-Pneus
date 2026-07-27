@@ -322,7 +322,8 @@ const showModal = ref(false)
 const salvando = ref(false)
 const editando = ref(null)
 
-const formVazio = () => ({ nome: '', email: '', password: '', role: 'operador', filial_id: null, telas: [], ativo: true })
+const TELAS_PADRAO_OPERADOR = ['alocacoes', 'frota', 'estoque', 'historico']
+const formVazio = () => ({ nome: '', email: '', password: '', role: 'operador', filial_id: null, telas: [...TELAS_PADRAO_OPERADOR], ativo: true })
 const form = ref(formVazio())
 
 const ativos   = computed(() => usuarios.value.filter(u => u.ativo !== false).length)
