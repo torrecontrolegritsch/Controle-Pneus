@@ -814,6 +814,16 @@ def obter_dashboard(filial_id=None):
                     "veiculo_placa": p.get("veiculo_placa", ""),
                 })
 
+        # Top medidas
+        medidas_count = {}
+        for p in pneus:
+            m = (p.get('medida') or 'N/A').strip()
+            medidas_count[m] = medidas_count.get(m, 0) + 1
+        top_medidas = [
+            {"medida": m, "total": t}
+            for m, t in sorted(medidas_count.items(), key=lambda x: x[1], reverse=True)[:6]
+        ]
+
         return {
             "total_pneus": len(pneus),
             "em_estoque": status_counts.get('estoque', 0),
@@ -823,6 +833,7 @@ def obter_dashboard(filial_id=None):
             "total_veiculos": len(veiculos),
             "valor_estoque": sum(float(p.get('valor', 0) or 0) for p in pneus if str(p.get('status')).lower() == 'estoque'),
             "por_vida": por_vida,
+            "top_medidas": top_medidas,
             "alertas_sulco": alertas_sulco[:30],
             "alertas_vida": alertas_vida[:30],
             "alertas_rodizio": [],

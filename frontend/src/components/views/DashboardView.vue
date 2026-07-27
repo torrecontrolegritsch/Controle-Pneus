@@ -97,42 +97,59 @@
       </div>
     </div>
 
-    <!-- Gráficos -->
-    <div class="dash-charts">
-      <div class="chart-card">
-        <h3 class="chart-title">Distribuição por Status</h3>
-        <div class="chart-bars">
-          <div class="bar-row">
-            <span class="bar-label">Em Uso</span>
-            <div class="bar-track">
-              <div class="bar-fill bar-blue" :style="{ width: pct(dash?.em_uso, dash?.total_pneus) + '%' }"></div>
-            </div>
-            <span class="bar-count">{{ dash?.em_uso ?? 0 }}</span>
+    <!-- Distribuição: Status -->
+    <div class="chart-card chart-full">
+      <h3 class="chart-title">Distribuição por Status</h3>
+      <div class="dist-grid">
+        <div class="dist-item">
+          <div class="dist-header">
+            <span class="dist-dot dot-blue"></span>
+            <span class="dist-label">Em Uso</span>
+            <span class="dist-pct">{{ pct(dash?.em_uso, dash?.total_pneus) }}%</span>
           </div>
-          <div class="bar-row">
-            <span class="bar-label">Estoque</span>
-            <div class="bar-track">
-              <div class="bar-fill bar-green" :style="{ width: pct(dash?.em_estoque, dash?.total_pneus) + '%' }"></div>
-            </div>
-            <span class="bar-count">{{ dash?.em_estoque ?? 0 }}</span>
+          <div class="bar-track bar-tall">
+            <div class="bar-fill bar-blue" :style="{ width: pct(dash?.em_uso, dash?.total_pneus) + '%' }"></div>
           </div>
-          <div class="bar-row">
-            <span class="bar-label">Reciclagem</span>
-            <div class="bar-track">
-              <div class="bar-fill bar-amber" :style="{ width: pct(dash?.em_reciclagem, dash?.total_pneus) + '%' }"></div>
-            </div>
-            <span class="bar-count">{{ dash?.em_reciclagem ?? 0 }}</span>
+          <span class="dist-count">{{ dash?.em_uso ?? 0 }} pneus</span>
+        </div>
+        <div class="dist-item">
+          <div class="dist-header">
+            <span class="dist-dot dot-green"></span>
+            <span class="dist-label">Em Estoque</span>
+            <span class="dist-pct">{{ pct(dash?.em_estoque, dash?.total_pneus) }}%</span>
           </div>
-          <div class="bar-row">
-            <span class="bar-label">Descarte</span>
-            <div class="bar-track">
-              <div class="bar-fill bar-red" :style="{ width: pct(dash?.descartados, dash?.total_pneus) + '%' }"></div>
-            </div>
-            <span class="bar-count">{{ dash?.descartados ?? 0 }}</span>
+          <div class="bar-track bar-tall">
+            <div class="bar-fill bar-green" :style="{ width: pct(dash?.em_estoque, dash?.total_pneus) + '%' }"></div>
           </div>
+          <span class="dist-count">{{ dash?.em_estoque ?? 0 }} pneus</span>
+        </div>
+        <div class="dist-item">
+          <div class="dist-header">
+            <span class="dist-dot dot-amber"></span>
+            <span class="dist-label">Reciclagem</span>
+            <span class="dist-pct">{{ pct(dash?.em_reciclagem, dash?.total_pneus) }}%</span>
+          </div>
+          <div class="bar-track bar-tall">
+            <div class="bar-fill bar-amber" :style="{ width: pct(dash?.em_reciclagem, dash?.total_pneus) + '%' }"></div>
+          </div>
+          <span class="dist-count">{{ dash?.em_reciclagem ?? 0 }} pneus</span>
+        </div>
+        <div class="dist-item">
+          <div class="dist-header">
+            <span class="dist-dot dot-red"></span>
+            <span class="dist-label">Descarte</span>
+            <span class="dist-pct">{{ pct(dash?.descartados, dash?.total_pneus) }}%</span>
+          </div>
+          <div class="bar-track bar-tall">
+            <div class="bar-fill bar-red" :style="{ width: pct(dash?.descartados, dash?.total_pneus) + '%' }"></div>
+          </div>
+          <span class="dist-count">{{ dash?.descartados ?? 0 }} pneus</span>
         </div>
       </div>
+    </div>
 
+    <!-- Distribuição: Vida Útil + Medidas (lado a lado) -->
+    <div class="dash-row-two">
       <div class="chart-card">
         <h3 class="chart-title">Distribuição por Vida Útil</h3>
         <div class="chart-bars">
@@ -146,31 +163,20 @@
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- Movimentações recentes -->
-    <div class="dash-table-card">
-      <h3 class="chart-title">Últimas Movimentações</h3>
-      <div v-if="loading" class="table-loading">Carregando...</div>
-      <table v-else-if="movimentacoes.length" class="mov-table">
-        <thead>
-          <tr>
-            <th>Tipo</th>
-            <th>Pneu</th>
-            <th>Veículo</th>
-            <th>Data</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="m in movimentacoes" :key="m.id">
-            <td><span class="tipo-badge" :class="m.tipo">{{ labelTipo(m.tipo) }}</span></td>
-            <td class="cell-fogo">{{ m.numero_fogo || '—' }}</td>
-            <td class="cell-placa">{{ m.veiculo_placa || '—' }}</td>
-            <td class="cell-data">{{ fmtDate(m.created_at) }}</td>
-          </tr>
-        </tbody>
-      </table>
-      <p v-else class="table-empty">Nenhuma movimentação registrada.</p>
+      <div class="chart-card">
+        <h3 class="chart-title">Medidas Mais Usadas</h3>
+        <div v-if="dash?.top_medidas?.length" class="chart-bars">
+          <div class="bar-row" v-for="m in dash.top_medidas" :key="m.medida">
+            <span class="bar-label bar-label-mono">{{ m.medida }}</span>
+            <div class="bar-track">
+              <div class="bar-fill bar-slate" :style="{ width: pct(m.total, dash.total_pneus) + '%' }"></div>
+            </div>
+            <span class="bar-count">{{ m.total }}</span>
+          </div>
+        </div>
+        <p v-else class="chart-empty">Sem dados de medidas.</p>
+      </div>
     </div>
 
   </section>
@@ -181,7 +187,6 @@ import { ref, computed, onMounted } from 'vue'
 import * as api from '../../api/gestaoPneus.js'
 
 const dash = ref(null)
-const movimentacoes = ref([])
 const loading = ref(true)
 const alertasAbertos = ref(true)
 
@@ -192,12 +197,7 @@ const totalAlertas = computed(() => {
 
 onMounted(async () => {
   try {
-    const [d, movs] = await Promise.all([
-      api.fetchGPDashboard(),
-      api.fetchMovimentacoes({ limit: 12 })
-    ])
-    dash.value = d
-    movimentacoes.value = Array.isArray(movs) ? movs : []
+    dash.value = await api.fetchGPDashboard()
   } catch (e) {
     console.error(e)
   } finally {
@@ -216,19 +216,6 @@ function pct(val, total) {
 
 function vidaCount(vida) {
   return dash.value?.por_vida?.[vida] ?? 0
-}
-
-function fmtDate(d) {
-  if (!d) return '—'
-  return new Date(d).toLocaleDateString('pt-BR')
-}
-
-const TIPO_LABEL = {
-  alocacao: 'Alocação', remocao: 'Remoção', transferencia: 'Transferência',
-  rodizio: 'Rodízio', envio_recicladora: 'Reciclagem', criacao: 'Cadastro'
-}
-function labelTipo(t) {
-  return TIPO_LABEL[t] || t
 }
 </script>
 
@@ -379,36 +366,113 @@ function labelTipo(t) {
   text-overflow: ellipsis;
 }
 
-/* ── Gráficos ────────────────────────────────────────────── */
-.dash-charts {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 14px;
-}
-
+/* ── Cards de distribuição (largura total) ───────────────── */
 .chart-card {
   background: #fff;
   border: 1px solid #e2e8f0;
   border-radius: 10px;
-  padding: 18px 20px;
+  padding: 20px 24px;
+}
+
+.chart-card.chart-full {
+  width: 100%;
 }
 
 .chart-title {
   font-size: 13px;
   font-weight: 600;
   color: #334155;
-  margin: 0 0 16px;
+  margin: 0 0 20px;
+}
+
+/* Grid de 4 colunas para os itens de distribuição */
+.dist-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+
+.dist-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.dist-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dist-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.dot-blue  { background: #3b82f6; }
+.dot-green { background: #22c55e; }
+.dot-amber { background: #f59e0b; }
+.dot-red   { background: #ef4444; }
+.dot-slate { background: #64748b; }
+
+.dist-label {
+  font-size: 12px;
+  color: #64748b;
+  flex: 1;
+  white-space: nowrap;
+}
+
+.dist-pct {
+  font-size: 12px;
+  font-weight: 700;
+  color: #0f172a;
+  font-variant-numeric: tabular-nums;
+}
+
+.bar-track {
+  height: 8px;
+  background: #f1f5f9;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.bar-track.bar-tall {
+  height: 12px;
+}
+
+.bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.6s ease;
+  background: #94a3b8;
+}
+.bar-blue  { background: #3b82f6; }
+.bar-green { background: #22c55e; }
+.bar-amber { background: #f59e0b; }
+.bar-red   { background: #ef4444; }
+.bar-slate { background: #64748b; }
+
+.dist-count {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+/* Linha de dois cards (vida útil + medidas) */
+.dash-row-two {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
 }
 
 .chart-bars {
   display: flex;
   flex-direction: column;
-  gap: 11px;
+  gap: 12px;
 }
 
 .bar-row {
   display: grid;
-  grid-template-columns: 80px 1fr 36px;
+  grid-template-columns: 100px 1fr 32px;
   align-items: center;
   gap: 10px;
 }
@@ -417,25 +481,14 @@ function labelTipo(t) {
   font-size: 12px;
   color: #64748b;
   white-space: nowrap;
-}
-
-.bar-track {
-  height: 7px;
-  background: #f1f5f9;
-  border-radius: 4px;
   overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.bar-fill {
-  height: 100%;
-  border-radius: 4px;
-  transition: width 0.5s ease;
-  background: #94a3b8;
+.bar-label-mono {
+  font-family: Consolas, 'Courier New', monospace;
+  font-size: 11px;
 }
-.bar-blue  { background: #3b82f6; }
-.bar-green { background: #22c55e; }
-.bar-amber { background: #f59e0b; }
-.bar-red   { background: #ef4444; }
 
 .bar-count {
   font-size: 12px;
@@ -445,60 +498,10 @@ function labelTipo(t) {
   font-variant-numeric: tabular-nums;
 }
 
-/* ── Tabela de movimentações ─────────────────────────────── */
-.dash-table-card {
-  background: #fff;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  padding: 18px 20px;
-}
-
-.table-loading, .table-empty {
+.chart-empty {
   font-size: 13px;
   color: #94a3b8;
   text-align: center;
   padding: 20px 0;
 }
-
-.mov-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 13px;
-}
-.mov-table th {
-  text-align: left;
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: #94a3b8;
-  padding: 0 8px 10px;
-  border-bottom: 1px solid #f1f5f9;
-}
-.mov-table td {
-  padding: 9px 8px;
-  border-bottom: 1px solid #f8fafc;
-  color: #334155;
-}
-.mov-table tbody tr:last-child td { border-bottom: none; }
-.mov-table tbody tr:hover td { background: #f8fafc; }
-
-.cell-fogo  { font-weight: 600; font-variant-numeric: tabular-nums; }
-.cell-placa { color: #64748b; }
-.cell-data  { color: #94a3b8; white-space: nowrap; }
-
-.tipo-badge {
-  display: inline-block;
-  padding: 3px 8px;
-  border-radius: 4px;
-  font-size: 11px;
-  font-weight: 600;
-  white-space: nowrap;
-}
-.tipo-badge.alocacao       { background: #dbeafe; color: #1d4ed8; }
-.tipo-badge.remocao        { background: #fee2e2; color: #991b1b; }
-.tipo-badge.transferencia  { background: #ede9fe; color: #6d28d9; }
-.tipo-badge.rodizio        { background: #d1fae5; color: #065f46; }
-.tipo-badge.envio_recicladora { background: #fef3c7; color: #92400e; }
-.tipo-badge.criacao        { background: #f1f5f9; color: #475569; }
 </style>
