@@ -3,7 +3,13 @@ __pycache__/
 *.py[cod]
 *$py.class
 venv/
+
+# Variáveis de ambiente — NUNCA commitar nenhum .env
 .env
+.env.*
+**/.env
+**/.env.*
+!.env.example
 
 # Banco de dados local
 *.db
@@ -20,5 +26,4 @@ node_modules/
 nul
 scratch/
 scratch_*
-
-.vercel
+migrate_*.py

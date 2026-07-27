@@ -498,8 +498,8 @@ async function distribuirEmLote() {
   }
 }
 
-function downloadTemplate() {
-  window.open(api.fetchPneusTemplate(), '_blank')
+async function downloadTemplate() {
+  await api.fetchPneusTemplate()
 }
 
 function triggerImport() {

@@ -120,11 +120,17 @@ export const createPneu = (data) => post(`${P}/pneus`, data)
 export const updatePneu = (id, data) => put(`${P}/pneus/${id}`, data)
 export const fetchPneusPorNF = (nf) => get(`${P}/pneus`, { nf })
 
-// Importação
-export const fetchPneusTemplate = () => {
-  const token = getToken()
-  const baseUrl = `${BASE}${P}/pneus/template`
-  return token ? `${baseUrl}?token=${token}` : baseUrl
+// Importação — usa fetch+Blob para não expor JWT na URL
+export async function fetchPneusTemplate() {
+  const res = await fetch(`${BASE}${P}/pneus/template`, { headers: getAuthHeaders() })
+  if (!res.ok) throw new Error('Erro ao baixar modelo')
+  const blob = await res.blob()
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = 'modelo_importacao_pneus.csv'
+  a.click()
+  URL.revokeObjectURL(url)
 }
 export const importPneusCsv = (data, filialId = null) => postForm(`${P}/pneus/importar`, data, { filial_id: filialId })
 

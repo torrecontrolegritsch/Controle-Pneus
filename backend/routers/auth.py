@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 from pydantic import BaseModel
 import requests
 import os
@@ -6,6 +6,8 @@ from datetime import timedelta
 import logging
 from pathlib import Path
 from dotenv import load_dotenv
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 # Carrega .env
 BASE_DIR = Path(__file__).parent.parent.parent
@@ -20,6 +22,7 @@ from backend.auth import (
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/auth", tags=["Auth"])
+limiter = Limiter(key_func=get_remote_address)
 
 from backend.config_app import SUPABASE_URL, SUPABASE_KEY
 
@@ -34,7 +37,8 @@ class RegisterRequest(BaseModel):
     filial_id: int = None
 
 @router.post("/login")
-def login(req: LoginRequest):
+@limiter.limit("10/minute")
+def login(request: Request, req: LoginRequest):
     """
     Autentica o usuário e retorna token JWT.
     Primeiro verifica no Supabase Auth, depois gera token local.
@@ -152,12 +156,11 @@ def register(req: RegisterRequest):
     """
     if not SUPABASE_KEY or not SUPABASE_URL:
         raise HTTPException(status_code=500, detail="Serviço não configurado")
-    
-    project_id = SUPABASE_URL.replace("https://", "").replace(".supabase.co", "")
+
     auth_url = f"{SUPABASE_URL}/auth/v1/signup"
-    
+
     headers = {
-        "apikey": apikey,
+        "apikey": SUPABASE_KEY,
         "Content-Type": "application/json"
     }
     

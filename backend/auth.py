@@ -15,7 +15,7 @@ if os.path.exists(env_path):
 else:
     load_dotenv()
 
-from fastapi import Depends, HTTPException, status, Query
+from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import JWTError, jwt
 from passlib.context import CryptContext
@@ -91,14 +91,8 @@ def decode_token(token: str) -> Optional[TokenData]:
 
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
-    token: Optional[str] = Query(None)
 ) -> TokenData:
-    # Tenta obter o token do header Authorization ou do query parameter 'token'
-    token_str = None
-    if credentials:
-        token_str = credentials.credentials
-    elif token:
-        token_str = token
+    token_str = credentials.credentials if credentials else None
 
     if not token_str:
         raise HTTPException(

@@ -7,6 +7,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from dotenv import load_dotenv
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 # Garante tipos MIME corretos em ambientes Lambda/Linux mínimos
 mimetypes.add_type('application/javascript', '.js')
@@ -29,28 +32,22 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Gestão de Pneus Online", version="1.1.0")
 
-ERROR_LOAD = None
+# Rate limiting (proteção contra força bruta)
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 @app.get("/ping")
 def ping():
-    return {"status": "online", "message": "servidor ativo na Vercel (api/index.py)"}
+    return {"status": "online"}
 
-@app.get("/api/debug-server")
-def debug_server():
-    dist_path = os.path.join(BASE_DIR, "frontend", "dist")
-    return {
-        "status": "rodando",
-        "erro_carregamento": str(ERROR_LOAD) if ERROR_LOAD else "Nenhum erro",
-        "caminho_atual": os.getcwd(),
-        "dist_existe": os.path.exists(dist_path),
-        "arquivos_dist": os.listdir(dist_path) if os.path.exists(dist_path) else [],
-        "mime_js": mimetypes.guess_type("file.js")[0],
-        "mime_css": mimetypes.guess_type("file.css")[0],
-        "sys_path": sys.path
-    }
+# CORS — sem wildcard: usa domínio configurado ou restringe ao Vercel
+_cors_raw = os.getenv("CORS_ORIGINS")
+if not _cors_raw:
+    logger.warning("CORS_ORIGINS não configurado — usando domínio Vercel padrão")
+    _cors_raw = "https://controle-pneus-six.vercel.app"
+CORS_ORIGINS = [o.strip() for o in _cors_raw.split(",")]
 
-# CORS
-CORS_ORIGINS = os.getenv("CORS_ORIGINS", "*").split(",")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=CORS_ORIGINS,
@@ -78,11 +75,9 @@ if os.path.exists(assets_path):
 async def serve_spa(full_path: str):
     if not os.path.exists(dist_path):
         return {"error": "Frontend nao encontrado. Execute npm run build no diretorio frontend/."}
-    # Serve arquivos estáticos que existem na raiz do dist (logo, bg, etc.)
     file_path = os.path.join(dist_path, full_path)
     if full_path and os.path.isfile(file_path):
         return FileResponse(file_path)
-    # Fallback para index.html (SPA routing)
     return FileResponse(os.path.join(dist_path, "index.html"))
 
 # Para rodar localmente com python api/index.py

@@ -3,8 +3,6 @@ uvicorn
 python-dotenv
 requests
 python-multipart
-pandas
-openpyxl
 python-tds
 python-jose[cryptography]
 passlib[bcrypt]

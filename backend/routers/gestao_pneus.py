@@ -128,8 +128,7 @@ class TransferirIn(BaseModel):
 # ── CONFIGS ────────────────────────────────────────────────────────────────
 
 @router.get("/configs/veiculos")
-def get_vehicle_configs():
-    """Retorna configurações de eixos por tipo de veículo."""
+def get_vehicle_configs(current_user: TokenData = Depends(get_current_user)):
     return VEHICLE_CONFIGS
 
 
