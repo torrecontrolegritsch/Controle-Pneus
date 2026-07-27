@@ -54,37 +54,77 @@
         </div>
       </div>
 
-      <div class="table-responsive" v-if="pneus.length">
-        <table class="gp-table">
-          <thead>
-            <tr>
-              <th width="40"><input type="checkbox" :checked="allSelected" @change="toggleSelectAll" /></th>
-              <th>N.Fogo</th>
-              <th>Marca / Modelo</th>
-              <th>Medida</th>
-              <th>NF</th>
-              <th>Fornecedor</th>
-              <th>Valor Unit.</th>
-              <th>Data Cadastro</th>
-              <th>Ações</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="p in pneus" :key="p.id">
-              <td><input type="checkbox" v-model="selectedIds" :value="p.id" /></td>
-              <td><strong>{{ p.numero_fogo }}</strong></td>
-              <td>{{ p.marca }} {{ p.modelo }}</td>
-              <td>{{ p.medida }}</td>
-              <td>{{ p.nf || '—' }}</td>
-              <td>{{ p.fornecedor || '—' }}</td>
-              <td><strong>R$ {{ fmtN(p.valor) }}</strong></td>
-              <td>{{ p.criado_em ? new Date(p.criado_em).toLocaleDateString('pt-BR') : '—' }}</td>
-              <td class="td-actions">
-                <button class="btn-sm" @click="openPneuForm(p)">Editar</button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+      <!-- Seleção global -->
+      <div v-if="pneus.length" class="sel-bar">
+        <label class="sel-all">
+          <input type="checkbox" :checked="allSelected" @change="toggleSelectAll" />
+          <span>Selecionar todos ({{ pneus.length }})</span>
+        </label>
+        <span class="sel-info" v-if="selectedIds.length">{{ selectedIds.length }} selecionado{{ selectedIds.length > 1 ? 's' : '' }}</span>
+      </div>
+
+      <!-- Acordeão por Fornecedor → Mês -->
+      <div v-if="gruposFornecedor.length" class="fornecedor-list">
+        <div v-for="gf in gruposFornecedor" :key="gf.fornecedor" class="fornecedor-card">
+          <!-- Header do fornecedor -->
+          <div class="forn-header" @click="toggleFornecedor(gf.fornecedor)">
+            <div class="forn-header-left">
+              <span class="chevron" :class="{ open: expandedFornecedor.has(gf.fornecedor) }">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+              </span>
+              <span class="forn-nome">{{ gf.fornecedor }}</span>
+              <span class="forn-badge">{{ gf.qtd }} pneu{{ gf.qtd > 1 ? 's' : '' }}</span>
+            </div>
+            <div class="forn-header-right">
+              <span class="forn-valor">R$ {{ fmtN(gf.valor) }}</span>
+            </div>
+          </div>
+
+          <!-- Meses dentro do fornecedor -->
+          <div v-if="expandedFornecedor.has(gf.fornecedor)" class="forn-body">
+            <div v-for="gm in gf.meses" :key="gm.mesKey" class="mes-grupo">
+              <!-- Header do mês -->
+              <div class="mes-header" @click="toggleMes(gf.fornecedor, gm.mesKey)">
+                <span class="chevron chevron-sm" :class="{ open: expandedMes.has(gf.fornecedor + '|' + gm.mesKey) }">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+                </span>
+                <span class="mes-label">{{ gm.mesLabel }}</span>
+                <span class="mes-badge">{{ gm.qtd }} pneu{{ gm.qtd > 1 ? 's' : '' }}</span>
+                <span class="mes-valor">R$ {{ fmtN(gm.valor) }}</span>
+              </div>
+
+              <!-- Tabela dos pneus do mês -->
+              <div v-if="expandedMes.has(gf.fornecedor + '|' + gm.mesKey)" class="mes-table-wrap">
+                <table class="mes-table">
+                  <thead>
+                    <tr>
+                      <th width="36"></th>
+                      <th>N.Fogo</th>
+                      <th>Marca / Modelo</th>
+                      <th>Medida</th>
+                      <th>NF</th>
+                      <th class="text-right">Valor Unit.</th>
+                      <th>Entrada</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="p in gm.pneus" :key="p.id">
+                      <td><input type="checkbox" v-model="selectedIds" :value="p.id" /></td>
+                      <td><strong class="fogo-tag">{{ p.numero_fogo }}</strong></td>
+                      <td class="td-marca">{{ p.marca }} {{ p.modelo }}</td>
+                      <td class="td-medida">{{ p.medida }}</td>
+                      <td class="td-nf">{{ p.nf || '—' }}</td>
+                      <td class="text-right td-valor">R$ {{ fmtN(p.valor) }}</td>
+                      <td class="td-data">{{ p.criado_em ? new Date(p.criado_em).toLocaleDateString('pt-BR') : '—' }}</td>
+                      <td><button class="btn-sm" @click.stop="openPneuForm(p)">Editar</button></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div v-else-if="!loading" class="empty-state">
@@ -345,6 +385,8 @@ const showModal = ref(false)
 const editingPneu = ref(null)
 const fileInput = ref(null)
 const expanded = ref(new Set())
+const expandedFornecedor = ref(new Set())
+const expandedMes = ref(new Set())
 
 const pneuForm = ref({
   numero_fogo: '', marca: '', modelo: '', medida: '295/80R22.5',
@@ -407,6 +449,41 @@ const gruposMedida = computed(() => {
 
 const medidasCriticas = computed(() => gruposMedida.value.filter(g => g.qtd <= 2))
 
+const gruposFornecedor = computed(() => {
+  const mapa = {}
+  for (const p of pneus.value) {
+    const forn = (p.fornecedor || 'Sem Fornecedor').trim()
+    if (!mapa[forn]) mapa[forn] = {}
+    // chave de mês: YYYYMM para ordenar, label legível
+    let mesKey = 'sem-data', mesLabel = 'Sem data'
+    if (p.criado_em) {
+      const d = new Date(p.criado_em)
+      mesKey = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}`
+      mesLabel = d.toLocaleString('pt-BR', { month: 'long', year: 'numeric' })
+      mesLabel = mesLabel.charAt(0).toUpperCase() + mesLabel.slice(1)
+    }
+    if (!mapa[forn][mesKey]) mapa[forn][mesKey] = { mesKey, mesLabel, pneus: [] }
+    mapa[forn][mesKey].pneus.push(p)
+  }
+  return Object.entries(mapa)
+    .map(([fornecedor, mesesMap]) => {
+      const meses = Object.values(mesesMap)
+        .sort((a, b) => b.mesKey.localeCompare(a.mesKey))
+        .map(gm => ({
+          ...gm,
+          qtd: gm.pneus.length,
+          valor: gm.pneus.reduce((s, p) => s + parseFloat(p.valor || 0), 0)
+        }))
+      return {
+        fornecedor,
+        meses,
+        qtd: meses.reduce((s, m) => s + m.qtd, 0),
+        valor: meses.reduce((s, m) => s + m.valor, 0)
+      }
+    })
+    .sort((a, b) => b.qtd - a.qtd)
+})
+
 const gruposMarca = computed(() => {
   const mapa = {}
   for (const p of pneus.value) {
@@ -454,6 +531,21 @@ function toggleExpand(medida) {
   if (s.has(medida)) s.delete(medida)
   else s.add(medida)
   expanded.value = s
+}
+
+function toggleFornecedor(nome) {
+  const s = new Set(expandedFornecedor.value)
+  if (s.has(nome)) s.delete(nome)
+  else s.add(nome)
+  expandedFornecedor.value = s
+}
+
+function toggleMes(fornecedor, mesKey) {
+  const key = `${fornecedor}|${mesKey}`
+  const s = new Set(expandedMes.value)
+  if (s.has(key)) s.delete(key)
+  else s.add(key)
+  expandedMes.value = s
 }
 
 function openPneuForm(p = null) {
@@ -801,4 +893,126 @@ function exportarCSV() {
 .text-center { text-align: center; }
 .text-right  { text-align: right;  }
 .text-muted  { color: var(--text3, #94a3b8); }
+
+/* ── Seleção global ── */
+.sel-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 16px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #64748b;
+}
+.sel-all { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.sel-info { font-weight: 600; color: var(--brand, #c41230); }
+
+/* ── Acordeão Fornecedor ── */
+.fornecedor-list { display: flex; flex-direction: column; gap: 8px; }
+
+.fornecedor-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.forn-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  cursor: pointer;
+  user-select: none;
+  transition: background .15s;
+}
+.forn-header:hover { background: #f8fafc; }
+
+.forn-header-left { display: flex; align-items: center; gap: 10px; }
+.forn-header-right { display: flex; align-items: center; gap: 8px; }
+
+.forn-nome { font-size: 14px; font-weight: 700; color: #1e293b; }
+.forn-badge {
+  background: #f1f5f9;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 20px;
+}
+.forn-valor { font-size: 14px; font-weight: 700; color: #15803d; }
+
+.chevron {
+  display: flex; align-items: center;
+  color: #94a3b8;
+  transition: transform .2s;
+}
+.chevron.open { transform: rotate(90deg); color: var(--brand, #c41230); }
+.chevron-sm { color: #cbd5e1; }
+
+/* ── Meses dentro do fornecedor ── */
+.forn-body { border-top: 1px solid #f1f5f9; }
+
+.mes-grupo { border-bottom: 1px solid #f8fafc; }
+.mes-grupo:last-child { border-bottom: none; }
+
+.mes-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 18px 10px 36px;
+  cursor: pointer;
+  background: #fafafa;
+  transition: background .15s;
+}
+.mes-header:hover { background: #f1f5f9; }
+
+.mes-label { font-size: 13px; font-weight: 600; color: #334155; flex: 1; }
+.mes-badge {
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 20px;
+}
+.mes-valor { font-size: 12px; color: #64748b; font-weight: 500; min-width: 100px; text-align: right; }
+
+/* ── Tabela dos pneus dentro do mês ── */
+.mes-table-wrap { overflow-x: auto; }
+
+.mes-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.mes-table th {
+  background: #f9fafb;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: #94a3b8;
+  padding: 8px 12px;
+  border-bottom: 1px solid #e2e8f0;
+  text-align: left;
+  white-space: nowrap;
+}
+.mes-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #f8fafc;
+  color: #334155;
+  vertical-align: middle;
+}
+.mes-table tbody tr:last-child td { border-bottom: none; }
+.mes-table tbody tr:hover td { background: #f8fafc; }
+
+.fogo-tag { font-weight: 700; color: #1e293b; font-size: 13px; }
+.td-marca { color: #475569; }
+.td-medida { font-family: Consolas, monospace; font-size: 11px; color: #64748b; white-space: nowrap; }
+.td-nf { color: #15803d; font-size: 11px; }
+.td-valor { font-weight: 600; color: #1e293b; white-space: nowrap; }
+.td-data { color: #94a3b8; white-space: nowrap; font-size: 11px; }
 </style>
