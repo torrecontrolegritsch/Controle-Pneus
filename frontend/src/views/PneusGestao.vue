@@ -21,6 +21,18 @@
       </nav>
 
       <div class="sidebar-footer">
+        <!-- Atalho Usuários (admin/gerente) -->
+        <button
+          v-if="user?.role === 'admin' || user?.role === 'gerente'"
+          class="usuarios-shortcut"
+          :class="{ active: tab === 'usuarios' }"
+          @click="tab = 'usuarios'"
+          title="Gerenciar Usuários e Permissões"
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+          Usuários &amp; Permissões
+        </button>
+
         <div class="user-block" v-if="user">
           <div class="avatar">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
@@ -2611,11 +2623,33 @@ onMounted(loadAll)
 }
 
 .sidebar-footer {
-  padding-top: 16px;
+  padding-top: 12px;
   margin-top: 8px;
   border-top: 1px solid #f1f5f9;
   flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
+
+.usuarios-shortcut {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  transition: all 120ms;
+  text-align: left;
+}
+.usuarios-shortcut:hover { background: #f1f5f9; color: #1e293b; }
+.usuarios-shortcut.active { background: #eff6ff; border-color: #bfdbfe; color: #1d4ed8; }
 
 .user-block {
   display: flex;
