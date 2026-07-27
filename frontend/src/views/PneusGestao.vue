@@ -1487,7 +1487,7 @@ const solicitacoesTab = allTabs.find(t => t.id === 'solicitacoes')
 const visibleTabs = computed(() => {
   const user = props.user
   if (!user || user.role === 'admin' || user.role === 'gerente') {
-    return [...allTabs, usuariosTab]
+    return [...allTabs]
   }
   const telas = user.telas || []
   const filtered = allTabs.filter(t => telas.includes(t.id))
