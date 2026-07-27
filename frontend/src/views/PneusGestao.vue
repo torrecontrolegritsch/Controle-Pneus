@@ -2513,6 +2513,7 @@ onMounted(loadAll)
 /* SIDEBAR */
 .sidebar {
   width: 280px;
+  height: 100vh;
   background: #ffffff;
   display: flex;
   flex-direction: column;
@@ -2520,6 +2521,9 @@ onMounted(loadAll)
   color: #1e293b;
   border-right: 1px solid #e2e8f0;
   z-index: 100;
+  overflow: hidden;
+  position: sticky;
+  top: 0;
 }
 
 .sidebar-top {
@@ -2557,8 +2561,11 @@ onMounted(loadAll)
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
+  overflow-y: auto;
+  scrollbar-width: none;
 }
+.sidebar-menu::-webkit-scrollbar { display: none; }
 
 .menu-item {
   display: flex;
@@ -2597,8 +2604,10 @@ onMounted(loadAll)
 }
 
 .sidebar-footer {
-  padding-top: 24px;
+  padding-top: 16px;
+  margin-top: 8px;
   border-top: 1px solid #f1f5f9;
+  flex-shrink: 0;
 }
 
 .user-block {
