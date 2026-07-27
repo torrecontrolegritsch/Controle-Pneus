@@ -40,8 +40,8 @@
           </select>
         </div>
         <div class="form-group form-group-full">
-          <label>Observação <span class="label-optional">(opcional)</span></label>
-          <input v-model="form.observacao" placeholder="Informações adicionais..." />
+          <label>Placa do Veículo <span class="label-optional">(opcional)</span></label>
+          <input v-model="form.observacao" placeholder="Ex: ABC-1234 — informe o veículo que precisa do pneu" />
         </div>
       </div>
       <div class="sol-form-actions">
@@ -96,9 +96,10 @@
             <th>Medida</th>
             <th class="text-center">Qtd</th>
             <th>Motivo</th>
+            <th v-if="isAdmin">Placa</th>
             <th v-if="isAdmin">Solicitante</th>
             <th>Status</th>
-            <th v-if="!isAdmin">Nota do Admin</th>
+            <th v-if="!isAdmin">Resposta</th>
             <th v-if="isAdmin" class="text-right">Ações</th>
           </tr>
         </thead>
@@ -109,6 +110,10 @@
             <td><span class="medida-tag-sol">{{ s.medida }}</span></td>
             <td class="text-center"><strong>{{ s.quantidade }}</strong></td>
             <td>{{ motivoLabel(s.motivo) }}</td>
+            <td v-if="isAdmin" class="td-placa-sol">
+              <span v-if="s.observacao" class="placa-badge">{{ s.observacao }}</span>
+              <span v-else class="text-muted">—</span>
+            </td>
             <td v-if="isAdmin" class="td-usuario">
               <span class="usuario-nome">{{ s.usuario_nome || '—' }}</span>
               <span class="usuario-email">{{ s.usuario_email || '' }}</span>
@@ -369,6 +374,9 @@ onMounted(carregarSolicitacoes)
 .usuario-nome  { display: block; font-weight: 600; font-size: 12px; color: #0f172a; }
 .usuario-email { display: block; font-size: 10px; color: #94a3b8; }
 .td-acoes { white-space: nowrap; }
+.td-placa-sol { white-space: nowrap; }
+.placa-badge { font-family: monospace; font-size: 12px; font-weight: 700; background: #f1f5f9; color: #334155; padding: 2px 8px; border-radius: 6px; letter-spacing: .05em; }
+.text-muted { color: #94a3b8; font-size: 12px; }
 
 .medida-tag-sol { background: #e0f2fe; color: #0369a1; font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 6px; white-space: nowrap; }
 
