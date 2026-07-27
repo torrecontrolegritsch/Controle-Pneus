@@ -354,46 +354,99 @@
           </select>
         </div>
       </div>
-      <div class="table-responsive" v-if="pneusList.length">
-        <table class="gp-table">
-          <thead><tr><th>N.Fogo</th><th>Marca</th><th>Modelo</th><th>Medida</th><th>Vida</th><th>Fornecedor</th><th>NF</th><th>Valor Unit.</th><th>Performance</th><th>Status</th><th>Filial</th><th>Veículo</th><th>Ações</th></tr></thead>
-        <tbody>
-          <tr v-for="p in pneusList" :key="p.id" :class="{'row-disabled': p.status === 'descarte'}">
-            <td>
-              <div style="display: flex; align-items: center; gap: 8px;">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="M5 5l1.5 1.5"/><path d="M17.5 17.5L19 19"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="M5 19l1.5-1.5"/><path d="M17.5 6.5L19 5"/></svg>
-                <strong>{{ p.numero_fogo }}</strong>
+      <!-- Agrupamento Filial → Medida -->
+      <div v-if="gruposFilialMedida.length" class="est-filial-list">
+        <div v-for="gf in gruposFilialMedida" :key="gf.filial" class="est-filial-card">
+
+          <!-- Header Filial -->
+          <div class="est-filial-header" @click="toggleFilialEst(gf.filial)">
+            <div class="est-filial-left">
+              <span class="est-chevron" :class="{ open: expandedFilialEst.has(gf.filial) }">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+              </span>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:#64748b"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+              <span class="est-filial-nome">{{ gf.filial }}</span>
+              <span class="est-filial-badge">{{ gf.qtd }} pneu{{ gf.qtd !== 1 ? 's' : '' }}</span>
+            </div>
+            <div class="est-status-pills">
+              <span v-if="gf.statusTotais.em_uso"    class="est-pill pill-uso">{{ gf.statusTotais.em_uso }} em uso</span>
+              <span v-if="gf.statusTotais.estoque"   class="est-pill pill-est">{{ gf.statusTotais.estoque }} estoque</span>
+              <span v-if="gf.statusTotais.reciclagem" class="est-pill pill-rec">{{ gf.statusTotais.reciclagem }} reciclagem</span>
+              <span v-if="gf.statusTotais.descarte"  class="est-pill pill-des">{{ gf.statusTotais.descarte }} descarte</span>
+            </div>
+          </div>
+
+          <!-- Medidas dentro da filial -->
+          <div v-if="expandedFilialEst.has(gf.filial)" class="est-medidas">
+            <div v-for="gm in gf.medidas" :key="gm.medida" class="est-medida-grupo">
+
+              <!-- Header Medida -->
+              <div class="est-medida-header" @click="toggleMedidaEst(gf.filial, gm.medida)">
+                <span class="est-chevron est-chevron-sm" :class="{ open: expandedMedidaEst.has(gf.filial+'|'+gm.medida) }">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+                </span>
+                <span class="est-medida-tag">{{ gm.medida }}</span>
+                <span class="est-medida-qtd">{{ gm.qtd }} pneu{{ gm.qtd !== 1 ? 's' : '' }}</span>
+                <div class="est-medida-meta">
+                  <span v-if="gm.sulcoMedio > 0" :class="gm.sulcoMedio < 5 ? 'meta-critico' : 'meta-ok'">
+                    sulco médio {{ gm.sulcoMedio.toFixed(1) }}mm
+                  </span>
+                  <span class="meta-vida">vida média {{ gm.vidaMedia.toFixed(1) }}ª</span>
+                </div>
+                <div class="est-medida-status">
+                  <span v-if="gm.statusCount.em_uso"    class="est-pill pill-uso pill-xs">{{ gm.statusCount.em_uso }} uso</span>
+                  <span v-if="gm.statusCount.estoque"   class="est-pill pill-est pill-xs">{{ gm.statusCount.estoque }} estoque</span>
+                  <span v-if="gm.statusCount.reciclagem" class="est-pill pill-rec pill-xs">{{ gm.statusCount.reciclagem }} recicl.</span>
+                </div>
               </div>
-            </td>
-            <td>{{ p.marca }}</td>
-            <td>{{ p.modelo }}</td>
-            <td>{{ p.medida }}</td>
-            <td><span class="vida-badge">{{ p.vida }}ª</span></td>
-            <td>{{ p.fornecedor || '—' }}</td>
-            <td>{{ p.nf || '—' }}</td>
-            <td><strong>R$ {{ fmtN(p.valor) }}</strong></td>
-            <td>
-              <div style="display:flex; flex-direction:column; gap:4px; font-size:11px;">
-                <span v-if="p.km_total" class="badge badge-blue">{{ (p.km_total || 0).toLocaleString('pt-BR') }} km</span>
-                <span v-if="p.cpk" class="badge badge-purple">CPK: R$ {{ p.cpk.toFixed(4) }}</span>
-                <span v-if="!p.km_total && !p.cpk" style="color:var(--text3)">0 km rodados</span>
+
+              <!-- Tabela dos pneus da medida -->
+              <div v-if="expandedMedidaEst.has(gf.filial+'|'+gm.medida)" class="est-pneus-table">
+                <table class="gm-table">
+                  <thead>
+                    <tr>
+                      <th>N.Fogo</th>
+                      <th>Marca / Modelo</th>
+                      <th>Vida</th>
+                      <th>Sulco</th>
+                      <th>Status</th>
+                      <th>Veículo</th>
+                      <th>Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="p in gm.pneus" :key="p.id" :class="{'row-disabled': p.status === 'descarte'}">
+                      <td><strong class="fogo-est">{{ p.numero_fogo }}</strong></td>
+                      <td class="td-marca-est">{{ p.marca }} <span class="modelo-est">{{ p.modelo }}</span></td>
+                      <td><span class="vida-badge">{{ p.vida }}ª</span></td>
+                      <td>
+                        <div class="sulco-wrap">
+                          <div class="sulco-bar-mini">
+                            <div class="sulco-fill-mini" :class="{ 'sulco-crit': (p.sulco_atual||0) < 5 }" :style="{ width: Math.min(100, (p.sulco_atual||0)/20*100)+'%' }"></div>
+                          </div>
+                          <span class="sulco-val-mini" :class="{ 'sulco-crit': (p.sulco_atual||0) < 5 }">{{ p.sulco_atual || 0 }}mm</span>
+                        </div>
+                      </td>
+                      <td>
+                        <span class="badge" :class="statusClass(p)">{{ statusLabel(p) }}</span>
+                        <span v-if="p.recebido === 0" class="badge badge-yellow" style="margin-top:3px;display:block;font-size:9px;">TRÂNSITO</span>
+                      </td>
+                      <td class="td-placa-est">{{ p.veiculo_placa || '—' }}</td>
+                      <td class="td-actions">
+                        <button v-if="p.recebido === 0" class="btn-sm btn-accent" @click="doConfirmarRecebimento(p)">Confirmar</button>
+                        <button v-if="p.status === 'estoque' && p.recebido === 1" class="btn-sm" @click="openTransferirModal(p)">Transferir</button>
+                        <button class="btn-sm" @click="openPneuForm(p)">Editar</button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
-            </td>
-            <td>
-              <span class="badge" :class="statusClass(p)">{{ statusLabel(p) }}</span>
-              <span v-if="p.recebido === 0" class="badge badge-yellow" style="margin-top: 4px; display: block; font-size: 9px;">EM TRÂNSITO</span>
-            </td>
-            <td>{{ p.filial_nome || '—' }}</td>
-            <td>{{ p.veiculo_placa || '—' }}</td>
-            <td class="td-actions">
-              <button v-if="p.recebido === 0" class="btn-sm btn-accent" @click="doConfirmarRecebimento(p)">Confirmar Chegada</button>
-              <button v-if="p.status === 'estoque' && p.recebido === 1" class="btn-sm" @click="openTransferirModal(p)">Transferir</button>
-              <button class="btn-sm" @click="openPneuForm(p)">Editar</button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+
+            </div>
+          </div>
+        </div>
       </div>
+
       <div v-else class="empty-state">
         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 16px;"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="M5 5l1.5 1.5"/></svg>
         <p>Nenhum pneu atende aos filtros atuais.</p>
@@ -1443,6 +1496,10 @@ const veiculos = ref([])
 const pneusList = ref([])
 const pneusGeral = ref([])
 const loadingPneusGeral = ref(false)
+
+// Accordion — Estoque: Filial → Medida
+const expandedFilialEst = ref(new Set())
+const expandedMedidaEst = ref(new Set())
 const movs = ref([])
 const vehicleConfigs = ref({})
 const modeloSelecionado = ref(null)
@@ -1542,6 +1599,61 @@ const pneusSucataConfirmados = computed(() => {
   }
   return list
 })
+
+const gruposFilialMedida = computed(() => {
+  const mapa = {}
+  for (const p of pneusList.value) {
+    const filial = p.filial_nome || 'Sem filial'
+    const medida = (p.medida || 'Sem medida').trim()
+    if (!mapa[filial]) mapa[filial] = {}
+    if (!mapa[filial][medida]) mapa[filial][medida] = []
+    mapa[filial][medida].push(p)
+  }
+  return Object.entries(mapa)
+    .map(([filial, medidasMap]) => {
+      const medidas = Object.entries(medidasMap)
+        .map(([medida, pneus]) => {
+          const sulcos = pneus.map(p => parseFloat(p.sulco_atual || 0)).filter(s => s > 0)
+          const statusCount = pneus.reduce((acc, p) => {
+            const s = p.status || 'desconhecido'; acc[s] = (acc[s] || 0) + 1; return acc
+          }, {})
+          return {
+            medida,
+            pneus,
+            qtd: pneus.length,
+            sulcoMedio: sulcos.length ? sulcos.reduce((a, b) => a + b, 0) / sulcos.length : 0,
+            vidaMedia: pneus.reduce((s, p) => s + (parseInt(p.vida) || 1), 0) / pneus.length,
+            statusCount
+          }
+        })
+        .sort((a, b) => b.qtd - a.qtd)
+
+      const statusTotais = medidas.reduce((acc, gm) => {
+        for (const [s, n] of Object.entries(gm.statusCount)) { acc[s] = (acc[s] || 0) + n }
+        return acc
+      }, {})
+
+      return {
+        filial,
+        medidas,
+        qtd: medidas.reduce((s, gm) => s + gm.qtd, 0),
+        statusTotais
+      }
+    })
+    .sort((a, b) => b.qtd - a.qtd)
+})
+
+function toggleFilialEst(nome) {
+  const s = new Set(expandedFilialEst.value)
+  s.has(nome) ? s.delete(nome) : s.add(nome)
+  expandedFilialEst.value = s
+}
+function toggleMedidaEst(filial, medida) {
+  const key = `${filial}|${medida}`
+  const s = new Set(expandedMedidaEst.value)
+  s.has(key) ? s.delete(key) : s.add(key)
+  expandedMedidaEst.value = s
+}
 
 const filteredStock = computed(() => {
   if (!searchStock.value) return pneusEstoqueFilial.value
@@ -2692,6 +2804,63 @@ onMounted(loadAll)
 /* Empty */
 .empty-state { text-align: center; padding: 48px 20px; color: var(--text3); font-size: 14px; font-weight: 500; display: flex; flex-direction: column; align-items: center; border: 2px dashed var(--s2); border-radius: 12px; margin: 20px 0; background: #fafafa; }
 .empty-state p { margin: 0; }
+
+/* ── Accordion Estoque: Filial → Medida ─────────────────────────── */
+.est-filial-list { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+.est-filial-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; }
+.est-filial-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px; cursor: pointer; user-select: none;
+  background: #f8fafc; border-bottom: 1px solid transparent; gap: 12px;
+  transition: background 120ms;
+}
+.est-filial-header:hover { background: #f1f5f9; }
+.est-filial-left { display: flex; align-items: center; gap: 8px; }
+.est-filial-nome { font-size: 13px; font-weight: 700; color: #0f172a; }
+.est-filial-badge { font-size: 11px; font-weight: 600; background: #e2e8f0; color: #475569; padding: 1px 7px; border-radius: 99px; }
+.est-chevron { display: flex; align-items: center; color: #94a3b8; transition: transform 180ms; }
+.est-chevron.open { transform: rotate(90deg); }
+.est-chevron-sm { display: flex; align-items: center; color: #94a3b8; transition: transform 180ms; }
+.est-chevron-sm.open { transform: rotate(90deg); }
+.est-status-pills { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.est-pill { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 99px; white-space: nowrap; }
+.pill-uso  { background: #dbeafe; color: #1d4ed8; }
+.pill-est  { background: #dcfce7; color: #15803d; }
+.pill-rec  { background: #fef3c7; color: #b45309; }
+.pill-des  { background: #fee2e2; color: #b91c1c; }
+.pill-xs   { font-size: 9px; padding: 1px 6px; }
+.est-medidas { padding: 8px; display: flex; flex-direction: column; gap: 6px; }
+.est-medida-grupo { border: 1px solid #e2e8f0; border-radius: 7px; overflow: hidden; }
+.est-medida-header {
+  display: flex; align-items: center; gap: 8px;
+  padding: 9px 12px; cursor: pointer; user-select: none;
+  background: #fff; transition: background 120ms; flex-wrap: wrap;
+}
+.est-medida-header:hover { background: #f8fafc; }
+.est-medida-tag { font-size: 12px; font-weight: 700; color: #1e293b; background: #e0f2fe; color: #0369a1; padding: 2px 8px; border-radius: 6px; }
+.est-medida-qtd { font-size: 11px; color: #64748b; }
+.est-medida-meta { display: flex; gap: 10px; margin-left: 4px; }
+.est-medida-meta span { font-size: 10px; }
+.meta-ok { color: #15803d; }
+.meta-critico { color: #dc2626; font-weight: 600; }
+.meta-vida { color: #64748b; }
+.est-medida-status { display: flex; gap: 5px; margin-left: auto; flex-wrap: wrap; justify-content: flex-end; }
+.est-pneus-table { padding: 0 10px 10px; }
+.gm-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.gm-table th { text-align: left; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: #94a3b8; padding: 6px 8px; border-bottom: 1px solid #e2e8f0; white-space: nowrap; }
+.gm-table td { padding: 7px 8px; border-bottom: 1px solid #f1f5f9; color: #334155; vertical-align: middle; }
+.gm-table tbody tr:last-child td { border-bottom: none; }
+.gm-table tbody tr:hover td { background: #f8fafc; }
+.fogo-est { color: #0f172a; font-size: 12px; }
+.td-marca-est { color: #64748b; }
+.modelo-est { color: #94a3b8; font-size: 11px; margin-left: 4px; }
+.td-placa-est { font-family: monospace; font-size: 11px; color: #334155; }
+.sulco-wrap { display: flex; align-items: center; gap: 5px; }
+.sulco-bar-mini { width: 36px; height: 5px; background: #e2e8f0; border-radius: 99px; overflow: hidden; flex-shrink: 0; }
+.sulco-fill-mini { height: 100%; background: #22c55e; border-radius: 99px; }
+.sulco-fill-mini.sulco-crit { background: #ef4444; }
+.sulco-val-mini { font-size: 11px; color: #475569; white-space: nowrap; }
+.sulco-val-mini.sulco-crit { color: #dc2626; font-weight: 700; }
 
 /* Eixos Diagram PREMIUM */
 .modal-expanded { width: 1100px; max-width: 98vw; padding: 0; overflow: hidden; display: flex; flex-direction: column; }
