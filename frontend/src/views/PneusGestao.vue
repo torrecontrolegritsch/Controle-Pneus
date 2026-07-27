@@ -68,6 +68,9 @@
         </div>
       </header>
 
+    <!-- TAB: DASHBOARD -->
+    <DashboardView v-if="tab === 'dashboard'" />
+
     <!-- TAB: ESTOQUE CENTRAL (NOVO) -->
     <EstoqueCentralView v-if="tab === 'estoque_central'" :filiais="filiais" />
 
@@ -1385,6 +1388,7 @@ import {
   atualizarValorLote, criarLoteReciclagem, fetchRelatorioFinanceiroReciclagem
 } from '../api/gestaoPneus.js'
 import EstoqueCentralView from '../components/views/EstoqueCentralView.vue'
+import DashboardView from '../components/views/DashboardView.vue'
 import RelatorioNFView from './RelatorioNFView.vue'
 import UsuariosView from './UsuariosView.vue'
 
@@ -1392,6 +1396,7 @@ const props = defineProps(['user'])
 const emit = defineEmits(['logout'])
 
 const allTabs = [
+  { id: 'dashboard', label: 'Dashboard', icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>` },
   { id: 'estoque_central', label: 'Estoque Central', icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>` },
   { id: 'alocacoes', label: 'Alocações', icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>` },
   { id: 'veiculos', label: 'Frota', icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 17h4V5H2v12h3"/><path d="M20 17h2v-9h-4V5h-4v12h3"/><path d="M10 9h4"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>` },
