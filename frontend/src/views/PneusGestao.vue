@@ -434,7 +434,6 @@
                       <td class="td-placa-est">{{ p.veiculo_placa || '—' }}</td>
                       <td class="td-actions">
                         <button v-if="p.recebido === 0" class="btn-sm btn-accent" @click="doConfirmarRecebimento(p)">Confirmar</button>
-                        <button v-if="p.status === 'estoque' && p.recebido === 1" class="btn-sm" @click="openTransferirModal(p)">Transferir</button>
                         <button class="btn-sm" @click="openPneuForm(p)">Editar</button>
                       </td>
                     </tr>

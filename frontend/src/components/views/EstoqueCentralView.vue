@@ -321,47 +321,82 @@
     </template>
 
     <!-- Modal Cadastro/Edição -->
-    <div v-if="showModal" class="modal-overlay" @click.self="showModal = false">
+    <div v-if="showModal" class="modal-overlay" @click.self="fecharModalNF">
       <div class="modal-box">
-        <h3>{{ editingPneu ? 'Editar Pneu' : 'Entrada de Pneu (NF)' }}</h3>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Nº Fogo</label>
-            <input v-model="pneuForm.numero_fogo" placeholder="EX: 0001" />
+
+        <!-- Passo 1: Formulário NF -->
+        <template v-if="!showDistribuirRapido">
+          <h3>{{ editingPneu ? 'Editar Pneu' : 'Entrada de Pneu (NF)' }}</h3>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Nº Fogo</label>
+              <input v-model="pneuForm.numero_fogo" placeholder="EX: 0001" />
+            </div>
+            <div class="form-group">
+              <label>Nota Fiscal (NF)</label>
+              <input v-model="pneuForm.nf" placeholder="000.000.000" />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Marca</label>
+              <input v-model="pneuForm.marca" />
+            </div>
+            <div class="form-group">
+              <label>Modelo</label>
+              <input v-model="pneuForm.modelo" />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Medida</label>
+              <input v-model="pneuForm.medida" />
+            </div>
+            <div class="form-group">
+              <label>Valor Unitário (R$)</label>
+              <input type="number" step="0.01" v-model="pneuForm.valor" />
+            </div>
           </div>
           <div class="form-group">
-            <label>Nota Fiscal (NF)</label>
-            <input v-model="pneuForm.nf" placeholder="000.000.000" />
+            <label>Fornecedor</label>
+            <input v-model="pneuForm.fornecedor" />
           </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Marca</label>
-            <input v-model="pneuForm.marca" />
+          <div class="modal-actions">
+            <button class="btn-secondary" @click="fecharModalNF">Cancelar</button>
+            <button class="btn-primary" @click="savePneu">Salvar Entrada</button>
           </div>
-          <div class="form-group">
-            <label>Modelo</label>
-            <input v-model="pneuForm.modelo" />
+        </template>
+
+        <!-- Passo 2: Distribuir agora? -->
+        <template v-else>
+          <div class="dist-rapida-success">
+            <div class="dist-rapida-icon">
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="9 12 11 14 15 10"/></svg>
+            </div>
+            <h3 class="dist-rapida-title">Pneu cadastrado!</h3>
+            <p class="dist-rapida-sub">Pneu <strong>{{ pneuForm.numero_fogo }}</strong> entrou no Estoque Central.<br>Deseja distribuir para uma filial agora?</p>
           </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Medida</label>
-            <input v-model="pneuForm.medida" />
+
+          <div class="form-group" style="margin-top: 16px;">
+            <label>Filial de destino</label>
+            <select v-model="filialDestinoRapido" class="filter-select" style="width:100%;">
+              <option :value="null">— Selecionar filial —</option>
+              <option v-for="f in filiaisDestino" :key="f.id" :value="f.id">{{ f.nome }}</option>
+            </select>
           </div>
-          <div class="form-group">
-            <label>Valor Unitário (R$)</label>
-            <input type="number" step="0.01" v-model="pneuForm.valor" />
+
+          <div class="modal-actions" style="margin-top: 20px;">
+            <button class="btn-secondary" @click="fecharModalNF">Finalizar sem distribuir</button>
+            <button
+              class="btn-primary"
+              :disabled="!filialDestinoRapido || distribuindoRapido"
+              @click="distribuirRapido"
+            >
+              {{ distribuindoRapido ? 'Enviando...' : 'Distribuir Agora' }}
+            </button>
           </div>
-        </div>
-        <div class="form-group">
-          <label>Fornecedor</label>
-          <input v-model="pneuForm.fornecedor" />
-        </div>
-        <div class="modal-actions">
-          <button class="btn-secondary" @click="showModal = false">Cancelar</button>
-          <button class="btn-primary" @click="savePneu">Salvar Entrada</button>
-        </div>
+        </template>
+
       </div>
     </div>
 
@@ -387,6 +422,10 @@ const fileInput = ref(null)
 const expanded = ref(new Set())
 const expandedFornecedor = ref(new Set())
 const expandedMes = ref(new Set())
+const showDistribuirRapido = ref(false)
+const filialDestinoRapido = ref(null)
+const pneuRecemCriadoId = ref(null)
+const distribuindoRapido = ref(false)
 
 const pneuForm = ref({
   numero_fogo: '', marca: '', modelo: '', medida: '295/80R22.5',
@@ -560,14 +599,45 @@ async function savePneu() {
   try {
     if (editingPneu.value) {
       await api.updatePneu(editingPneu.value.id, pneuForm.value)
+      showModal.value = false
+      loadData()
     } else {
-      await api.createPneu(pneuForm.value)
+      const criado = await api.createPneu(pneuForm.value)
+      pneuRecemCriadoId.value = criado?.id ?? null
+      filialDestinoRapido.value = null
+      showDistribuirRapido.value = true
+      loadData()
     }
-    showModal.value = false
-    loadData()
   } catch (e) {
     alert(e.message)
   }
+}
+
+async function distribuirRapido() {
+  if (!filialDestinoRapido.value || !pneuRecemCriadoId.value) return
+  distribuindoRapido.value = true
+  try {
+    await api.transferirPneu({
+      pneu_id: pneuRecemCriadoId.value,
+      filial_destino_id: filialDestinoRapido.value,
+      observacao: 'Distribuição imediata via cadastro de NF'
+    })
+    loadData()
+  } catch (e) {
+    alert('Erro ao distribuir: ' + e.message)
+  } finally {
+    distribuindoRapido.value = false
+    showModal.value = false
+    showDistribuirRapido.value = false
+    pneuRecemCriadoId.value = null
+  }
+}
+
+function fecharModalNF() {
+  showModal.value = false
+  showDistribuirRapido.value = false
+  pneuRecemCriadoId.value = null
+  filialDestinoRapido.value = null
 }
 
 async function distribuirEmLote() {
@@ -880,6 +950,12 @@ function exportarCSV() {
 .modal-box { background: #fff; border-radius: 20px; padding: 32px; width: 500px; max-width: 95vw; box-shadow: 0 25px 50px rgba(0,0,0,.25); }
 .modal-box h3 { font-size: 20px; font-weight: 800; margin-bottom: 24px; }
 .modal-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px; }
+
+/* Distribuição rápida passo 2 */
+.dist-rapida-success { text-align: center; padding: 8px 0 4px; }
+.dist-rapida-icon { margin-bottom: 12px; }
+.dist-rapida-title { font-size: 20px; font-weight: 800; color: #0f172a; margin: 0 0 8px; }
+.dist-rapida-sub { font-size: 14px; color: #475569; line-height: 1.5; margin: 0; }
 
 .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; flex: 1; }
 .form-group label { font-size: 12px; font-weight: 700; color: var(--text2); text-transform: uppercase; }
