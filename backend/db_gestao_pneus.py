@@ -781,23 +781,39 @@ def obter_dashboard(filial_id=None):
     try:
         pneus = listar_pneus(filial_id=filial_id)
         veiculos = listar_veiculos(filial_id=filial_id)
-        
-        # Garante que pneus e veiculos sejam listas
+
         if not isinstance(pneus, list): pneus = []
         if not isinstance(veiculos, list): veiculos = []
-        
-        # Contagem por status
+
         status_counts = {}
+        por_vida = {}
+        alertas_sulco = []
+        alertas_vida = []
+
         for p in pneus:
             status = str(p.get('status', '')).lower()
             status_counts[status] = status_counts.get(status, 0) + 1
-        
-        # Contagem por vida
-        por_vida = {}
-        for p in pneus:
+
             vida = int(p.get('vida', 1) or 1)
             por_vida[vida] = por_vida.get(vida, 0) + 1
-        
+
+            sulco = float(p.get('sulco_atual', 0) or 0)
+            if status == 'em_uso' and 0 < sulco < 5:
+                alertas_sulco.append({
+                    "numero_fogo": p.get("numero_fogo"),
+                    "sulco_atual": sulco,
+                    "veiculo_placa": p.get("veiculo_placa", ""),
+                    "posicao": p.get("posicao", ""),
+                })
+
+            if vida >= 4 and status in ('em_uso', 'estoque'):
+                alertas_vida.append({
+                    "numero_fogo": p.get("numero_fogo"),
+                    "vida": vida,
+                    "status": status,
+                    "veiculo_placa": p.get("veiculo_placa", ""),
+                })
+
         return {
             "total_pneus": len(pneus),
             "em_estoque": status_counts.get('estoque', 0),
@@ -807,12 +823,14 @@ def obter_dashboard(filial_id=None):
             "total_veiculos": len(veiculos),
             "valor_estoque": sum(float(p.get('valor', 0) or 0) for p in pneus if str(p.get('status')).lower() == 'estoque'),
             "por_vida": por_vida,
-            "alertas_rodizio": []
+            "alertas_sulco": alertas_sulco[:30],
+            "alertas_vida": alertas_vida[:30],
+            "alertas_rodizio": [],
         }
     except Exception as e:
         logger.error(f"Falha ao processar dados do dashboard: {e}")
         return {
-            "total_pneus": 0, "em_estoque": 0, "em_uso": 0, "descartados": 0, 
-            "em_reciclagem": 0, "total_veiculos": 0, "valor_estoque": 0, 
-            "por_vida": {}, "alertas_rodizio": [], "error": str(e)
+            "total_pneus": 0, "em_estoque": 0, "em_uso": 0, "descartados": 0,
+            "em_reciclagem": 0, "total_veiculos": 0, "valor_estoque": 0,
+            "por_vida": {}, "alertas_sulco": [], "alertas_vida": [], "alertas_rodizio": [],
         }

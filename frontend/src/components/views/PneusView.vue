@@ -17,9 +17,14 @@
       </div>
     </div>
 
-    <AppTable 
-      :data="pneus" 
-      :columns="columns" 
+    <div class="pneus-info-bar" v-if="!loading && pneus.length">
+      <span>{{ pneus.length }} pneu{{ pneus.length > 1 ? 's' : '' }} encontrado{{ pneus.length > 1 ? 's' : '' }}</span>
+      <span v-if="totalPages > 1">· Página {{ currentPage }} de {{ totalPages }}</span>
+    </div>
+
+    <AppTable
+      :data="paginatedPneus"
+      :columns="columns"
       :loading="loading"
       empty-message="Nenhum pneu encontrado"
     >
@@ -49,6 +54,22 @@
         </div>
       </template>
     </AppTable>
+
+    <!-- Paginação -->
+    <div v-if="totalPages > 1" class="pagination">
+      <button class="page-btn" :disabled="currentPage === 1" @click="currentPage--">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <button
+        v-for="p in pageNumbers" :key="p"
+        class="page-btn"
+        :class="{ active: p === currentPage }"
+        @click="currentPage = p"
+      >{{ p }}</button>
+      <button class="page-btn" :disabled="currentPage === totalPages" @click="currentPage++">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+    </div>
 
     <!-- Modal Form -->
     <AppModal v-model="showModal" :title="editing ? 'Editar Pneu' : 'Novo Pneu'" max-width="500px">
@@ -111,7 +132,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, watch, onMounted } from 'vue'
 import AppTable from '../ui/AppTable.vue'
 import AppModal from '../ui/AppModal.vue'
 import * as api from '../../api/gestaoPneus.js'
@@ -122,10 +143,27 @@ const props = defineProps({
 
 const emit = defineEmits(['refresh'])
 
+const PAGE_SIZE = 50
 const loading = ref(false)
 const pneus = ref([])
 const filtroStatus = ref('')
 const filtroFilial = ref(null)
+const currentPage = ref(1)
+
+const totalPages = computed(() => Math.ceil(pneus.value.length / PAGE_SIZE))
+const paginatedPneus = computed(() => {
+  const start = (currentPage.value - 1) * PAGE_SIZE
+  return pneus.value.slice(start, start + PAGE_SIZE)
+})
+const pageNumbers = computed(() => {
+  const total = totalPages.value
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
+  const cur = currentPage.value
+  const pages = new Set([1, total, cur, cur - 1, cur + 1].filter(p => p >= 1 && p <= total))
+  return [...pages].sort((a, b) => a - b)
+})
+
+watch([filtroStatus, filtroFilial], () => { currentPage.value = 1 })
 const showModal = ref(false)
 const editing = ref(null)
 const form = reactive({
@@ -353,4 +391,39 @@ async function confirmDelete(row) {
   border-radius: 6px;
   cursor: pointer;
 }
+
+.pneus-info-bar {
+  display: flex;
+  gap: 8px;
+  font-size: 12px;
+  color: rgba(255,255,255,0.45);
+  margin-bottom: -8px;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+  margin-top: 16px;
+}
+
+.page-btn {
+  min-width: 32px;
+  height: 32px;
+  padding: 0 8px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 6px;
+  color: rgba(255,255,255,0.7);
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+.page-btn:hover:not(:disabled) { background: rgba(99,102,241,0.2); color: #818cf8; border-color: rgba(99,102,241,0.4); }
+.page-btn.active { background: #6366f1; color: #fff; border-color: #6366f1; font-weight: 600; }
+.page-btn:disabled { opacity: 0.3; cursor: default; }
 </style>
