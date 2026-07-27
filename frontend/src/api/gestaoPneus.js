@@ -134,6 +134,11 @@ export async function fetchPneusTemplate() {
 }
 export const importPneusCsv = (data, filialId = null) => postForm(`${P}/pneus/importar`, data, { filial_id: filialId })
 
+// Solicitações
+export const criarSolicitacao  = (data)         => post(`${P}/solicitacoes`, data)
+export const fetchSolicitacoes = (params = {})  => get(`${P}/solicitacoes`, params)
+export const atualizarSolicitacao = (id, data)  => put(`${P}/solicitacoes/${id}`, data)
+
 // Operações
 export const alocarPneu = (data) => post(`${P}/alocar`, data)
 export const removerPneu = (data) => post(`${P}/remover`, data)

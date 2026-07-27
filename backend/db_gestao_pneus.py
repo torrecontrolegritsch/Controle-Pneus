@@ -845,3 +845,39 @@ def obter_dashboard(filial_id=None):
             "em_reciclagem": 0, "total_veiculos": 0, "valor_estoque": 0,
             "por_vida": {}, "alertas_sulco": [], "alertas_vida": [], "alertas_rodizio": [],
         }
+
+# ── SOLICITAÇÕES DE PNEUS ──────────────────────────────────────────────────
+
+def criar_solicitacao(filial_id, filial_nome, medida, quantidade, motivo, observacao, usuario_nome, usuario_email):
+    payload = {
+        "filial_id": int(filial_id) if filial_id else None,
+        "filial_nome": str(filial_nome or "").strip(),
+        "medida": str(medida).strip(),
+        "quantidade": int(quantidade),
+        "motivo": str(motivo).strip(),
+        "observacao": str(observacao or "").strip(),
+        "status": "pendente",
+        "usuario_nome": str(usuario_nome or "").strip(),
+        "usuario_email": str(usuario_email or "").strip(),
+    }
+    res = _api_request("POST", "gp_solicitacoes", payload=payload)
+    return res[0] if res and isinstance(res, list) else (res if res else {})
+
+def listar_solicitacoes(filial_id=None, status=None):
+    params = {"select": "*", "order": "criado_em.desc"}
+    if filial_id:
+        params["filial_id"] = f"eq.{filial_id}"
+    if status and status != "todas":
+        params["status"] = f"eq.{status}"
+    res = _api_request("GET", "gp_solicitacoes", params=params)
+    return res if res else []
+
+def atualizar_solicitacao(sol_id, status, observacao_admin=""):
+    import datetime as _dt
+    payload = {
+        "status": status,
+        "observacao_admin": str(observacao_admin or "").strip(),
+        "atualizado_em": _dt.datetime.utcnow().isoformat(),
+    }
+    res = _api_request("PATCH", "gp_solicitacoes", params={"id": f"eq.{sol_id}"}, payload=payload)
+    return res[0] if res and isinstance(res, list) else (res if res else {})

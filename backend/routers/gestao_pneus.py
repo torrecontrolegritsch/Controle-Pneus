@@ -21,7 +21,8 @@ try:
         mover_pneu_veiculo, listar_movimentacoes, obter_dashboard, confirmar_recebimento,
         enviar_para_recicladora, listar_lotes_reciclagem, listar_pneus_aguardando_lote,
         atualizar_valor_lote_reciclagem, obter_relatorio_financeiro_reciclagem,
-        importar_pneus_lote, criar_lote_reciclagem
+        importar_pneus_lote, criar_lote_reciclagem,
+        criar_solicitacao, listar_solicitacoes, atualizar_solicitacao
     )
 except ImportError:
     from db_gestao_pneus import (
@@ -31,7 +32,8 @@ except ImportError:
         mover_pneu_veiculo, listar_movimentacoes, obter_dashboard, confirmar_recebimento,
         enviar_para_recicladora, listar_lotes_reciclagem, listar_pneus_aguardando_lote,
         atualizar_valor_lote_reciclagem, obter_relatorio_financeiro_reciclagem,
-        importar_pneus_lote, criar_lote_reciclagem
+        importar_pneus_lote, criar_lote_reciclagem,
+        criar_solicitacao, listar_solicitacoes, atualizar_solicitacao
     )
 try:
     from backend.db_sqlserver import buscar_veiculo_por_placa, sincronizar_todos_do_sql
@@ -123,6 +125,16 @@ class TransferirIn(BaseModel):
     pneu_id: int
     filial_destino_id: int
     observacao: str = ""
+
+class SolicitacaoIn(BaseModel):
+    medida: str
+    quantidade: int = 1
+    motivo: str
+    observacao: Optional[str] = ""
+
+class SolicitacaoStatusIn(BaseModel):
+    status: str
+    observacao_admin: Optional[str] = ""
 
 
 # ── CONFIGS ────────────────────────────────────────────────────────────────
@@ -438,6 +450,44 @@ def get_relatorio_financeiro_reciclagem(mes: Optional[str] = Query(None), filial
     return obter_relatorio_financeiro_reciclagem(mes=mes, filial_id=_filial_efetiva(current_user, filial_id))
 
 
+
+
+# ── SOLICITAÇÕES DE PNEUS ──────────────────────────────────────────────────
+
+@router.post("/solicitacoes")
+def post_solicitacao(body: SolicitacaoIn, current_user: TokenData = Depends(get_current_user)):
+    filiais = listar_filiais()
+    filial = next((f for f in filiais if f["id"] == current_user.filial_id), None)
+    filial_nome = filial["nome"] if filial else ""
+    try:
+        return criar_solicitacao(
+            filial_id=current_user.filial_id,
+            filial_nome=filial_nome,
+            medida=body.medida,
+            quantidade=body.quantidade,
+            motivo=body.motivo,
+            observacao=body.observacao,
+            usuario_nome=current_user.nome,
+            usuario_email=current_user.email,
+        )
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.get("/solicitacoes")
+def get_solicitacoes(
+    filial_id: Optional[int] = Query(None),
+    status: Optional[str] = Query(None),
+    current_user: TokenData = Depends(get_current_user),
+):
+    fid = _filial_efetiva(current_user, filial_id)
+    return listar_solicitacoes(filial_id=fid, status=status)
+
+@router.put("/solicitacoes/{sol_id}")
+def put_solicitacao(sol_id: int, body: SolicitacaoStatusIn, current_user: TokenData = Depends(require_admin)):
+    statuses_validos = {"pendente", "em_analise", "aprovado", "recusado"}
+    if body.status not in statuses_validos:
+        raise HTTPException(status_code=400, detail=f"Status inválido: {body.status}")
+    return atualizar_solicitacao(sol_id, body.status, body.observacao_admin)
 
 
 # ── BUSCA EXTERNA (SQL SERVER) ──────────────────────────────────────────────
