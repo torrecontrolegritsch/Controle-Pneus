@@ -322,7 +322,7 @@ const showModal = ref(false)
 const salvando = ref(false)
 const editando = ref(null)
 
-const TELAS_PADRAO_OPERADOR = ['alocacoes', 'frota', 'estoque', 'historico']
+const TELAS_PADRAO_OPERADOR = ['alocacoes', 'veiculos', 'estoque', 'historico']
 const formVazio = () => ({ nome: '', email: '', password: '', role: 'operador', filial_id: null, telas: [...TELAS_PADRAO_OPERADOR], ativo: true })
 const form = ref(formVazio())
 
