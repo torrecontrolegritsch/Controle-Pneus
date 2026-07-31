@@ -182,7 +182,8 @@
                                @dragleave="dragOverPos = null"
                                @drop="handleDropOnSlot(pos)"
                                @click="handleTireClick(pos)">
-                            <div v-if="veiculoDetail.pneus[pos]" class="tire-item in-vehicle" 
+                            <div v-if="veiculoDetail.pneus[pos]" class="tire-item in-vehicle"
+                                 :class="tireStatusClass(veiculoDetail.pneus[pos])"
                                  draggable="true" @dragstart="handleDragStartFromVehicle($event, pos, veiculoDetail.pneus[pos])">
                               <div class="tire-id">{{ veiculoDetail.pneus[pos].numero_fogo }}</div>
                             </div>
@@ -200,6 +201,7 @@
                                @drop="handleDropOnSlot(pos)"
                                @click="handleTireClick(pos)">
                             <div v-if="veiculoDetail.pneus[pos]" class="tire-item in-vehicle"
+                                 :class="tireStatusClass(veiculoDetail.pneus[pos])"
                                  draggable="true" @dragstart="handleDragStartFromVehicle($event, pos, veiculoDetail.pneus[pos])">
                               <div class="tire-id">{{ veiculoDetail.pneus[pos].numero_fogo }}</div>
                             </div>
@@ -220,6 +222,7 @@
                          @drop="handleDropOnSlot(pos)"
                          @click="handleTireClick(pos)">
                       <div v-if="veiculoDetail.pneus[pos]" class="tire-item in-vehicle"
+                           :class="tireStatusClass(veiculoDetail.pneus[pos])"
                            draggable="true" @dragstart="handleDragStartFromVehicle($event, pos, veiculoDetail.pneus[pos])">
                         <div class="tire-id">{{ veiculoDetail.pneus[pos].numero_fogo }}</div>
                       </div>
@@ -245,7 +248,9 @@
                 </div>
                 <div
                   class="action-card action-estoque"
-                  @dragover.prevent
+                  :class="{ 'drag-over': dragOverEstoque }"
+                  @dragover.prevent="dragOverEstoque = true"
+                  @dragleave="dragOverEstoque = false"
                   @drop="handleDropOnRemoval('estoque')"
                   title="Arraste pneu para devolver ao estoque"
                 >
@@ -297,7 +302,8 @@
                         :class="{
                           'gt-pending': p.recebido === 0,
                           'gt-new':     p.recebido === 1 && (p.km_total||0) <= 0 && (Number(p.vida)==1||String(p.vida).startsWith('1')),
-                          'gt-used':    p.recebido === 1 && (p.km_total||0) > 0
+                          'gt-worn':    p.recebido === 1 && (p.km_total||0) > 0 && p.sulco_atual > 0 && p.sulco_atual < 4,
+                          'gt-used':    p.recebido === 1 && (p.km_total||0) > 0 && !(p.sulco_atual > 0 && p.sulco_atual < 4)
                         }"
                         draggable="true"
                         @dragstart="handleDragStartFromStock($event, p)"
@@ -1116,7 +1122,8 @@
                            @drop="handleDropOnSlot(pos)"
                            @click="handleTireClick(pos)">
                         
-                        <div v-if="veiculoDetail.pneus[pos]" class="tire-item in-vehicle" 
+                        <div v-if="veiculoDetail.pneus[pos]" class="tire-item in-vehicle"
+                             :class="tireStatusClass(veiculoDetail.pneus[pos])"
                              draggable="true" @dragstart="handleDragStartFromVehicle($event, pos, veiculoDetail.pneus[pos])">
                           <div class="tire-id">{{ veiculoDetail.pneus[pos].numero_fogo }}</div>
                         </div>
@@ -1139,6 +1146,7 @@
                            @click="handleTireClick(pos)">
                         
                         <div v-if="veiculoDetail.pneus[pos]" class="tire-item in-vehicle"
+                             :class="tireStatusClass(veiculoDetail.pneus[pos])"
                              draggable="true" @dragstart="handleDragStartFromVehicle($event, pos, veiculoDetail.pneus[pos])">
                           <div class="tire-id">{{ veiculoDetail.pneus[pos].numero_fogo }}</div>
                         </div>
@@ -1163,6 +1171,7 @@
                      @click="handleTireClick(pos)">
                   
                   <div v-if="veiculoDetail.pneus[pos]" class="tire-item in-vehicle"
+                       :class="tireStatusClass(veiculoDetail.pneus[pos])"
                        draggable="true" @dragstart="handleDragStartFromVehicle($event, pos, veiculoDetail.pneus[pos])">
                     <div class="tire-id">{{ veiculoDetail.pneus[pos].numero_fogo }}</div>
                   </div>
@@ -1649,9 +1658,19 @@ const dragSource = ref(null) // 'stock' or 'vehicle'
 const dragOldPos = ref(null)
 const dragOverPos = ref(null)
 const dragOverRemoval = ref(false)
+const dragOverEstoque = ref(false)
 const searchStock = ref('')
 const searchVeiculo = ref('')
 const searchMov = ref('')
+
+function tireStatusClass(tire) {
+  if (!tire) return ''
+  const km = tire.km_total || 0
+  const sulco = tire.sulco_atual
+  if (km <= 0) return 'tire-new'
+  if (sulco > 0 && sulco < 4) return 'tire-worn'
+  return 'tire-used'
+}
 
 const filteredVeiculos = computed(() => {
   if (!searchVeiculo.value) return veiculos.value
@@ -1872,6 +1891,7 @@ async function handleDropOnRemoval(target = 'estoque') {
   const p = draggedPneu.value
   const source = dragSource.value
   dragOverRemoval.value = false
+  dragOverEstoque.value = false
   
   if (!p) return
 
@@ -3043,15 +3063,18 @@ const currentTabSubtitle = computed(() => tabSubtitles[tab.value] || 'Gestão ce
 .tire-placeholder { display: flex; flex-direction: column; align-items: center; color: var(--ink-300); }
 .tire-placeholder span { font-size: 24px; font-weight: 300; }
 
-.tire-item { 
-  width: 32px; height: 90px; background: linear-gradient(to right, #1a1a1a 0%, #3a3a3a 50%, #1a1a1a 100%);
+.tire-item {
+  width: 32px; height: 90px; background: var(--ink-900);
   border-radius: 6px; display: flex; align-items: center; justify-content: center;
-  color: #fff; cursor: grab; box-shadow: inset 0 0 4px rgba(0,0,0,0.8), 0 2px 4px rgba(0,0,0,0.3);
-  position: relative; border: 1px solid #000;
+  color: var(--surface-0); cursor: grab;
+  position: relative; box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  border: 3px solid transparent; box-sizing: border-box; transition: border-color 0.15s;
 }
-.tire-item::before { content: ''; position: absolute; top: 0; left: 6px; right: 6px; bottom: 0; border-left: 1px solid rgba(255,255,255,0.05); border-right: 1px solid rgba(255,255,255,0.05); }
+.tire-item.tire-new  { border-color: var(--status-ok); }
+.tire-item.tire-used { border-color: var(--status-warn); }
+.tire-item.tire-worn { border-color: var(--status-critical); }
 
-.tire-id { writing-mode: vertical-rl; transform: rotate(180deg); font-size: 13px; font-weight: 700; letter-spacing: 1px; color: #e2e8f0; z-index: 2; }
+.tire-id { writing-mode: vertical-rl; transform: rotate(180deg); font-size: 12px; font-weight: 700; letter-spacing: 1px; color: var(--surface-0); z-index: 2; }
 
 /* Estepes */
 .spare-container { position: absolute; right: -80px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; align-items: center; gap: 10px; z-index: 5; }
@@ -3289,6 +3312,7 @@ const currentTabSubtitle = computed(() => tabSubtitles[tab.value] || 'Gestão ce
 .action-card:hover { border-color: var(--ink-600); background: var(--ink-200); color: var(--ink-900); }
 .action-sucata.drag-over { border-color: var(--status-critical); background: var(--status-critical-bg); color: var(--status-critical); border-style: solid; }
 .action-estoque:hover { border-color: var(--brand); background: var(--brand-bg); color: var(--brand); }
+.action-estoque.drag-over { border-color: var(--brand-900); background: var(--brand-100); color: var(--brand-900); border-style: solid; }
 
 /* PAINEL DE ESTOQUE */
 .gp-stock-panel { width: 290px; flex-shrink: 0; background: var(--surface-0); border-left: 1px solid var(--ink-200); display: flex; flex-direction: column; overflow: hidden; }
@@ -3331,20 +3355,20 @@ const currentTabSubtitle = computed(() => tabSubtitles[tab.value] || 'Gestão ce
   background: linear-gradient(90deg, rgba(255,255,255,0) 30%, rgba(255,255,255,0.06) 50%, rgba(255,255,255,0) 70%);
 }
 
-/* Novo pneu — verde */
+/* Novo pneu — borda verde */
 .gt-new .gt-body {
-  background: linear-gradient(to right, #14532d 0%, #15803d 40%, #22c55e22 50%, #15803d 60%, #14532d 100%);
-  border-color: #16a34a;
-  box-shadow: 2px 2px 8px rgba(22,163,74,.35), inset 0 0 12px rgba(34,197,94,.08);
+  border-color: var(--status-ok);
+  box-shadow: 2px 2px 6px rgba(0,0,0,.3), 0 0 0 1px var(--status-ok-bg);
 }
-/* Pendente — laranja */
+/* Pendente chegada — borda dashed âmbar */
 .gt-pending .gt-body {
-  background: linear-gradient(to right, #431407 0%, #92400e 40%, #f97316 50%, #92400e 60%, #431407 100%);
-  border-color: #f97316;
+  border-color: var(--status-warn);
   border-style: dashed;
 }
-/* Usado — vermelho leve */
-.gt-used .gt-body { border-color: #ef4444; }
+/* Usado — borda âmbar (tem km, sulco ok) */
+.gt-used .gt-body { border-color: var(--status-warn); }
+/* Desgastado — borda vermelha (sulco crítico < 4mm) */
+.gt-worn .gt-body { border-color: var(--status-critical); }
 
 .gt-num {
   writing-mode: vertical-rl; transform: rotate(180deg);
