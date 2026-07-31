@@ -57,7 +57,7 @@
       <!-- PAINEL DIREITO: Imagem insetada -->
       <div class="image-panel">
         <div class="image-wrap">
-          <img src="/login-hero.jpg" alt="" class="hero-img" />
+          <img :src="heroImg" alt="" class="hero-img" @error="(e) => e.target.style.display='none'" />
         </div>
       </div>
 
@@ -75,6 +75,7 @@ const password = ref('')
 const loading  = ref(false)
 const errorMsg = ref('')
 const showPass = ref(false)
+const heroImg  = '/login-hero.jpg'
 
 const handleLogin = async () => {
   loading.value = true
@@ -101,7 +102,7 @@ const handleLogin = async () => {
 .login-page {
   position: fixed; inset: 0;
   display: flex; align-items: center; justify-content: center;
-  background: #e8ecf0;
+  background: var(--surface-1);
   font-family: 'Inter', system-ui, sans-serif;
   padding: 20px;
 }
@@ -112,7 +113,7 @@ const handleLogin = async () => {
   width: 100%;
   max-width: 900px;
   height: 560px;
-  background: #fff;
+  background: var(--surface-0);
   border-radius: 22px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12), 0 4px 14px rgba(0, 0, 0, 0.06);
   overflow: hidden;
@@ -141,21 +142,21 @@ const handleLogin = async () => {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.12em;
-  color: #94a3b8;
+  color: var(--ink-300);
   margin-bottom: 20px;
 }
 
 .form-title {
   font-size: 32px;
   font-weight: 800;
-  color: #0f172a;
+  color: var(--ink-900);
   margin: 0 0 8px;
   letter-spacing: -0.5px;
 }
 
 .form-sub {
   font-size: 13px;
-  color: #64748b;
+  color: var(--ink-600);
   margin: 0 0 32px;
   line-height: 1.55;
 }
@@ -176,18 +177,18 @@ const handleLogin = async () => {
   width: 100%;
   box-sizing: border-box;
   padding: 22px 14px 8px;
-  background: #fff;
-  border: 1px solid #e2e8f0;
+  background: var(--surface-0);
+  border: 1px solid var(--ink-200);
   border-radius: 10px;
   font-size: 14px;
-  color: #0f172a;
+  color: var(--ink-900);
   outline: none;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 
 .field input:focus {
-  border-color: #C41230;
-  box-shadow: 0 0 0 3px rgba(196, 18, 48, 0.08);
+  border-color: var(--brand-900);
+  box-shadow: 0 0 0 3px rgba(90, 24, 28, 0.08);
 }
 
 .field label {
@@ -196,7 +197,7 @@ const handleLogin = async () => {
   top: 50%;
   transform: translateY(-50%);
   font-size: 14px;
-  color: #94a3b8;
+  color: var(--ink-300);
   font-weight: 400;
   pointer-events: none;
   transition: top 0.15s, font-size 0.15s, color 0.15s, transform 0.15s;
@@ -208,10 +209,10 @@ const handleLogin = async () => {
   transform: none;
   font-size: 11px;
   font-weight: 600;
-  color: #64748b;
+  color: var(--ink-600);
 }
 .field input:focus ~ label {
-  color: #C41230;
+  color: var(--brand-900);
 }
 
 .field:has(.eye-btn) input {
@@ -226,22 +227,22 @@ const handleLogin = async () => {
   background: none;
   border: none;
   cursor: pointer;
-  color: #94a3b8;
+  color: var(--ink-300);
   display: flex;
   align-items: center;
   padding: 4px;
   border-radius: 4px;
   transition: color 0.15s;
 }
-.eye-btn:hover { color: #475569; }
+.eye-btn:hover { color: var(--ink-600); }
 
 /* ── Botão principal ──────────────────────────────────────── */
 .btn-primary {
   padding: 14px;
-  background: #C41230;
+  background: var(--brand-900);
   border: none;
   border-radius: 10px;
-  color: #fff;
+  color: var(--surface-0);
   font-size: 15px;
   font-weight: 600;
   cursor: pointer;
@@ -254,8 +255,8 @@ const handleLogin = async () => {
   margin-top: 2px;
 }
 .btn-primary:hover:not(:disabled) {
-  background: #a50f28;
-  box-shadow: 0 4px 14px rgba(196, 18, 48, 0.28);
+  background: var(--brand-800);
+  box-shadow: 0 4px 14px rgba(90, 24, 28, 0.28);
 }
 .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
 
@@ -263,9 +264,9 @@ const handleLogin = async () => {
 .btn-secondary {
   padding: 13px;
   background: transparent;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--ink-200);
   border-radius: 10px;
-  color: #475569;
+  color: var(--ink-600);
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
@@ -273,25 +274,25 @@ const handleLogin = async () => {
   transition: border-color 0.15s, background 0.15s;
 }
 .btn-secondary:hover {
-  border-color: #cbd5e1;
-  background: #f8fafc;
+  border-color: var(--ink-300);
+  background: var(--surface-1);
 }
 
 /* ── Link suporte ─────────────────────────────────────────── */
 .link-suporte {
   text-align: center;
   font-size: 13px;
-  color: #94a3b8;
+  color: var(--ink-300);
   cursor: pointer;
   transition: color 0.15s;
 }
-.link-suporte:hover { color: #64748b; }
+.link-suporte:hover { color: var(--ink-600); }
 
 /* ── Erro ─────────────────────────────────────────────────── */
 .error-msg {
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  color: #dc2626;
+  background: var(--status-critical-bg);
+  border: 1px solid var(--brand-100);
+  color: var(--status-critical);
   border-radius: 8px;
   padding: 10px 14px;
   font-size: 13px;
@@ -304,7 +305,7 @@ const handleLogin = async () => {
   width: 18px; height: 18px;
   border: 2.5px solid rgba(255,255,255,0.35);
   border-radius: 50%;
-  border-top-color: #fff;
+  border-top-color: var(--surface-0);
   animation: spin 0.8s linear infinite;
   display: inline-block;
 }
@@ -321,8 +322,7 @@ const handleLogin = async () => {
   flex: 1;
   border-radius: 14px;
   overflow: hidden;
-  /* Fallback enquanto a imagem não está presente */
-  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  background: var(--ink-900);
 }
 
 .hero-img {

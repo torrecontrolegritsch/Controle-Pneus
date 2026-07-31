@@ -1,48 +1,83 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 :root {
-  --brand:      #C41230;
-  --brand-dark: #9E0E26;
-  --brand-bg:   #FDF2F4;
-  --brand-mid:  #FCCDD4;
+  /* ── GRITSCH DESIGN TOKENS ────────────────────────────────────
+     Nunca usar cor fora destes tokens.
+     ──────────────────────────────────────────────────────────── */
 
-  --void:    #EAECF0;
-  --deep:    #FFFFFF;
-  --s1:      #FFFFFF;
-  --s2:      #E2E8F0;
-  --s3:      #F8FAFC;
-  --s4:      #CBD5E1;
+  /* Marca — vinho corporativo (≤ 10% da área) */
+  --brand-900: #5A181C;    /* botão primário, header de tabela */
+  --brand-800: #83282E;    /* hover/active do primário */
+  --brand-600: #C33D45;    /* 2ª série de gráfico, badge */
+  --brand-400: #D9545F;    /* 3ª série de gráfico */
+  --brand-100: #F5C8C9;    /* trilho de barra, chip de marca */
+  --brand-signal: #E62C30; /* EXCLUSIVO: logo + 1 número herói por tela */
+
+  /* Neutros (≈ 90% da tela) */
+  --ink-900:   #2C2E35;    /* texto principal, títulos */
+  --ink-600:   #4D4D4D;    /* texto secundário, labels */
+  --ink-300:   #BFBFBF;    /* bordas, ícones inativos */
+  --ink-200:   #E2E2E2;    /* divisores, borda de card */
+  --surface-2: #F2F2F2;    /* fundo de card KPI, linha zebra */
+  --surface-1: #F7F7F7;    /* fundo da aplicação */
+  --surface-0: #FFFFFF;    /* fundo de conteúdo, linhas de tabela */
+
+  /* Semântica — APENAS para indicadores de status */
+  --status-ok:          #3F7A5E;
+  --status-warn:        #C7861A;
+  --status-critical:    #C33D45;
+  --status-idle:        #BFBFBF;
+  --status-ok-bg:       #EAF2ED;
+  --status-warn-bg:     #FBF3E3;
+  --status-critical-bg: #FBEAEB;
+
+  /* Layout */
+  --radius-card:  6px;
+  --radius-input: 4px;
+  --radius-chip:  4px;
+  --shadow-sm:    0 1px 2px rgba(44,46,53,0.06);
+  --shadow-md:    0 4px 8px rgba(44,46,53,0.08);
+  --shadow-float: 0 16px 32px rgba(44,46,53,0.14);
+
+  /* ── Aliases de compatibilidade (remover após refatoração completa) */
+  --brand:      var(--brand-900);
+  --brand-dark: var(--brand-800);
+  --brand-bg:   var(--brand-100);
+  --brand-mid:  var(--brand-600);
+
+  --void:  var(--surface-1);
+  --deep:  var(--surface-0);
+  --s1:    var(--surface-0);
+  --s2:    var(--ink-200);
+  --s3:    var(--surface-1);
+  --s4:    var(--ink-300);
 
   --border:  rgba(0, 0, 0, 0.05);
   --border2: rgba(0, 0, 0, 0.08);
 
-  --red:     #EF4444;
-  --red2:    #FEE2E2;
-  --red3:    #FECACA;
+  --red:     var(--status-critical);
+  --red2:    var(--status-critical-bg);
+  --red3:    var(--brand-100);
 
-  --yellow:  #F59E0B;
-  --yellow2: #FEF3C7;
+  --yellow:  var(--status-warn);
+  --yellow2: var(--status-warn-bg);
 
-  --green:   #10B981;
-  --green2:  #D1FAE5;
+  --green:   var(--status-ok);
+  --green2:  var(--status-ok-bg);
 
   --blue:    #3B82F6;
   --blue2:   #DBEAFE;
 
-  --text:  #1E293B;
-  --text2: #475569;
-  --text3: #94A3B8;
-
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-  --shadow-float: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  --text:  var(--ink-900);
+  --text2: var(--ink-600);
+  --text3: var(--ink-300);
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
-  background: var(--void);
-  color: var(--text);
+  background: var(--surface-1);
+  color: var(--ink-900);
   font-family: 'Inter', sans-serif;
   font-size: 14px;
   line-height: 1.6;
