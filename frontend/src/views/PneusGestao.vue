@@ -53,7 +53,7 @@
       <header class="content-header">
         <div class="header-info">
           <h1>{{ currentTabLabel }}</h1>
-          <p class="header-sub">Gestão centralizada e inteligente de frota</p>
+          <p class="header-sub">{{ currentTabSubtitle }}</p>
         </div>
 
         <div class="header-kpis" v-if="dash">
@@ -2517,6 +2517,22 @@ watch(() => removerForm.value.destino, (val) => {
 })
 
 onMounted(loadAll)
+
+const tabSubtitles = {
+  dashboard:       'Visão geral da frota e alertas críticos',
+  estoque_central: 'Cadastro e distribuição de pneus por NF',
+  alocacoes:       'Alocação e troca de pneus por veículo',
+  veiculos:        'Cadastro e configuração da frota',
+  estoque:         'Inventário agrupado por filial e medida',
+  historico:       'Registro cronológico de todas as operações',
+  sucata:          'Validação e controle de pneus descartados',
+  recicladora:     'Lotes de coleta e retorno financeiro',
+  financeiro:      'Créditos por filial referente às carcaças',
+  solicitacoes:    'Solicitações de pneus por filial',
+  filiais:         'Configuração das unidades operacionais',
+  usuarios:        'Gerenciamento de usuários e permissões',
+}
+const currentTabSubtitle = computed(() => tabSubtitles[tab.value] || 'Gestão centralizada de frota')
 </script>
 
 <style scoped>
@@ -2605,13 +2621,12 @@ onMounted(loadAll)
 .menu-item:hover {
   background: #f1f5f9;
   color: #1e293b;
-  transform: translateX(4px);
 }
 
 .menu-item.active {
-  background: #3b82f6;
+  background: var(--brand);
   color: #fff;
-  box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 4px 12px rgba(196, 18, 48, 0.25);
 }
 
 .menu-item.active .menu-icon {
@@ -2649,7 +2664,7 @@ onMounted(loadAll)
   text-align: left;
 }
 .usuarios-shortcut:hover { background: #f1f5f9; color: #1e293b; }
-.usuarios-shortcut.active { background: #eff6ff; border-color: #bfdbfe; color: #1d4ed8; }
+.usuarios-shortcut.active { background: var(--brand-bg); border-color: var(--brand-mid); color: var(--brand-dark); }
 
 .user-block {
   display: flex;
@@ -2844,7 +2859,7 @@ onMounted(loadAll)
 
 /* Modal */
 .modal-overlay { position: fixed; inset: 0; background: rgba(15,23,42,0.6); display: flex; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(4px); }
-.modal-box { background: #fff; border-radius: 20px; padding: 32px; width: 480px; max-width: 95vw; max-height: 90vh; overflow-y: auto; box-shadow: var(--shadow-float); animation: modalIn 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+.modal-box { background: #fff; border-radius: 12px; padding: 32px; width: 480px; max-width: 95vw; max-height: 90vh; overflow-y: auto; box-shadow: var(--shadow-float); animation: modalIn 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
 @keyframes modalIn { from { opacity: 0; transform: scale(0.95) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
 .modal-wide { width: 800px; }
 .modal-box h3 { font-size: 20px; font-weight: 800; margin-bottom: 24px; color: var(--text); letter-spacing: -0.01em; }

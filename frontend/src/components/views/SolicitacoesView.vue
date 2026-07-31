@@ -342,7 +342,7 @@ onMounted(carregarSolicitacoes)
 .form-group input,
 .form-group select { padding: 9px 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 13px; outline: none; background: #fff; }
 .form-group input:focus,
-.form-group select:focus { border-color: #3b82f6; }
+.form-group select:focus { border-color: #C41230; box-shadow: 0 0 0 3px rgba(196,18,48,0.08); }
 .label-optional { font-size: 10px; font-weight: 400; color: #94a3b8; text-transform: none; letter-spacing: 0; }
 .sol-form-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px; }
 
@@ -417,8 +417,8 @@ onMounted(carregarSolicitacoes)
 .btn-danger    { background: #be123c !important; border-color: #9f1239 !important; }
 
 /* Botões globais (inline para evitar conflito de scoped) */
-.btn-primary   { padding: 9px 18px; background: #1d4ed8; color: #fff; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: background 120ms; }
-.btn-primary:hover:not(:disabled) { background: #1e40af; }
+.btn-primary   { padding: 9px 18px; background: #C41230; color: #fff; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: background 120ms; }
+.btn-primary:hover:not(:disabled) { background: #a50f28; }
 .btn-primary:disabled { opacity: .5; cursor: not-allowed; }
 .btn-secondary { padding: 9px 18px; background: #fff; color: #334155; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 120ms; }
 .btn-secondary:hover { background: #f8fafc; }
