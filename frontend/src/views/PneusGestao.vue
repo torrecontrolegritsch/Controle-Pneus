@@ -122,18 +122,44 @@
       <!-- ÁREA DE TRABALHO -->
       <div class="aloc-workbench">
         <div v-if="veiculoDetail" class="workbench-content">
-          <header class="workbench-header">
-            <div class="wb-info">
-              <h2>{{ veiculoDetail.placa }}</h2>
-              <span class="badge badge-purple">{{ veiculoDetail.km_atual.toLocaleString('pt-BR') }} KM</span>
-              <span class="vd-config-badge">{{ configLabel(veiculoDetail.tipo) }}</span>
+          <!-- INFO STRIP (Vipal-style) -->
+          <div class="wb-strip">
+            <div class="wb-strip-placa">
+              <div class="wsp-br">BRASIL</div>
+              <div class="wsp-num">{{ veiculoDetail.placa }}</div>
             </div>
-            <div class="wb-actions">
-               <button class="btn-sm" @click="openVeiculoForm(veiculoDetail)">Editar Cadastro</button>
+            <div class="wb-strip-sep"></div>
+            <div class="wb-strip-metas">
+              <div class="strip-meta" v-if="veiculoDetail.frota">
+                <span class="sm-lbl">Frota</span>
+                <span class="sm-val">{{ veiculoDetail.frota }}</span>
+              </div>
+              <div class="strip-meta">
+                <span class="sm-lbl">Categoria</span>
+                <span class="sm-val">{{ configLabel(veiculoDetail.tipo) }}</span>
+              </div>
+              <div class="strip-meta" v-if="veiculoDetail.modelo">
+                <span class="sm-lbl">Modelo</span>
+                <span class="sm-val">{{ veiculoDetail.modelo }}</span>
+              </div>
+              <div class="strip-meta">
+                <span class="sm-lbl">Hodômetro</span>
+                <span class="sm-val">{{ (veiculoDetail.km_atual || 0).toLocaleString('pt-BR') }} km</span>
+              </div>
+              <div class="strip-meta">
+                <span class="sm-lbl">Pneus</span>
+                <span class="sm-val" :class="countPneusAlocados(veiculoDetail.id) === countPneus(veiculoDetail.tipo) ? 'strip-ok' : 'strip-warn'">
+                  {{ countPneusAlocados(veiculoDetail.id) }}/{{ countPneus(veiculoDetail.tipo) }}
+                </span>
+              </div>
             </div>
-          </header>
+            <button class="strip-edit-btn" @click="openVeiculoForm(veiculoDetail)">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+              Editar
+            </button>
+          </div>
 
-          <div class="gp-move-container workbench-inner">
+          <div class="wb-body">
              <!-- DIAGRAMA -->
              <div class="gp-vehicle-canvas">
                 <div class="vehicle-diagram-area">
@@ -203,57 +229,92 @@
                 </div>
              </div>
 
-              <div class="gp-stock-panel">
-                <div class="stock-header">
-                  <h4>Inventário</h4>
-                  <span class="stock-count">{{ pneusEstoqueFilial.length }}</span>
+              <!-- COLUNA DE AÇÕES -->
+              <div class="wb-action-col">
+                <span class="action-col-label">Ações</span>
+                <div
+                  class="action-card action-sucata"
+                  :class="{ 'drag-over': dragOverRemoval }"
+                  @dragover.prevent="dragOverRemoval = true"
+                  @dragleave="dragOverRemoval = false"
+                  @drop="handleDropOnRemoval('sucata')"
+                  title="Arraste pneu para descartar"
+                >
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                  <span>Sucata</span>
                 </div>
-                <div class="stock-filters" style="padding: 0 15px 10px;">
-                  <select v-model="almoxarifadoFilialId" :disabled="!!veiculoDetail" class="filter-select" :style="{ width: '100%', minWidth: '0', padding: '6px', opacity: !!veiculoDetail ? '0.7' : '1', cursor: !!veiculoDetail ? 'not-allowed' : 'pointer' }" @change="loadEstoqueAlmoxarifado">
+                <div
+                  class="action-card action-estoque"
+                  @dragover.prevent
+                  @drop="handleDropOnRemoval('estoque')"
+                  title="Arraste pneu para devolver ao estoque"
+                >
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
+                  <span>Estoque</span>
+                </div>
+              </div>
+
+              <!-- PAINEL DE ESTOQUE (GRID VIPAL) -->
+              <div class="gp-stock-panel">
+                <!-- Header com tabs -->
+                <div class="stock-panel-head">
+                  <div class="stock-tabs-row">
+                    <button class="stock-tab stock-tab-active">
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/></svg>
+                      Almoxarifado
+                      <span class="stock-tab-count">{{ pneusEstoqueFilial.length }}</span>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Filtros -->
+                <div class="stock-panel-filters">
+                  <select
+                    v-model="almoxarifadoFilialId"
+                    :disabled="!!veiculoDetail"
+                    class="stock-filial-sel"
+                    @change="loadEstoqueAlmoxarifado"
+                  >
                     <option v-for="f in filiais" :key="f.id" :value="f.id">{{ f.nome }}</option>
                   </select>
+                  <div class="stock-search-wrap">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                    <input v-model="searchStock" placeholder="Pesquisar..." class="stock-search-inp" />
+                  </div>
                 </div>
-                <div class="search-stock">
-                  <input v-model="searchStock" placeholder="Buscar pneu no estoque..." class="stock-input" style="padding: 6px;" />
-                </div>
-                <div class="stock-list" @dragover.prevent @drop="handleDropOnRemoval('estoque')">
+
+                <!-- GRADE DE PNEUS -->
+                <div class="stock-tire-grid" @dragover.prevent @drop="handleDropOnRemoval('estoque')">
                   <template v-for="grupo in filteredStockByMedida" :key="grupo.medida">
-                    <div class="medida-separator">
-                      <span class="medida-sep-label">{{ grupo.medida }}</span>
-                      <span class="medida-sep-count">{{ grupo.pneus.length }}</span>
+                    <div class="grid-medida-lbl">
+                      <span>{{ grupo.medida }}</span>
+                      <span class="grid-medida-cnt">{{ grupo.pneus.length }}</span>
                     </div>
-                    <div v-for="p in grupo.pneus" :key="p.id"
-                         class="tire-card-stock"
-                         :class="{
-                           'tire-pending': p.recebido === 0,
-                           'tire-new': p.recebido === 1 && (p.km_total || 0) <= 0 && (Number(p.vida) == 1 || String(p.vida).startsWith('1')),
-                           'tire-used': p.recebido === 1 && (p.km_total || 0) > 0
-                         }"
-                         draggable="true"
-                         @dragstart="handleDragStartFromStock($event, p)"
-                         @click.stop="p.recebido === 0 && confirmarChegadaEstoque(p)"
-                         :title="p.recebido === 0 ? '✅ Clique para confirmar chegada' : ''"
-                         :style="p.recebido === 0 ? 'cursor:pointer;' : ''">
-                      <div class="tire-mini-visual"></div>
-                      <div class="tire-card-info">
-                        <span class="t-fogo">{{ p.numero_fogo }}</span>
-                        <span class="t-desc">{{ p.marca }}</span>
-                        <span class="t-status">Vida: {{ p.vida }}ª | {{ p.sulco_atual }}mm</span>
+                    <div class="grid-tires-row">
+                      <div
+                        v-for="p in grupo.pneus" :key="p.id"
+                        class="grid-tire-item"
+                        :class="{
+                          'gt-pending': p.recebido === 0,
+                          'gt-new':     p.recebido === 1 && (p.km_total||0) <= 0 && (Number(p.vida)==1||String(p.vida).startsWith('1')),
+                          'gt-used':    p.recebido === 1 && (p.km_total||0) > 0
+                        }"
+                        draggable="true"
+                        @dragstart="handleDragStartFromStock($event, p)"
+                        @click.stop="p.recebido === 0 && confirmarChegadaEstoque(p)"
+                        :title="p.recebido === 0 ? 'Clique para confirmar chegada' : p.numero_fogo + ' · ' + p.marca + ' · sulco ' + (p.sulco_atual||0) + 'mm'"
+                      >
+                        <div class="gt-body">
+                          <span class="gt-num">{{ p.numero_fogo }}</span>
+                          <div v-if="p.recebido === 0" class="gt-pending-dot" title="Aguardando chegada">!</div>
+                        </div>
+                        <div class="gt-sulco">{{ p.sulco_atual || 0 }}mm</div>
                       </div>
-                      <div v-if="p.recebido === 0" class="pending-btn" title="Confirmar chegada">✓</div>
                     </div>
                   </template>
-                  <div v-if="!filteredStock.length" class="empty-stock">Sem pneus</div>
+                  <div v-if="!filteredStock.length" class="empty-stock">Sem pneus no estoque</div>
                 </div>
-                <div class="removal-zone sucata-drop" :class="{ 'drag-over': dragOverRemoval }" 
-                     @dragover.prevent="dragOverRemoval = true" @dragleave="dragOverRemoval = false" 
-                     @drop="handleDropOnRemoval('sucata')">
-                  <span class="icon">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
-                  </span>
-                  <span class="label">ARRASTE PARA DESCARTE</span>
-                </div>
-             </div>
+              </div>
           </div>
         </div>
         <div v-else class="empty-state" style="border:none; background:transparent;">
@@ -2740,6 +2801,10 @@ const currentTabSubtitle = computed(() => tabSubtitles[tab.value] || 'Gestão ce
   position: relative;
 }
 
+/* wb-body substitui gp-move-container */
+.wb-body { flex: 1; display: flex; overflow: hidden; }
+.gp-vehicle-canvas { flex: 1; padding: 24px; background: #fafafa; overflow-y: auto; border-right: 1px solid #e2e8f0; display: flex; justify-content: center; align-items: flex-start; }
+
 .content-header {
   display: flex;
   justify-content: space-between;
@@ -3159,32 +3224,154 @@ const currentTabSubtitle = computed(() => tabSubtitles[tab.value] || 'Gestão ce
   .modal-wide { width: 95vw; }
 }
 
-/* Novo Layout de Alocação */
+/* ── ALOCAÇÃO — VIPAL-STYLE ──────────────────────────────── */
 .alocacao-layout { display: flex; gap: 0; padding: 0 !important; height: calc(100vh - 160px); min-height: 600px; overflow: hidden; margin: -10px -20px; }
-.aloc-sidebar { width: 300px; border-right: 1px solid var(--border); background: #fff; display: flex; flex-direction: column; }
-.aloc-sidebar .search-box { padding: 20px; border-bottom: 1px solid var(--border); }
-.aloc-veiculo-list { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 6px; }
-.aloc-v-card { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 12px; cursor: pointer; transition: all 0.2s; border: 1px solid transparent; }
-.aloc-v-card:hover { background: #f8fafc; border-color: var(--border); }
+
+/* Sidebar esquerda */
+.aloc-sidebar { width: 280px; border-right: 1px solid #e2e8f0; background: #fff; display: flex; flex-direction: column; flex-shrink: 0; }
+.aloc-sidebar .search-box { padding: 16px; border-bottom: 1px solid #e2e8f0; }
+.aloc-veiculo-list { flex: 1; overflow-y: auto; padding: 8px; display: flex; flex-direction: column; gap: 4px; }
+.aloc-v-card { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; cursor: pointer; transition: all 0.15s; border: 1px solid transparent; }
+.aloc-v-card:hover { background: #f8fafc; border-color: #e2e8f0; }
 .aloc-v-card.active { background: var(--brand-bg); border-color: var(--brand-mid); }
-.v-card-icon { font-size: 20px; }
-.v-card-info { flex: 1; display: flex; flex-direction: column; }
-.v-placa { font-weight: 800; color: var(--text); font-size: 14px; }
-.v-modelo { font-size: 11px; color: var(--text3); }
+.v-card-icon { color: #64748b; flex-shrink: 0; }
+.v-card-info { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.v-placa { font-weight: 800; color: #0f172a; font-size: 14px; }
+.v-modelo { font-size: 11px; color: #94a3b8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-.aloc-workbench { flex: 1; background: #fff; display: flex; flex-direction: column; position: relative; }
-.workbench-content { height: 100%; display: flex; flex-direction: column; }
-.workbench-header { padding: 15px 30px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: #fff; }
-.wb-info { display: flex; align-items: center; gap: 16px; }
-.wb-info h2 { font-size: 22px; font-weight: 900; color: var(--text); margin: 0; }
-.workbench-inner { flex: 1; height: auto !important; }
+/* Workbench */
+.aloc-workbench { flex: 1; background: #f8fafc; display: flex; flex-direction: column; overflow: hidden; }
+.workbench-content { height: 100%; display: flex; flex-direction: column; overflow: hidden; }
 
+/* INFO STRIP (barra escura Vipal) */
+.wb-strip {
+  display: flex; align-items: center; gap: 0;
+  background: #1e293b; flex-shrink: 0;
+  padding: 0 20px; height: 56px;
+}
+.wb-strip-placa {
+  background: #fff; border-radius: 4px; border-top: 5px solid #2563eb;
+  text-align: center; min-width: 76px; padding: 2px 8px; margin-right: 20px; flex-shrink: 0;
+}
+.wsp-br { font-size: 7px; font-weight: 700; color: #fff; background: #2563eb; margin: -2px -8px 1px; padding: 1px 4px; letter-spacing: 1px; }
+.wsp-num { font-size: 14px; font-weight: 800; color: #1e293b; font-family: monospace; letter-spacing: 1.5px; }
+.wb-strip-sep { width: 1px; height: 28px; background: rgba(255,255,255,0.15); margin-right: 20px; flex-shrink: 0; }
+.wb-strip-metas { display: flex; gap: 24px; flex: 1; align-items: center; }
+.strip-meta { display: flex; flex-direction: column; }
+.sm-lbl { font-size: 9px; text-transform: uppercase; letter-spacing: 0.06em; color: #64748b; font-weight: 600; }
+.sm-val { font-size: 13px; font-weight: 600; color: #f1f5f9; white-space: nowrap; }
+.strip-ok   { color: #4ade80; }
+.strip-warn { color: #fbbf24; }
+.strip-edit-btn {
+  display: flex; align-items: center; gap: 5px;
+  padding: 6px 12px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 6px; color: #cbd5e1; font-size: 12px; font-weight: 600; cursor: pointer;
+  transition: all 0.15s; flex-shrink: 0;
+}
+.strip-edit-btn:hover { background: rgba(255,255,255,0.18); color: #fff; }
+
+/* CORPO PRINCIPAL */
+.wb-body { flex: 1; display: flex; overflow: hidden; }
+
+/* COLUNA DE AÇÕES */
+.wb-action-col {
+  width: 76px; flex-shrink: 0;
+  background: #f1f5f9; border-left: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 12px 8px;
+}
+.action-col-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: #94a3b8; }
+.action-card {
+  width: 58px; padding: 10px 4px; border: 2px dashed #cbd5e1; border-radius: 10px;
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  color: #64748b; font-size: 9px; font-weight: 700; text-transform: uppercase; text-align: center;
+  cursor: pointer; transition: all 0.15s; user-select: none;
+}
+.action-card:hover { border-color: #94a3b8; background: #e2e8f0; color: #334155; }
+.action-sucata.drag-over { border-color: #ef4444; background: #fef2f2; color: #ef4444; border-style: solid; }
+.action-estoque:hover { border-color: var(--brand); background: var(--brand-bg); color: var(--brand); }
+
+/* PAINEL DE ESTOQUE */
+.gp-stock-panel { width: 290px; flex-shrink: 0; background: #fff; border-left: 1px solid #e2e8f0; display: flex; flex-direction: column; overflow: hidden; }
+
+.stock-panel-head { background: #f8fafc; border-bottom: 1px solid #e2e8f0; padding: 0 12px; flex-shrink: 0; }
+.stock-tabs-row { display: flex; }
+.stock-tab { display: flex; align-items: center; gap: 5px; padding: 10px 12px; font-size: 12px; font-weight: 600; color: #64748b; background: none; border: none; border-bottom: 2px solid transparent; cursor: pointer; transition: all 0.15s; }
+.stock-tab-active { color: #0f172a; border-bottom-color: var(--brand); }
+.stock-tab-count { font-size: 10px; font-weight: 700; background: var(--brand); color: #fff; padding: 1px 5px; border-radius: 99px; }
+
+.stock-panel-filters { padding: 8px 10px; display: flex; flex-direction: column; gap: 6px; border-bottom: 1px solid #e2e8f0; flex-shrink: 0; background: #fff; }
+.stock-filial-sel { width: 100%; padding: 5px 8px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 12px; background: #f8fafc; outline: none; }
+.stock-filial-sel:focus { border-color: var(--brand); }
+.stock-search-wrap { display: flex; align-items: center; gap: 6px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 5px 8px; }
+.stock-search-wrap svg { color: #94a3b8; flex-shrink: 0; }
+.stock-search-inp { border: none; background: transparent; font-size: 12px; outline: none; width: 100%; color: #1e293b; }
+
+/* GRADE DE PNEUS */
+.stock-tire-grid { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 12px; }
+.grid-medida-lbl { display: flex; align-items: center; justify-content: space-between; font-size: 10px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: .04em; padding: 2px 0; border-bottom: 1px solid #f1f5f9; }
+.grid-medida-cnt { background: var(--brand); color: #fff; font-size: 9px; padding: 1px 6px; border-radius: 99px; }
+.grid-tires-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(48px, 1fr)); gap: 6px; padding-top: 6px; }
+
+/* Item de pneu na grade */
+.grid-tire-item { display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: grab; }
+.grid-tire-item:active { cursor: grabbing; }
+.grid-tire-item:hover .gt-body { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,.3); }
+
+.gt-body {
+  width: 38px; height: 86px;
+  background: linear-gradient(to right, #111 0%, #333 40%, #444 50%, #333 60%, #111 100%);
+  border-radius: 5px; border: 2px solid transparent;
+  display: flex; align-items: center; justify-content: center;
+  position: relative; overflow: hidden;
+  box-shadow: 2px 2px 6px rgba(0,0,0,.35);
+  transition: transform 0.12s, box-shadow 0.12s;
+}
+.gt-body::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(90deg, rgba(255,255,255,0) 30%, rgba(255,255,255,0.06) 50%, rgba(255,255,255,0) 70%);
+}
+
+/* Novo pneu — verde */
+.gt-new .gt-body {
+  background: linear-gradient(to right, #14532d 0%, #15803d 40%, #22c55e22 50%, #15803d 60%, #14532d 100%);
+  border-color: #16a34a;
+  box-shadow: 2px 2px 8px rgba(22,163,74,.35), inset 0 0 12px rgba(34,197,94,.08);
+}
+/* Pendente — laranja */
+.gt-pending .gt-body {
+  background: linear-gradient(to right, #431407 0%, #92400e 40%, #f97316 50%, #92400e 60%, #431407 100%);
+  border-color: #f97316;
+  border-style: dashed;
+}
+/* Usado — vermelho leve */
+.gt-used .gt-body { border-color: #ef4444; }
+
+.gt-num {
+  writing-mode: vertical-rl; transform: rotate(180deg);
+  font-size: 10px; font-weight: 700; color: rgba(255,255,255,.92);
+  letter-spacing: .5px; z-index: 2;
+  text-shadow: 0 1px 3px rgba(0,0,0,.9);
+}
+.gt-pending-dot {
+  position: absolute; top: 3px; right: 3px;
+  width: 12px; height: 12px; background: #f97316; border-radius: 50%;
+  font-size: 9px; font-weight: 900; color: #fff;
+  display: flex; align-items: center; justify-content: center;
+}
+.gt-sulco { font-size: 9px; color: #94a3b8; text-align: center; }
+
+/* Utilitários */
 .empty-mini { text-align: center; padding: 20px; font-size: 12px; color: var(--text3); }
 .select-v-prompt { text-align: center; margin-top: 100px; }
-.prompt-icon { font-size: 64px; display: block; margin-bottom: 20px; opacity: 0.5; }
+.prompt-icon { display: block; margin-bottom: 20px; opacity: 0.4; }
 
+@media (max-width: 1200px) {
+  .aloc-sidebar { width: 230px; }
+  .gp-stock-panel { width: 260px; }
+}
 @media (max-width: 1024px) {
-  .aloc-sidebar { width: 220px; }
+  .wb-action-col { width: 58px; }
+  .action-card span { display: none; }
 }
 
 /* Histórico Timeline */
