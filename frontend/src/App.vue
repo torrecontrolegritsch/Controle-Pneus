@@ -72,9 +72,12 @@ body { margin: 0; padding: 0; overflow-x: hidden; }
   align-items: center;
   justify-content: center;
   height: 100vh;
-  background: #1a1a2e;
-  color: #fff;
+  background: #f8fafc;
+  color: #64748b;
   font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
 }
 .fatal-error {
   display: flex;
@@ -82,25 +85,26 @@ body { margin: 0; padding: 0; overflow-x: hidden; }
   align-items: center;
   justify-content: center;
   height: 100vh;
-  background: #1a1a2e;
-  color: #ff6b6b;
+  background: #f8fafc;
+  color: #1e293b;
   font-family: 'Inter', sans-serif;
   padding: 40px;
   text-align: center;
 }
 .fatal-error pre {
-  background: #0d0d1a;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
   padding: 16px;
   border-radius: 8px;
-  font-size: 13px;
+  font-size: 12px;
   max-width: 600px;
   overflow: auto;
-  color: #ffd;
+  color: #C41230;
   margin: 16px 0;
 }
 .fatal-error button {
   padding: 12px 24px;
-  background: #3b82f6;
+  background: #C41230;
   border: none;
   border-radius: 8px;
   color: #fff;

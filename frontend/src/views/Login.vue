@@ -96,35 +96,19 @@ const handleLogin = async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background-image: url('/bg.jpg');
-  background-size: cover;
-  background-position: center;
+  background: #f1f5f9;
   font-family: 'Inter', sans-serif;
-}
-
-.login-container::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(135deg, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0.4) 100%);
-  pointer-events: none;
 }
 
 .glass-card {
   position: relative;
-  z-index: 10;
   width: 100%;
   max-width: 420px;
   padding: 40px;
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(30px);
-  -webkit-backdrop-filter: blur(30px);
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  border-radius: 32px;
-  box-shadow: 0 40px 80px -15px rgba(0, 0, 0, 0.1), 0 10px 30px -10px rgba(0, 0, 0, 0.05);
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03);
 }
 
 .header-branding { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; margin-bottom: 32px; }
@@ -148,20 +132,20 @@ const handleLogin = async () => {
 
 .input-wrapper input {
   width: 100%;
-  padding: 16px 16px 16px 48px;
+  padding: 13px 16px 13px 44px;
   background: #f8fafc;
   border: 1px solid #e2e8f0;
-  border-radius: 16px;
+  border-radius: 8px;
   color: #1e293b;
-  font-size: 15px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-size: 14px;
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
 
 .input-wrapper input:focus {
   outline: none;
   background: #fff;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+  border-color: #C41230;
+  box-shadow: 0 0 0 3px rgba(196, 18, 48, 0.08);
 }
 
 .input-wrapper .icon {
@@ -173,24 +157,23 @@ const handleLogin = async () => {
 
 .login-btn {
   margin-top: 8px;
-  padding: 18px;
-  background: #1e293b;
+  padding: 14px;
+  background: #C41230;
   border: none;
-  border-radius: 16px;
+  border-radius: 10px;
   color: #fff;
-  font-size: 16px;
-  font-weight: 700;
+  font-size: 15px;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: background 0.15s, box-shadow 0.15s;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .login-btn:hover {
-  background: #0f172a;
-  transform: translateY(-2px);
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  background: #a50f28;
+  box-shadow: 0 4px 12px rgba(196, 18, 48, 0.25);
 }
 
 .login-btn:active {
@@ -217,7 +200,7 @@ const handleLogin = async () => {
   margin-top: 32px;
   text-align: center;
   font-size: 12px;
-  color: rgba(255,255,255,0.3);
+  color: #94a3b8;
 }
 
 .animate-fade-in {
