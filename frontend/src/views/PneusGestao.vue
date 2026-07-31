@@ -3246,29 +3246,29 @@ const currentTabSubtitle = computed(() => tabSubtitles[tab.value] || 'Gestão ce
 /* INFO STRIP (barra escura Vipal) */
 .wb-strip {
   display: flex; align-items: center; gap: 0;
-  background: #1e293b; flex-shrink: 0;
+  background: var(--brand-900); flex-shrink: 0;
   padding: 0 20px; height: 56px;
 }
 .wb-strip-placa {
-  background: #fff; border-radius: 4px; border-top: 5px solid #2563eb;
+  background: var(--surface-0); border-radius: 4px; border-top: 5px solid #2563eb;
   text-align: center; min-width: 76px; padding: 2px 8px; margin-right: 20px; flex-shrink: 0;
 }
-.wsp-br { font-size: 7px; font-weight: 700; color: #fff; background: #2563eb; margin: -2px -8px 1px; padding: 1px 4px; letter-spacing: 1px; }
-.wsp-num { font-size: 14px; font-weight: 800; color: #1e293b; font-family: monospace; letter-spacing: 1.5px; }
-.wb-strip-sep { width: 1px; height: 28px; background: rgba(255,255,255,0.15); margin-right: 20px; flex-shrink: 0; }
+.wsp-br { font-size: 7px; font-weight: 700; color: var(--surface-0); background: #2563eb; margin: -2px -8px 1px; padding: 1px 4px; letter-spacing: 1px; }
+.wsp-num { font-size: 14px; font-weight: 800; color: var(--ink-900); font-family: monospace; letter-spacing: 1.5px; }
+.wb-strip-sep { width: 1px; height: 28px; background: rgba(255,255,255,0.18); margin-right: 20px; flex-shrink: 0; }
 .wb-strip-metas { display: flex; gap: 24px; flex: 1; align-items: center; }
 .strip-meta { display: flex; flex-direction: column; }
-.sm-lbl { font-size: 9px; text-transform: uppercase; letter-spacing: 0.06em; color: #64748b; font-weight: 600; }
-.sm-val { font-size: 13px; font-weight: 600; color: #f1f5f9; white-space: nowrap; }
+.sm-lbl { font-size: 9px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--brand-100); font-weight: 600; }
+.sm-val { font-size: 13px; font-weight: 600; color: var(--surface-0); white-space: nowrap; }
 .strip-ok   { color: #4ade80; }
 .strip-warn { color: #fbbf24; }
 .strip-edit-btn {
   display: flex; align-items: center; gap: 5px;
-  padding: 6px 12px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
-  border-radius: 6px; color: #cbd5e1; font-size: 12px; font-weight: 600; cursor: pointer;
+  padding: 6px 12px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.25);
+  border-radius: 6px; color: var(--brand-100); font-size: 12px; font-weight: 600; cursor: pointer;
   transition: all 0.15s; flex-shrink: 0;
 }
-.strip-edit-btn:hover { background: rgba(255,255,255,0.18); color: #fff; }
+.strip-edit-btn:hover { background: rgba(255,255,255,0.18); color: var(--surface-0); }
 
 /* CORPO PRINCIPAL */
 .wb-body { flex: 1; display: flex; overflow: hidden; }
