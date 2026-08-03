@@ -2535,9 +2535,9 @@ const currentTabSubtitle = computed(() => tabSubtitles[tab.value] || 'Gestão ce
   position: relative; box-shadow: 0 2px 4px rgba(0,0,0,0.3);
   border: 3px solid transparent; box-sizing: border-box; transition: border-color 0.15s;
 }
-.tire-item.tire-new  { border-color: var(--status-ok); }
-.tire-item.tire-used { border-color: var(--status-warn); }
-.tire-item.tire-worn { border-color: var(--status-critical); }
+.tire-item.tire-new  { border-color: transparent; }
+.tire-item.tire-used { border-color: transparent; }
+.tire-item.tire-worn { border-color: transparent; }
 
 .tire-id { writing-mode: vertical-rl; transform: rotate(180deg); font-size: 12px; font-weight: 700; letter-spacing: 1px; color: var(--surface-0); z-index: 2; }
 
@@ -2622,10 +2622,7 @@ const currentTabSubtitle = computed(() => tabSubtitles[tab.value] || 'Gestão ce
 
 .tire-card-stock.tire-pending { border: 2px solid #f97316; background: #fff7ed; position: relative; }
 .tire-card-stock.tire-new { border: 2px solid #22c55e; background: #f0fdf4; position: relative; }
-.tire-card-stock.tire-new::after { content: 'NOVO'; position: absolute; bottom: 4px; right: 8px; font-size: 8px; font-weight: 800; color: #22c55e; }
-
 .tire-card-stock.tire-used { border: 2px solid #ef4444; background: #fef2f2; position: relative; }
-.tire-card-stock.tire-used::after { content: 'USADO'; position: absolute; bottom: 4px; right: 8px; font-size: 8px; font-weight: 800; color: #ef4444; }
 .tire-mini-visual { 
   width: 24px; height: 56px; 
   background: linear-gradient(to right, #1a1a1a 0%, #4a4a4a 50%, #1a1a1a 100%);
@@ -2719,9 +2716,9 @@ const currentTabSubtitle = computed(() => tabSubtitles[tab.value] || 'Gestão ce
 .aloc-sidebar { width: 280px; border-right: 1px solid var(--ink-200); background: var(--surface-0); display: flex; flex-direction: column; flex-shrink: 0; }
 .aloc-sidebar .search-box { padding: 16px; border-bottom: 1px solid var(--ink-200); }
 .aloc-veiculo-list { flex: 1; overflow-y: auto; padding: 8px; display: flex; flex-direction: column; gap: 4px; }
-.aloc-v-card { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; cursor: pointer; transition: all 0.15s; border: 1px solid transparent; }
-.aloc-v-card:hover { background: var(--surface-1); border-color: var(--ink-200); }
-.aloc-v-card.active { background: var(--surface-0); border-color: var(--brand-900); }
+.aloc-v-card { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; cursor: pointer; transition: all 0.15s; border: 1.5px solid var(--ink-200); }
+.aloc-v-card:hover { background: var(--surface-1); border-color: var(--ink-300); box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+.aloc-v-card.active { background: var(--surface-0); border-color: var(--brand-900); border-width: 2px; box-shadow: 0 0 0 3px var(--brand-100); }
 .v-card-icon { color: var(--ink-600); flex-shrink: 0; }
 .v-card-info { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 .v-placa { font-weight: 800; color: var(--ink-900); font-size: 14px; }
@@ -2813,7 +2810,7 @@ const currentTabSubtitle = computed(() => tabSubtitles[tab.value] || 'Gestão ce
 .gt-body {
   width: 38px; height: 86px;
   background: linear-gradient(to right, #111 0%, #333 40%, #444 50%, #333 60%, #111 100%);
-  border-radius: 5px; border: 2px solid transparent;
+  border-radius: 5px; border: 3px solid transparent;
   display: flex; align-items: center; justify-content: center;
   position: relative; overflow: hidden;
   box-shadow: 2px 2px 6px rgba(0,0,0,.35);
@@ -2826,8 +2823,8 @@ const currentTabSubtitle = computed(() => tabSubtitles[tab.value] || 'Gestão ce
 
 /* Novo pneu — borda verde */
 .gt-new .gt-body {
-  border-color: var(--status-ok);
-  box-shadow: 2px 2px 6px rgba(0,0,0,.3), 0 0 0 1px var(--status-ok-bg);
+  border-color: #22c55e;
+  box-shadow: 2px 2px 6px rgba(0,0,0,.3), 0 0 0 2px rgba(34,197,94,.25);
 }
 /* Pendente chegada — borda dashed âmbar */
 .gt-pending .gt-body {
@@ -2835,9 +2832,9 @@ const currentTabSubtitle = computed(() => tabSubtitles[tab.value] || 'Gestão ce
   border-style: dashed;
 }
 /* Usado — borda âmbar (tem km, sulco ok) */
-.gt-used .gt-body { border-color: var(--status-warn); }
+.gt-used .gt-body { border-color: var(--status-warn); box-shadow: 2px 2px 6px rgba(0,0,0,.3), 0 0 0 2px rgba(199,134,26,.2); }
 /* Desgastado — borda vermelha (sulco crítico < 4mm) */
-.gt-worn .gt-body { border-color: var(--status-critical); }
+.gt-worn .gt-body { border-color: var(--status-critical); box-shadow: 2px 2px 6px rgba(0,0,0,.3), 0 0 0 2px rgba(195,61,69,.25); }
 
 .gt-num {
   writing-mode: vertical-rl; transform: rotate(180deg);
@@ -3306,6 +3303,5 @@ const currentTabSubtitle = computed(() => tabSubtitles[tab.value] || 'Gestão ce
 .tire-pending::after { content: 'TRÂNSITO'; position: absolute; top: 0; right: 0; font-size: 8px; font-weight: 900; color: #92400e; background: #fcd34d; padding: 2px 6px; border-bottom-left-radius: 8px; }
 
 .tire-new { border-left: 4px solid var(--green) !important; }
-.tire-new::before { content: 'NOVO'; position: absolute; bottom: 4px; right: 8px; font-size: 8px; font-weight: 900; color: #059669; opacity: 0.8; }
 
 </style>
