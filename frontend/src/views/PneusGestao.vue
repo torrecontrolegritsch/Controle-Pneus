@@ -3256,7 +3256,7 @@ const currentTabSubtitle = computed(() => tabSubtitles[tab.value] || 'Gestão ce
 .aloc-veiculo-list { flex: 1; overflow-y: auto; padding: 8px; display: flex; flex-direction: column; gap: 4px; }
 .aloc-v-card { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; cursor: pointer; transition: all 0.15s; border: 1px solid transparent; }
 .aloc-v-card:hover { background: var(--surface-1); border-color: var(--ink-200); }
-.aloc-v-card.active { background: var(--brand-bg); border-color: var(--brand-mid); }
+.aloc-v-card.active { background: var(--surface-0); border-color: var(--brand-900); }
 .v-card-icon { color: var(--ink-600); flex-shrink: 0; }
 .v-card-info { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 .v-placa { font-weight: 800; color: var(--ink-900); font-size: 14px; }
