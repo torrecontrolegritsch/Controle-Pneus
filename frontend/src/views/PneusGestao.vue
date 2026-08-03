@@ -302,7 +302,8 @@
                           'gt-pending': p.recebido === 0,
                           'gt-new':     p.recebido === 1 && (p.km_total||0) <= 0 && (Number(p.vida)==1||String(p.vida).startsWith('1')),
                           'gt-worn':    p.recebido === 1 && (p.km_total||0) > 0 && p.sulco_atual > 0 && p.sulco_atual < 4,
-                          'gt-used':    p.recebido === 1 && (p.km_total||0) > 0 && !(p.sulco_atual > 0 && p.sulco_atual < 4)
+                          'gt-used':    p.recebido === 1 && (p.km_total||0) > 0 && !(p.sulco_atual > 0 && p.sulco_atual < 4),
+                          'dragging':   draggedPneu && draggedPneu.id === p.id
                         }"
                         draggable="true"
                         @dragstart="handleDragStartFromStock($event, p)"
@@ -2802,7 +2803,7 @@ const currentTabSubtitle = computed(() => tabSubtitles[tab.value] || 'Gestão ce
 /* Item de pneu na grade */
 .grid-tire-item { display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: grab; }
 .grid-tire-item:active { cursor: grabbing; }
-.grid-tire-item:hover .gt-body { box-shadow: 0 0 0 2px var(--brand-600); }
+.grid-tire-item:hover .gt-body { filter: brightness(1.18); }
 
 .gt-body {
   width: 38px; height: 86px;
@@ -2819,19 +2820,15 @@ const currentTabSubtitle = computed(() => tabSubtitles[tab.value] || 'Gestão ce
 }
 
 /* Novo pneu — borda verde */
-.gt-new .gt-body {
-  border-color: #22c55e;
-  box-shadow: 2px 2px 6px rgba(0,0,0,.3), 0 0 0 2px rgba(34,197,94,.25);
-}
+.gt-new .gt-body { border-color: #22c55e; }
 /* Pendente chegada — borda dashed âmbar */
-.gt-pending .gt-body {
-  border-color: var(--status-warn);
-  border-style: dashed;
-}
-/* Usado — borda âmbar (tem km, sulco ok) */
-.gt-used .gt-body { border-color: var(--status-warn); box-shadow: 2px 2px 6px rgba(0,0,0,.3), 0 0 0 2px rgba(199,134,26,.2); }
-/* Desgastado — borda vermelha (sulco crítico < 4mm) */
-.gt-worn .gt-body { border-color: var(--status-critical); box-shadow: 2px 2px 6px rgba(0,0,0,.3), 0 0 0 2px rgba(195,61,69,.25); }
+.gt-pending .gt-body { border-color: var(--status-warn); border-style: dashed; }
+/* Usado — borda âmbar */
+.gt-used .gt-body { border-color: var(--status-warn); }
+/* Desgastado — borda vermelha */
+.gt-worn .gt-body { border-color: var(--status-critical); }
+/* Sendo arrastado — fade sutil, sem contorno */
+.grid-tire-item.dragging { opacity: 0.35; }
 
 .gt-num {
   writing-mode: vertical-rl; transform: rotate(180deg);
