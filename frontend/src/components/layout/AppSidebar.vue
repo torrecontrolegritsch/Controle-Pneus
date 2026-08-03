@@ -64,43 +64,45 @@ const userRole = computed(() => {
 
 <style scoped>
 .sidebar {
-  width: 220px;
+  width: 200px;
   height: 100vh;
-  background: linear-gradient(180deg, #1a1a2e 0%, #16162a 100%);
+  background: var(--surface-0);
   display: flex;
   flex-direction: column;
   position: fixed;
   left: 0;
   top: 0;
   z-index: 100;
-  box-shadow: 2px 0 20px rgba(0,0,0,0.3);
+  border-right: 1px solid var(--ink-200);
 }
 
 .sidebar-top {
-  padding: 20px;
-  border-bottom: 1px solid rgba(255,255,255,0.05);
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--ink-200);
   display: flex;
   align-items: center;
   gap: 10px;
 }
 
 .sidebar-logo {
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 3px;
   object-fit: cover;
 }
 
 .sidebar-title {
-  font-size: 16px;
-  color: #fff;
+  font-size: 12px;
+  color: var(--ink-600);
   font-weight: 600;
   margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .sidebar-menu {
   flex: 1;
-  padding: 15px 10px;
+  padding: 6px 0;
   overflow-y: auto;
 }
 
@@ -108,57 +110,64 @@ const userRole = computed(() => {
   width: 100%;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
+  gap: 8px;
+  padding: 7px 14px;
   border: none;
   background: transparent;
-  color: rgba(255,255,255,0.6);
-  border-radius: 8px;
+  color: var(--ink-600);
+  border-radius: 0;
+  border-left: 2px solid transparent;
   cursor: pointer;
-  transition: all 0.2s;
-  margin-bottom: 4px;
+  transition: background 0.12s;
+  margin-bottom: 0;
+  font-size: 12px;
+  font-weight: 500;
 }
 
 .menu-item:hover {
-  background: rgba(255,255,255,0.05);
-  color: #fff;
+  background: var(--surface-2);
+  color: var(--ink-900);
 }
 
 .menu-item.active {
-  background: rgba(99, 102, 241, 0.2);
-  color: #818cf8;
-  border-left: 3px solid #818cf8;
+  background: var(--surface-2);
+  color: var(--brand-900);
+  border-left-color: var(--brand-900);
+  font-weight: 600;
 }
 
 .menu-icon {
   display: flex;
+  opacity: 0.7;
+  flex-shrink: 0;
 }
+.menu-item.active .menu-icon { opacity: 1; }
 
 .menu-label {
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 12px;
 }
 
 .sidebar-footer {
-  padding: 15px;
-  border-top: 1px solid rgba(255,255,255,0.05);
+  padding: 10px 14px;
+  border-top: 1px solid var(--ink-200);
 }
 
 .user-block {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 .avatar {
-  width: 36px;
-  height: 36px;
-  background: rgba(99, 102, 241, 0.2);
-  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  background: var(--surface-2);
+  border-radius: 3px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #818cf8;
+  color: var(--ink-600);
+  flex-shrink: 0;
 }
 
 .u-info {
@@ -168,34 +177,39 @@ const userRole = computed(() => {
 
 .u-name {
   display: block;
-  font-size: 13px;
-  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-900);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .u-tag {
-  font-size: 11px;
-  color: rgba(255,255,255,0.5);
+  font-size: 10px;
+  color: var(--ink-300);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .mini-logout {
-  width: 28px;
-  height: 28px;
-  border: none;
-  background: rgba(255,255,255,0.05);
-  border-radius: 6px;
-  color: rgba(255,255,255,0.6);
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--ink-200);
+  background: none;
+  border-radius: 3px;
+  color: var(--ink-600);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+  flex-shrink: 0;
 }
 
 .mini-logout:hover {
-  background: rgba(239, 68, 68, 0.2);
-  color: #ef4444;
+  background: var(--status-critical-bg);
+  border-color: var(--status-critical);
+  color: var(--status-critical);
 }
 </style>
