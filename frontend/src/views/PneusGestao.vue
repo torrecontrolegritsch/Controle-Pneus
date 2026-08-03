@@ -2620,9 +2620,9 @@ const currentTabSubtitle = computed(() => tabSubtitles[tab.value] || 'Gestão ce
 }
 .tire-card-stock:hover .pending-btn { transform: scale(1.15); background: #ea580c; }
 
-.tire-card-stock.tire-pending { border: 2px solid #f97316; background: #fff7ed; position: relative; }
-.tire-card-stock.tire-new { border: 2px solid #22c55e; background: #f0fdf4; position: relative; }
-.tire-card-stock.tire-used { border: 2px solid #ef4444; background: #fef2f2; position: relative; }
+.tire-card-stock.tire-pending { border: 3px solid #f97316; background: #fff7ed; position: relative; }
+.tire-card-stock.tire-new  { border: 3px solid #22c55e; background: #f0fdf4; position: relative; box-shadow: 0 0 0 2px rgba(34,197,94,.15); }
+.tire-card-stock.tire-used { border: 3px solid #ef4444; background: #fef2f2; position: relative; box-shadow: 0 0 0 2px rgba(239,68,68,.15); }
 .tire-mini-visual { 
   width: 24px; height: 56px; 
   background: linear-gradient(to right, #1a1a1a 0%, #4a4a4a 50%, #1a1a1a 100%);
@@ -3294,14 +3294,7 @@ const currentTabSubtitle = computed(() => tabSubtitles[tab.value] || 'Gestão ce
 .section-divider::before, .section-divider::after { content: ""; flex: 1; height: 1px; background: var(--border); }
 .section-divider span { font-size: 12px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; }
 
-/* Status de Pneus no Almoxarifado */
-.tire-card-stock { display: flex; align-items: center; gap: 12px; padding: 12px; background: #fff; border: 1px solid var(--border); border-radius: 12px; cursor: grab; transition: all 0.2s; position: relative; overflow: hidden; }
-.tire-card-stock:hover { border-color: var(--brand-mid); transform: translateX(4px); box-shadow: var(--shadow-sm); }
-.tire-card-stock:active { cursor: grabbing; }
-
 .tire-pending { background: #fffbeb !important; border-color: #fcd34d !important; }
 .tire-pending::after { content: 'TRÂNSITO'; position: absolute; top: 0; right: 0; font-size: 8px; font-weight: 900; color: #92400e; background: #fcd34d; padding: 2px 6px; border-bottom-left-radius: 8px; }
-
-.tire-new { border-left: 4px solid var(--green) !important; }
 
 </style>
