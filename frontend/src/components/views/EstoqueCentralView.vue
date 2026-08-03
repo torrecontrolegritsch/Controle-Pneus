@@ -717,7 +717,7 @@ function exportarCSV() {
 </script>
 
 <style scoped>
-.estoque-central { display: flex; flex-direction: column; gap: 20px; }
+.estoque-central { display: flex; flex-direction: column; gap: 16px; flex: 1; overflow-y: auto; min-height: 0; padding: 16px 20px; }
 
 /* ── Sub-nav ── */
 .sub-nav {

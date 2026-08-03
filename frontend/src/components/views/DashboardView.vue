@@ -35,30 +35,52 @@
       </div>
     </div>
 
-    <!-- KPI strip -->
-    <div v-if="loading" class="kpi-strip kpi-skeleton">
-      <div v-for="i in 5" :key="i" class="kpi-cell kpi-skel-cell"></div>
-    </div>
-    <div v-else class="kpi-strip">
-      <div class="kpi-cell">
-        <span class="kpi-lbl">Total de Pneus</span>
-        <span class="kpi-val">{{ dash?.total_pneus ?? 0 }}</span>
+    <!-- KPI cards -->
+    <div class="kpi-cards">
+      <div class="kpi-card" :class="loading ? 'kpi-skel' : ''">
+        <div class="kpi-icon kpi-icon-neutral">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
+        </div>
+        <div class="kpi-data">
+          <span class="kpi-val">{{ dash?.total_pneus ?? 0 }}</span>
+          <span class="kpi-lbl">Total de Pneus</span>
+        </div>
       </div>
-      <div class="kpi-cell">
-        <span class="kpi-lbl">Em Uso</span>
-        <span class="kpi-val">{{ dash?.em_uso ?? 0 }}</span>
+      <div class="kpi-card kpi-card-blue" :class="loading ? 'kpi-skel' : ''">
+        <div class="kpi-icon kpi-icon-blue">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 17h4V5H2v12h3"/><path d="M20 17h2v-9h-4V5h-4v12h3"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>
+        </div>
+        <div class="kpi-data">
+          <span class="kpi-val">{{ dash?.em_uso ?? 0 }}</span>
+          <span class="kpi-lbl">Em Uso</span>
+        </div>
       </div>
-      <div class="kpi-cell">
-        <span class="kpi-lbl">Em Estoque</span>
-        <span class="kpi-val">{{ dash?.em_estoque ?? 0 }}</span>
+      <div class="kpi-card kpi-card-green" :class="loading ? 'kpi-skel' : ''">
+        <div class="kpi-icon kpi-icon-green">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+        </div>
+        <div class="kpi-data">
+          <span class="kpi-val">{{ dash?.em_estoque ?? 0 }}</span>
+          <span class="kpi-lbl">Em Estoque</span>
+        </div>
       </div>
-      <div class="kpi-cell">
-        <span class="kpi-lbl">Reciclagem</span>
-        <span class="kpi-val">{{ dash?.em_reciclagem ?? 0 }}</span>
+      <div class="kpi-card kpi-card-warn" :class="loading ? 'kpi-skel' : ''">
+        <div class="kpi-icon kpi-icon-warn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        </div>
+        <div class="kpi-data">
+          <span class="kpi-val">{{ dash?.em_reciclagem ?? 0 }}</span>
+          <span class="kpi-lbl">Reciclagem</span>
+        </div>
       </div>
-      <div class="kpi-cell kpi-cell-last">
-        <span class="kpi-lbl">Patrimônio em Estoque</span>
-        <span class="kpi-val">R$ {{ fmtN(dash?.valor_estoque ?? 0) }}</span>
+      <div class="kpi-card kpi-card-brand" :class="loading ? 'kpi-skel' : ''">
+        <div class="kpi-icon kpi-icon-brand">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        </div>
+        <div class="kpi-data">
+          <span class="kpi-val">R$ {{ fmtN(dash?.valor_estoque ?? 0) }}</span>
+          <span class="kpi-lbl">Patrimônio</span>
+        </div>
       </div>
     </div>
 
@@ -190,6 +212,9 @@ function vidaCount(vida) {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
 }
 
 /* ── Alertas ─────────────────────────────────────────────── */
@@ -259,24 +284,52 @@ function vidaCount(vida) {
 .chip-alerta  { background: var(--status-warn-bg); color: #7c4d00; border: 1px solid var(--status-warn); }
 .chip-sub { font-weight: 400; opacity: 0.7; font-size: 10px; }
 
-/* ── KPI strip ───────────────────────────────────────────── */
-.kpi-strip {
+/* ── KPI cards ───────────────────────────────────────────── */
+.kpi-cards {
   display: flex;
-  background: var(--surface-0);
-  border: 1px solid var(--ink-200);
-  border-radius: 4px;
-  overflow: hidden;
+  gap: 10px;
 }
 
-.kpi-cell {
+.kpi-card {
   flex: 1;
+  background: var(--surface-0);
+  border: 1px solid var(--ink-200);
+  border-radius: 6px;
+  padding: 12px 14px;
   display: flex;
-  flex-direction: column;
-  padding: 10px 14px;
-  border-right: 1px solid var(--ink-200);
-  gap: 3px;
+  align-items: center;
+  gap: 12px;
 }
-.kpi-cell:last-child { border-right: none; }
+
+.kpi-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.kpi-icon-neutral { background: var(--surface-2); color: var(--ink-600); }
+.kpi-icon-blue    { background: #dbeafe; color: #1d4ed8; }
+.kpi-icon-green   { background: var(--status-ok-bg); color: var(--status-ok); }
+.kpi-icon-warn    { background: var(--status-warn-bg); color: var(--status-warn); }
+.kpi-icon-brand   { background: var(--brand-100); color: var(--brand-900); }
+
+.kpi-card-blue  { border-top: 3px solid #3b82f6; }
+.kpi-card-green { border-top: 3px solid var(--status-ok); }
+.kpi-card-warn  { border-top: 3px solid var(--status-warn); }
+.kpi-card-brand { border-top: 3px solid var(--brand-900); }
+
+.kpi-data { display: flex; flex-direction: column; gap: 1px; }
+
+.kpi-val {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--ink-900);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
 
 .kpi-lbl {
   font-size: 10px;
@@ -286,22 +339,14 @@ function vidaCount(vida) {
   letter-spacing: 0.06em;
   white-space: nowrap;
 }
-.kpi-val {
-  font-size: 20px;
-  font-weight: 600;
-  color: var(--ink-900);
-  font-variant-numeric: tabular-nums;
-  line-height: 1.2;
-  letter-spacing: -0.01em;
-}
 
 /* Skeleton loading */
-.kpi-skeleton { pointer-events: none; }
-.kpi-skel-cell {
+.kpi-skel {
+  pointer-events: none;
   background: linear-gradient(90deg, var(--surface-2) 25%, var(--ink-200) 50%, var(--surface-2) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.2s infinite;
-  height: 52px;
+  min-height: 62px;
 }
 @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
 

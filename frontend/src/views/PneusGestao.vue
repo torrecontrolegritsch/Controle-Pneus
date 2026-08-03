@@ -4,7 +4,6 @@
     <aside class="sidebar">
       <div class="sidebar-top">
         <img src="/logo.jpg" alt="Logo" class="sidebar-logo" />
-        <h2 class="sidebar-title">Controle Pneu</h2>
       </div>
 
       <nav class="sidebar-menu">
@@ -2107,26 +2106,16 @@ const currentTabSubtitle = computed(() => tabSubtitles[tab.value] || 'Gestão ce
 
 .sidebar-top {
   display: flex;
-  flex-direction: row;
   align-items: center;
-  gap: 10px;
-  padding: 12px 14px;
+  justify-content: center;
+  padding: 10px;
   border-bottom: 1px solid var(--ink-200);
 }
 
 .sidebar-logo {
-  height: 28px;
+  height: 36px;
   width: auto;
   border-radius: 3px;
-}
-
-.sidebar-title {
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin: 0;
-  color: var(--ink-600);
 }
 
 .sidebar-menu {
@@ -2274,9 +2263,19 @@ const currentTabSubtitle = computed(() => tabSubtitles[tab.value] || 'Gestão ce
 /* MAIN CONTENT */
 .main-content {
   flex: 1;
-  overflow-y: auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   padding: 0;
   position: relative;
+}
+
+/* Abas com scroll (filhos diretos de main-content que não são alocacao) */
+.main-content > .gp-section:not(.alocacao-layout) {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
 }
 
 /* wb-body substitui gp-move-container */
@@ -2290,6 +2289,7 @@ const currentTabSubtitle = computed(() => tabSubtitles[tab.value] || 'Gestão ce
   padding: 10px 16px;
   border-bottom: 1px solid var(--ink-200);
   background: var(--surface-0);
+  flex-shrink: 0;
 }
 
 .header-info h1 {
@@ -2699,7 +2699,7 @@ const currentTabSubtitle = computed(() => tabSubtitles[tab.value] || 'Gestão ce
 }
 
 /* ── ALOCAÇÃO — VIPAL-STYLE ──────────────────────────────── */
-.alocacao-layout { display: flex; gap: 0; padding: 0 !important; height: calc(100vh - 160px); min-height: 600px; overflow: hidden; margin: -10px -20px; }
+.alocacao-layout { display: flex; gap: 0; padding: 0 !important; flex: 1; min-height: 0; overflow: hidden; margin: 0; }
 
 /* Sidebar esquerda */
 .aloc-sidebar { width: 280px; border-right: 1px solid var(--ink-200); background: var(--surface-0); display: flex; flex-direction: column; flex-shrink: 0; }
