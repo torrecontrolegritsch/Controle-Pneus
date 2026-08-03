@@ -7,26 +7,48 @@
       </div>
     </div>
 
-    <!-- Pneus aguardando lote — agrupados por medida -->
+    <!-- Pneus aguardando lote — agrupados por medida (acordeão) -->
     <div v-if="pneusAguardando.length > 0" class="aguardando-lote-box">
       <div class="box-header">
         <div class="title-group">
           <h3>Pneus em Espera ({{ pneusAguardando.length }})</h3>
-          <p>Agrupados por medida. Clique em "Gerar Lote" em cada grupo para enviar à reciclagem.</p>
+          <p>Expanda uma medida para selecionar pneus e gerar o lote.</p>
         </div>
       </div>
 
       <div v-for="grupo in gruposPorMedida" :key="grupo.medida" class="medida-group">
-        <div class="medida-group-header">
-          <div class="medida-group-info">
+        <!-- Linha da medida — clique para expandir -->
+        <div class="medida-row" @click="toggleMedida(grupo.medida)">
+          <div class="medida-row-left">
+            <span class="medida-chevron" :class="{ open: expandedMedidas.has(grupo.medida) }">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+            </span>
             <span class="medida-badge">{{ grupo.medida || 'Sem Medida' }}</span>
             <span class="medida-count">{{ grupo.pneus.length }} pneu(s)</span>
+            <span v-if="selectedInGroup(grupo).length > 0" class="medida-sel-count">
+              {{ selectedInGroup(grupo).length }} selecionado(s)
+            </span>
           </div>
-          <button class="btn-primary btn-sm-lote" @click="gerarLotePorMedida(grupo)">
-            Gerar Lote ({{ grupo.pneus.length }})
-          </button>
+          <div class="medida-row-right" @click.stop>
+            <button
+              class="btn-sm-lote btn-sm-lote-all"
+              @click="gerarLotePorMedida(grupo)"
+              title="Gerar lote com todos os pneus desta medida"
+            >
+              Todos ({{ grupo.pneus.length }})
+            </button>
+            <button
+              v-if="selectedInGroup(grupo).length > 0"
+              class="btn-sm-lote"
+              @click="gerarLoteComSelecionados(grupo)"
+            >
+              Gerar Lote ({{ selectedInGroup(grupo).length }})
+            </button>
+          </div>
         </div>
-        <div class="aguardando-grid">
+
+        <!-- Pneus expandidos -->
+        <div v-if="expandedMedidas.has(grupo.medida)" class="aguardando-grid medida-grid-expanded">
           <div
             v-for="p in grupo.pneus" :key="p.id"
             class="pneu-selection-card"
@@ -212,6 +234,7 @@ const emit = defineEmits(['refresh'])
 const lotes = ref([])
 const pneusAguardando = ref([])
 const selected = ref([])
+const expandedMedidas = ref(new Set())
 
 const gruposPorMedida = computed(() => {
   const map = new Map()
@@ -235,6 +258,18 @@ async function loadLotes() {
     lotes.value = await fetchLotesReciclagem()
     pneusAguardando.value = await fetchPneusAguardandoLote()
   } catch(e) { console.error(e) }
+}
+
+function toggleMedida(medida) {
+  const s = expandedMedidas.value
+  if (s.has(medida)) s.delete(medida)
+  else s.add(medida)
+  expandedMedidas.value = new Set(s)
+}
+
+function selectedInGroup(grupo) {
+  const ids = new Set(grupo.pneus.map(p => p.id))
+  return selected.value.filter(id => ids.has(id))
 }
 
 function toggleSelection(id) {
@@ -261,11 +296,20 @@ async function gerarLotePorMedida(grupo) {
   const ids = grupo.pneus.map(p => p.id)
   if (ids.length === 0) return
   try {
-    await criarLoteReciclagem({
-      pneu_ids: ids,
-      filial_id: grupo.pneus[0]?.filial_id || 1
-    })
+    await criarLoteReciclagem({ pneu_ids: ids, filial_id: grupo.pneus[0]?.filial_id || 1 })
     alert(`Lote de ${grupo.medida || 'sem medida'} gerado com sucesso!`)
+    selected.value = selected.value.filter(id => !ids.includes(id))
+    await loadLotes()
+    emit('refresh')
+  } catch(e) { alert(e.message) }
+}
+
+async function gerarLoteComSelecionados(grupo) {
+  const ids = selectedInGroup(grupo)
+  if (ids.length === 0) return
+  try {
+    await criarLoteReciclagem({ pneu_ids: ids, filial_id: grupo.pneus[0]?.filial_id || 1 })
+    alert(`Lote gerado com ${ids.length} pneu(s) selecionado(s)!`)
     selected.value = selected.value.filter(id => !ids.includes(id))
     await loadLotes()
     emit('refresh')
@@ -310,13 +354,20 @@ onMounted(loadLotes)
 .selection-indicator { flex-shrink: 0; }
 .check-circle { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--ink-300); display: flex; align-items: center; justify-content: center; background: var(--surface-0); transition: all 0.2s; }
 .selected .check-circle { background: var(--brand-900); border-color: var(--brand-900); color: white; }
-.medida-group { margin-bottom: 20px; }
-.medida-group-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: var(--surface-2); border: 1px solid var(--ink-200); border-radius: 8px; margin-bottom: 10px; }
-.medida-group-info { display: flex; align-items: center; gap: 10px; }
+.medida-group { margin-bottom: 6px; border: 1px solid var(--ink-200); border-radius: 10px; overflow: hidden; }
+.medida-row { display: flex; align-items: center; justify-content: space-between; padding: 11px 14px; background: var(--surface-1); cursor: pointer; user-select: none; gap: 12px; transition: background 0.15s; }
+.medida-row:hover { background: var(--surface-2); }
+.medida-row-left { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
+.medida-row-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.medida-chevron { display: flex; align-items: center; color: var(--ink-400); transition: transform 0.2s; }
+.medida-chevron.open { transform: rotate(90deg); }
 .medida-badge { font-size: 13px; font-weight: 800; color: var(--brand-900); background: var(--brand-100); padding: 3px 10px; border-radius: 6px; letter-spacing: 0.03em; }
 .medida-count { font-size: 12px; color: var(--ink-600); }
-.btn-sm-lote { padding: 6px 14px; font-size: 12px; font-weight: 600; background: var(--brand-900); color: #fff; border: none; border-radius: 7px; cursor: pointer; transition: opacity 0.2s; }
+.medida-sel-count { font-size: 11px; font-weight: 700; color: var(--status-ok); background: var(--status-ok-bg, #f0fdf4); padding: 2px 8px; border-radius: 20px; }
+.medida-grid-expanded { padding: 14px; background: var(--surface-0); border-top: 1px solid var(--ink-200); }
+.btn-sm-lote { padding: 6px 12px; font-size: 12px; font-weight: 600; background: var(--brand-900); color: #fff; border: none; border-radius: 7px; cursor: pointer; transition: opacity 0.2s; white-space: nowrap; }
 .btn-sm-lote:hover { opacity: 0.85; }
+.btn-sm-lote-all { background: var(--surface-0); color: var(--brand-900); border: 1px solid var(--brand-900); }
 
 .pneu-brief { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .pneu-fogo { font-size: 13px; font-weight: 800; color: var(--ink-900); }
