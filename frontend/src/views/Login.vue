@@ -10,34 +10,36 @@
 
         <form @submit.prevent="handleLogin" class="form" novalidate>
 
-          <!-- E-mail (floating label) -->
+          <!-- E-mail -->
           <div class="field">
+            <label for="lf-email">E-mail</label>
             <input
               v-model="email"
               type="email"
               id="lf-email"
-              placeholder=" "
+              placeholder="seu@email.com.br"
               required
               autocomplete="email"
             />
-            <label for="lf-email">E-mail *</label>
           </div>
 
-          <!-- Senha (floating label + toggle) -->
+          <!-- Senha -->
           <div class="field">
-            <input
-              v-model="password"
-              :type="showPass ? 'text' : 'password'"
-              id="lf-pass"
-              placeholder=" "
-              required
-              autocomplete="current-password"
-            />
-            <label for="lf-pass">Senha *</label>
-            <button type="button" class="eye-btn" @click="showPass = !showPass" tabindex="-1" :aria-label="showPass ? 'Ocultar senha' : 'Mostrar senha'">
-              <svg v-if="!showPass" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-              <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
-            </button>
+            <label for="lf-pass">Senha</label>
+            <div class="input-wrap">
+              <input
+                v-model="password"
+                :type="showPass ? 'text' : 'password'"
+                id="lf-pass"
+                placeholder="••••••••"
+                required
+                autocomplete="current-password"
+              />
+              <button type="button" class="eye-btn" @click="showPass = !showPass" tabindex="-1" :aria-label="showPass ? 'Ocultar senha' : 'Mostrar senha'">
+                <svg v-if="!showPass" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+              </button>
+            </div>
           </div>
 
           <p v-if="errorMsg" class="error-msg">{{ errorMsg }}</p>
@@ -49,7 +51,7 @@
 
           <button type="button" class="btn-secondary">Esqueci a Senha</button>
 
-          <span class="link-suporte">Conversar com o Suporte</span>
+          <p class="brand-footer">Grupo Gritsch</p>
 
         </form>
       </div>
@@ -168,17 +170,26 @@ const handleLogin = async () => {
   gap: 14px;
 }
 
-/* Floating label field */
+/* ── Campo ────────────────────────────────────────────────── */
 .field {
-  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-600);
+  letter-spacing: 0.02em;
 }
 
 .field input {
   width: 100%;
   box-sizing: border-box;
-  padding: 22px 14px 8px;
+  padding: 12px 14px;
   background: var(--surface-0);
-  border: 1px solid var(--ink-200);
+  border: 1.5px solid var(--ink-200);
   border-radius: 10px;
   font-size: 14px;
   color: var(--ink-900);
@@ -186,36 +197,18 @@ const handleLogin = async () => {
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 
+.field input::placeholder { color: var(--ink-300); }
+
 .field input:focus {
   border-color: var(--brand-900);
   box-shadow: 0 0 0 3px rgba(90, 24, 28, 0.08);
 }
 
-.field label {
-  position: absolute;
-  left: 14px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 14px;
-  color: var(--ink-300);
-  font-weight: 400;
-  pointer-events: none;
-  transition: top 0.15s, font-size 0.15s, color 0.15s, transform 0.15s;
+.input-wrap {
+  position: relative;
 }
 
-.field input:focus ~ label,
-.field input:not(:placeholder-shown) ~ label {
-  top: 9px;
-  transform: none;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--ink-600);
-}
-.field input:focus ~ label {
-  color: var(--brand-900);
-}
-
-.field:has(.eye-btn) input {
+.input-wrap input {
   padding-right: 44px;
 }
 
@@ -278,15 +271,16 @@ const handleLogin = async () => {
   background: var(--surface-1);
 }
 
-/* ── Link suporte ─────────────────────────────────────────── */
-.link-suporte {
+/* ── Rodapé marca ─────────────────────────────────────────── */
+.brand-footer {
   text-align: center;
-  font-size: 13px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
   color: var(--ink-300);
-  cursor: pointer;
-  transition: color 0.15s;
+  margin: 0;
 }
-.link-suporte:hover { color: var(--ink-600); }
 
 /* ── Erro ─────────────────────────────────────────────────── */
 .error-msg {
