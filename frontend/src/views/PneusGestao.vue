@@ -336,26 +336,7 @@
     </section>
 
     <!-- TAB: FILIAIS -->
-    <section v-if="tab === 'filiais'" class="gp-section">
-      <div class="sec-toolbar">
-        <h2>Filiais</h2>
-        <button class="btn-primary" @click="openFilialForm()">+ Nova Filial</button>
-      </div>
-      <table class="gp-table" v-if="filiais.length">
-        <thead><tr><th>Nome</th><th>UF</th><th>Ações</th></tr></thead>
-        <tbody>
-          <tr v-for="f in filiais" :key="f.id">
-            <td><strong>{{ f.nome }}</strong></td>
-            <td>{{ f.estado }}</td>
-            <td class="td-actions">
-              <button class="btn-sm" @click="openFilialForm(f)">Editar</button>
-              <button class="btn-sm btn-danger" @click="removeFilial(f)">Excluir</button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-      <div v-else class="empty-state">Nenhuma filial cadastrada</div>
-    </section>
+    <FiliaisView v-if="tab === 'filiais'" :filiais="filiais" @refresh="loadFiliais" />
 
     <!-- TAB: VEÍCULOS -->
     <section v-if="tab === 'veiculos'" class="gp-section">
@@ -533,418 +514,16 @@
     </section>
 
     <!-- TAB: SUCATA -->
-    <section v-if="tab === 'sucata'" class="gp-section">
-      <div class="sec-toolbar" style="gap: 12px;">
-        <div class="toolbar-left">
-          <h2>Gestão de Sucata</h2>
-          <p class="sec-subtitle">Validação e controle de pneus descartados ou em fim de vida</p>
-        </div>
-        <div class="toolbar-right" style="display:flex; gap: 12px; align-items: center;">
-          <div class="filter-box">
-             <input v-model="searchSucata" placeholder="🔍 Buscar Nº Fogo..." class="filter-select select-premium" style="width: 200px; padding-left: 14px;" />
-          </div>
-          <div class="filter-box">
-             <select v-model="filtroFilialSucata" class="filter-select" style="min-width: 220px;">
-                <option value="">🏢 Todas as Origens</option>
-                <option v-for="f in filiais" :key="f.id" :value="f.id">{{ f.nome }}</option>
-             </select>
-          </div>
-        </div>
-      </div>
-
-      <div class="sucata-grid">
-        <!-- Pendentes -->
-        <div class="sucata-column">
-          <div class="col-header">
-            <h3>📥 Aguardando Chegada</h3>
-            <span class="badge badge-yellow">{{ pneusSucataPendentes.length }}</span>
-          </div>
-          <div class="sucata-cards">
-            <div v-for="p in pneusSucataPendentes" :key="p.id" class="sucata-card pending">
-              <div class="s-card-id">{{ p.numero_fogo }}</div>
-              <div class="s-card-info">
-                <span class="s-tire-name">{{ p.marca }} {{ p.medida }}</span>
-                <div class="s-origin-badge">
-                  <span class="lbl">Vem de:</span>
-                  <span class="val">{{ p.filial_origem_nome || (p.filial_nome?.toUpperCase().includes('SUCATA') ? '—' : p.filial_nome) }}</span>
-                </div>
-              </div>
-              <button class="btn-confirm-arrival" @click="doConfirmarRecebimento(p)">Confirmar Chegada</button>
-            </div>
-            <div v-if="!pneusSucataPendentes.length" class="empty-sucata">Nenhum pneu em trânsito para sucata</div>
-          </div>
-        </div>
-
-        <!-- Confirmados -->
-        <div class="sucata-column">
-          <div class="col-header">
-            <h3>✅ Sucata Processada</h3>
-            <span class="badge badge-green">{{ pneusSucataConfirmados.length }}</span>
-          </div>
-          <div class="sucata-cards">
-            <div v-for="p in pneusSucataConfirmados" :key="p.id" class="sucata-card done">
-              <div class="s-card-id">{{ p.numero_fogo }}</div>
-              <div class="s-card-info">
-                <span class="s-tire-name">{{ p.marca }} {{ p.medida }}</span>
-                <div class="s-origin-badge">
-                  <span class="lbl">Veio de:</span>
-                  <span class="val">{{ p.filial_origem_nome || (p.filial_nome?.toUpperCase().includes('SUCATA') ? '—' : p.filial_nome) }}</span>
-                </div>
-              </div>
-              <div class="s-card-actions" style="display: flex; gap: 8px; align-items: center;">
-                <span class="badge badge-green">Validado</span>
-                <button class="btn-recicladora" @click="openReciclagemModal(p)" title="Enviar para Recicladora">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px; vertical-align: middle;"><path d="M12 2v4"></path><path d="m16.2 4.2 2.8 2.8"></path><path d="M12 18v4"></path><path d="m4.9 19.1 2.8-2.8"></path><path d="M2 12h4"></path><path d="m4.2 16.2 2.8-2.8"></path><path d="M18 12h4"></path><path d="m19.1 4.9-2.8 2.8"></path></svg>
-                  Enviar
-                </button>
-              </div>
-            </div>
-            <div v-if="!pneusSucataConfirmados.length" class="empty-sucata">Nenhuma sucata processada</div>
-          </div>
-        </div>
-      </div>
-    </section>
+    <SucataView v-if="tab === 'sucata'" :pneus-geral="pneusGeral" :filiais="filiais" @refresh="() => { loadPneusGeral(); refreshDash() }" />
 
     <!-- TAB: HISTÓRICO -->
-    <section v-if="tab === 'historico'" class="gp-section">
-      <div class="sec-toolbar">
-        <div class="toolbar-left">
-          <h2>Histórico de Movimentações</h2>
-          <p class="sec-subtitle">Registro cronológico de todas as operações de pneus</p>
-        </div>
-        
-        <div class="toolbar-right" style="display: flex; gap: 12px; align-items: center;">
-          <div class="search-box-pill">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-            <input v-model="searchMov" placeholder="Buscar Placa ou N. Fogo..." />
-          </div>
-
-          <select v-model="filtroTipoMov" @change="loadMovs" class="filter-select">
-            <option value="">Todos os tipos</option>
-            <option value="entrada_estoque">Entrada Estoque</option>
-            <option value="alocacao">Alocação</option>
-            <option value="remocao">Remoção</option>
-            <option value="descarte">Descarte</option>
-            <option value="recebimento_sucata">Confirmação Sucata</option>
-            <option value="transferencia">Transferência</option>
-            <option value="recapagem">Recapagem</option>
-            <option value="rodizio">Rodízio / Troca</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="timeline-container" v-if="filteredMovs.length">
-        <div v-for="m in filteredMovs" :key="m.id" class="timeline-item">
-          <div class="tl-date">
-            <span class="tl-day" v-if="m.data_hora">{{ new Date(m.data_hora).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) }}</span>
-            <span class="tl-time" v-if="m.data_hora">{{ new Date(m.data_hora).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', hour12: false }) }}</span>
-            <span class="tl-day" v-else>—</span>
-          </div>
-          
-          <div class="tl-icon-box" :class="movClass(m.tipo)" v-html="movIcon(m.tipo)"></div>
-
-          <div class="tl-content">
-            <div class="tl-header">
-              <span class="tl-type">{{ movLabel(m.tipo) }}</span>
-              <span class="tl-pneu">Pneu: <strong>{{ m.numero_fogo || '—' }}</strong></span>
-            </div>
-            
-            <div class="tl-details">
-              <div v-if="m.veiculo_placa" class="tl-detail-item">
-                <span class="tl-label">Veículo</span>
-                <span class="tl-val">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px; vertical-align: middle;"><path d="M10 17h4V5H2v12h3"/><path d="M20 17h2v-9h-4V5h-4v12h3"/><path d="M10 9h4"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>
-                  {{ m.veiculo_placa }}
-                </span>
-              </div>
-              <div v-if="m.posicao" class="tl-detail-item">
-                <span class="tl-label">Posição</span>
-                <span class="tl-val">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px; vertical-align: middle;"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
-                  {{ posLabel(m.posicao, m.veiculo_tipo) }}
-                </span>
-              </div>
-              <div v-if="m.km_momento" class="tl-detail-item">
-                <span class="tl-label">KM Momento</span>
-                <span class="tl-val">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px; vertical-align: middle;"><path d="m21 16-4 4-4-4"></path><path d="M17 20V4"></path><path d="m3 8 4-4 4 4"></path><path d="M7 4v16"></path></svg>
-                  {{ fmtN(m.km_momento) }} km
-                </span>
-              </div>
-            </div>
-
-            <div v-if="m.observacao" class="tl-obs">
-              <span class="obs-icon">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
-              </span>
-              {{ m.observacao }}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div v-else class="empty-state">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 16px;"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-        <p>Nenhuma movimentação encontrada com os filtros atuais.</p>
-      </div>
-    </section>
+    <HistoricoView v-if="tab === 'historico'" />
 
     <!-- TAB: RECICLADORA -->
-    <section v-if="tab === 'recicladora'" class="gp-section">
-      <div class="sec-toolbar">
-        <div class="toolbar-left">
-          <h2>Lotes de Reciclagem</h2>
-          <p class="sec-subtitle">Acompanhamento de pneus enviados para descarte/compra</p>
-        </div>
-      </div>
-
-      <div v-if="pneusAguardandoLote.length > 0" class="aguardando-lote-box">
-        <div class="box-header">
-          <div class="title-group">
-            <h3>📦 Pneus em Espera ({{ pneusAguardandoLote.length }})</h3>
-            <p>Selecione os pneus para agrupar em um novo lote de coleta.</p>
-          </div>
-          <button 
-            class="btn-primary" 
-            :disabled="selectedPneusReciclagem.length === 0"
-            @click="doGerarLoteManual"
-            style="padding: 10px 20px; font-weight: 600;"
-          >
-            Gerar Lote com {{ selectedPneusReciclagem.length }} Selecionados
-          </button>
-        </div>
-        <div class="aguardando-grid">
-           <div 
-             v-for="p in pneusAguardandoLote" 
-             :key="p.id" 
-             class="pneu-selection-card"
-             :class="{ selected: selectedPneusReciclagem.includes(p.id) }"
-             @click="togglePneuSelection(p.id)"
-           >
-             <div class="selection-indicator">
-               <div class="check-circle">
-                 <svg v-if="selectedPneusReciclagem.includes(p.id)" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4"><polyline points="20 6 9 17 4 12"></polyline></svg>
-               </div>
-             </div>
-             <div class="pneu-brief">
-               <span class="pneu-fogo">{{ p.numero_fogo }}</span>
-               <span class="pneu-model">{{ p.marca }} {{ p.modelo }}</span>
-               <span class="pneu-origin">Origem: {{ p.filial_origem_nome }}</span>
-             </div>
-           </div>
-        </div>
-      </div>
-
-      <div v-if="pneusAguardandoLote.length > 0 && lotesReciclagem.length > 0" class="section-divider">
-        <span>Lotes já Processados</span>
-      </div>
-
-      <div class="lotes-container">
-        <div v-for="l in lotesReciclagem" :key="l.id" class="lote-card">
-          <div class="lote-header">
-            <div class="lote-title">
-              <span class="lote-icon">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 8V21H3V8"></path><path d="M1 3H23V8H1V3Z"></path><path d="M10 12H14"></path></svg>
-              </span>
-              <div class="lote-names">
-                <h3>{{ l.numero_lote }}</h3>
-                <span class="lote-date">Envio: {{ new Date(l.data_envio).toLocaleDateString('pt-BR') }}</span>
-              </div>
-            </div>
-            <div class="lote-finance">
-              <div class="finance-item" v-if="l.valor_total > 0">
-                <span class="lbl">Total Lote:</span>
-                <span class="val">{{ l.valor_total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) }}</span>
-              </div>
-              <div class="finance-item" v-if="l.valor_pneu > 0">
-                <span class="lbl">Por Pneu:</span>
-                <span class="val">{{ l.valor_pneu.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) }}</span>
-              </div>
-               <button class="btn-lote-valor" @click="openValorLoteModal(l)" style="margin-right: 8px;">
-                {{ l.valor_total > 0 ? 'Editar Valor' : 'Informar Valor' }}
-              </button>
-              <button class="btn-lote-valor" @click="imprimirLote(l)" style="background: #f8fafc; border-color: #cbd5e1;">
-                Relatório
-              </button>
-            </div>
-          </div>
-          <div class="lote-pneus">
-            <table class="gp-table mini">
-              <thead>
-                <tr>
-                  <th>N. Fogo</th>
-                  <th>Marca/Modelo</th>
-                  <th>Filial Origem</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="p in l.pneus" :key="p.id">
-                  <td><strong>{{ p.numero_fogo }}</strong></td>
-                  <td>{{ p.marca }} {{ p.modelo }}</td>
-                  <td>{{ p.filial_origem_nome || 'N/A' }}</td>
-                  <td><span class="badge badge-purple">Reciclagem</span></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-        <div v-if="!lotesReciclagem.length" class="empty-state">Nenhum lote de reciclagem encontrado</div>
-      </div>
-    </section>
+    <ReciclagemView v-if="tab === 'recicladora'" @refresh="() => { loadPneusGeral(); refreshDash() }" />
 
     <!-- TAB: FINANCEIRO -->
-    <section v-if="tab === 'financeiro'" class="gp-section">
-      <div class="sec-toolbar">
-        <div class="toolbar-left">
-          <h2 class="sec-title">Retorno Financeiro</h2>
-          <p class="sec-subtitle">Créditos por filial referente às carcaças recicladas no período</p>
-        </div>
-        <div class="toolbar-right" style="display:flex;gap:10px;align-items:center;">
-          <input type="month" v-model="filtroMesFinanceiro" class="filter-select" />
-          <select v-model="filtroFilialFinanceiro" class="filter-select">
-            <option value="">Todas as Filiais</option>
-            <option v-for="f in filiais" :key="f.id" :value="f.id">{{ f.nome }}</option>
-          </select>
-          <button v-if="relatorioFinanceiro.detalhes.length" class="btn-secondary" style="display:inline-flex;align-items:center;gap:6px;white-space:nowrap" @click="exportarFinanceiroCSV">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            Exportar CSV
-          </button>
-        </div>
-      </div>
-
-      <!-- KPI Cards -->
-      <div class="fin-kpis">
-        <div class="fin-kpi fin-kpi-green">
-          <div class="fin-kpi-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-          </div>
-          <div>
-            <span class="fin-kpi-num">{{ relatorioFinanceiro.total_geral.toLocaleString('pt-BR',{style:'currency',currency:'BRL'}) }}</span>
-            <span class="fin-kpi-lbl">Total Arrecadado</span>
-          </div>
-        </div>
-        <div class="fin-kpi">
-          <div class="fin-kpi-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 17h4V5H2v12h3"/><path d="M20 17h2v-9h-4V5h-4v12h3"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>
-          </div>
-          <div>
-            <span class="fin-kpi-num">{{ relatorioFinanceiro.detalhes.length }}</span>
-            <span class="fin-kpi-lbl">Pneus Reciclados</span>
-          </div>
-        </div>
-        <div class="fin-kpi fin-kpi-blue">
-          <div class="fin-kpi-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-          </div>
-          <div>
-            <span class="fin-kpi-num">{{ relatorioFinanceiro.detalhes.length ? (relatorioFinanceiro.total_geral / relatorioFinanceiro.detalhes.length).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}) : 'R$ 0,00' }}</span>
-            <span class="fin-kpi-lbl">Média por Pneu</span>
-          </div>
-        </div>
-        <div class="fin-kpi fin-kpi-purple">
-          <div class="fin-kpi-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-          </div>
-          <div>
-            <span class="fin-kpi-num">{{ relatorioFinanceiro.resumo_filiais.length }}</span>
-            <span class="fin-kpi-lbl">Filiais Participantes</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Sem dados -->
-      <div v-if="!relatorioFinanceiro.detalhes.length" class="empty-state">
-        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-        <p>Nenhum retorno encontrado para o período selecionado.</p>
-        <small>Verifique se há lotes de reciclagem com valor informado neste mês.</small>
-      </div>
-
-      <div v-else class="fin-body">
-
-        <!-- Retorno por Filial -->
-        <div class="fin-box">
-          <div class="fin-box-header">
-            <span class="fin-box-title">Retorno por Filial</span>
-            <span class="badge badge-green">{{ relatorioFinanceiro.resumo_filiais.length }} filial(is)</span>
-          </div>
-          <table class="gp-table fin-table">
-            <colgroup><col style="width:45%"/><col style="width:18%"/><col style="width:20%"/><col style="width:17%"/></colgroup>
-            <thead>
-              <tr>
-                <th style="text-align:left">Filial</th>
-                <th style="text-align:center">Qtd Pneus</th>
-                <th style="text-align:right">Valor p/ Receber</th>
-                <th style="text-align:right">% do Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="r in relatorioFinanceiro.resumo_filiais" :key="r.nome">
-                <td style="text-align:left">
-                  <strong>{{ r.nome }}</strong>
-                  <div class="fin-bar-wrap">
-                    <div class="fin-bar" :style="{ width: relatorioFinanceiro.total_geral ? (r.total / relatorioFinanceiro.total_geral * 100) + '%' : '0%' }"></div>
-                  </div>
-                </td>
-                <td style="text-align:center">{{ r.pneus }}</td>
-                <td style="text-align:right"><strong class="text-green">{{ r.total.toLocaleString('pt-BR',{style:'currency',currency:'BRL'}) }}</strong></td>
-                <td style="text-align:right;color:#64748b;font-size:12px">{{ relatorioFinanceiro.total_geral ? (r.total / relatorioFinanceiro.total_geral * 100).toFixed(1) + '%' : '—' }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <!-- Detalhe dos pneus -->
-        <div class="fin-box">
-          <div class="fin-box-header">
-            <span class="fin-box-title">Pneus Reciclados no Período</span>
-            <span class="badge badge-blue">{{ relatorioFinanceiro.detalhes.length }} pneu(s)</span>
-          </div>
-          <table class="gp-table fin-table">
-            <thead>
-              <tr>
-                <th>N. Fogo</th>
-                <th>Marca / Modelo</th>
-                <th>Medida</th>
-                <th style="text-align:center">Vida</th>
-                <th>Lote</th>
-                <th style="text-align:right">Valor Recebido</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="p in relatorioFinanceiro.detalhes" :key="p.id">
-                <td><strong>{{ p.numero_fogo }}</strong></td>
-                <td>{{ p.marca }}<span style="color:#94a3b8;margin-left:4px;font-size:12px">{{ p.modelo }}</span></td>
-                <td>{{ p.medida }}</td>
-                <td style="text-align:center"><span class="badge" style="background:#f1f5f9;color:#475569;border:1px solid #e2e8f0">{{ p.vida }}ª</span></td>
-                <td style="font-size:12px;color:#64748b">{{ p.lote_id ? 'LOTE-' + p.lote_id : '—' }}</td>
-                <td style="text-align:right">
-                  <strong :class="p.valor_arrecadado > 0 ? 'text-green' : 'text-muted'">
-                    {{ (p.valor_arrecadado || 0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}) }}
-                  </strong>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-      </div>
-    </section>
-
-    <!-- MODAL: FILIAL FORM -->
-    <div v-if="showFilialModal" class="modal-overlay" @click.self="showFilialModal = false">
-      <div class="modal-box">
-        <h3>{{ editingFilial ? 'Editar Filial' : 'Nova Filial' }}</h3>
-        <div class="form-group"><label>Nome</label><input v-model="filialForm.nome" placeholder="Nome da filial" /></div>
-        <div class="form-row">
-          <div class="form-group"><label>UF (Estado)</label><input v-model="filialForm.estado" maxlength="2" placeholder="Ex: SP, PR" /></div>
-        </div>
-        <div class="modal-actions">
-          <button class="btn-secondary" @click="showFilialModal = false">Cancelar</button>
-          <button class="btn-primary" @click="saveFilial" :disabled="!filialForm.nome">Salvar</button>
-        </div>
-      </div>
-    </div>
+    <FinanceiroView v-if="tab === 'financeiro'" :filiais="filiais" />
 
     <!-- MODAL: VEÍCULO FORM -->
     <div v-if="showVeiculoModal" class="modal-overlay" @click.self="showVeiculoModal = false">
@@ -1373,122 +952,6 @@
       </div>
     </div>
 
-    <!-- MODAL: ENVIAR PARA RECICLAGEM -->
-    <div v-if="showReciclagemModal" class="modal-overlay" @click.self="showReciclagemModal = false">
-      <div class="modal-box">
-        <h3>♻️ Enviar para Recicladora</h3>
-        <p>Pneu: <strong>{{ reciclagemCtx?.numero_fogo }}</strong> ({{ reciclagemCtx?.marca }} {{ reciclagemCtx?.medida }})</p>
-        
-        <div class="form-group">
-          <label>Data de Envio</label>
-          <input type="date" v-model="reciclagemForm.data_envio" class="stock-input" />
-        </div>
-
-        <div class="form-group">
-          <label>Observação (Opcional)</label>
-          <input v-model="reciclagemForm.observacao" class="stock-input" placeholder="Ex: NF de venda, transportadora..." />
-        </div>
-
-        <div class="modal-actions">
-          <button class="btn-secondary" @click="showReciclagemModal = false">Cancelar</button>
-          <button class="btn-primary" @click="doEnviarParaRecicladora">Confirmar Envio</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- MODAL: VALOR DO LOTE -->
-    <div v-if="showValorLoteModal" class="modal-overlay" @click.self="showValorLoteModal = false">
-      <div class="modal-box">
-        <h3>💰 Informar Valor do Lote</h3>
-        <p>Lote: <strong>{{ valorLoteCtx?.numero_lote }}</strong></p>
-        <p style="font-size: 13px; color: var(--text2);">O valor total será dividido entre os <strong>{{ valorLoteCtx?.pneus.length }} pneus</strong> do lote.</p>
-        
-        <div class="form-group" style="margin-top: 16px;">
-          <label>Valor Total Recebido (R$)</label>
-          <input type="number" v-model="valorLoteForm.valor_total" class="stock-input" step="0.01" />
-        </div>
-
-        <div class="modal-actions">
-          <button class="btn-secondary" @click="showValorLoteModal = false">Cancelar</button>
-          <button class="btn-primary" @click="doAtualizarValorLote">Salvar Valor</button>
-        </div>
-      </div>
-    </div>
-
-
-    <!-- ELEMENTO PARA IMPRESSÃO (OCULTO NA TELA) -->
-    <div id="printable-lote" class="print-only" v-if="loteImpressao">
-
-      <div class="pm-header">
-        <div class="pm-logo-cell">
-          <img src="/logo.jpg" alt="Gritsch" class="pm-logo" />
-          <span class="pm-system-label">CONTROLE DE PNEUS</span>
-        </div>
-        <div class="pm-company-cell">
-          <div class="pm-company-name">TRANSPORTES GRITSCH LTDA</div>
-          <div class="pm-company-info">RUA FRANCISCO NUNES, 1990 — PRADO VELHO</div>
-          <div class="pm-company-info">80215-202 — CURITIBA / PR</div>
-          <div class="pm-company-info">Fone: (41) 3072-1100 &nbsp;|&nbsp; pneus@gritsch.com.br</div>
-        </div>
-        <div class="pm-title-cell">
-          <div class="pm-title-main">MANIFESTO</div>
-          <div class="pm-title-main">DE ENVIO</div>
-          <div class="pm-title-sub">RECICLAGEM DE PNEUS</div>
-        </div>
-      </div>
-
-      <div class="pm-meta">
-        <div class="pm-meta-item">
-          <span class="pm-meta-label">LOTE</span>
-          <span class="pm-meta-value">{{ loteImpressao.numero_lote }}</span>
-        </div>
-        <div class="pm-meta-item">
-          <span class="pm-meta-label">DATA DE ENVIO</span>
-          <span class="pm-meta-value">{{ new Date(loteImpressao.data_envio).toLocaleDateString('pt-BR') }}</span>
-        </div>
-        <div class="pm-meta-item">
-          <span class="pm-meta-label">QUANTIDADE</span>
-          <span class="pm-meta-value">{{ loteImpressao.pneus.length }} pneu(s)</span>
-        </div>
-      </div>
-
-      <table class="pm-table">
-        <thead>
-          <tr>
-            <th style="width:18%">N. FOGO</th>
-            <th style="width:42%">MARCA / MODELO</th>
-            <th style="width:20%">MEDIDA</th>
-            <th style="width:20%">OBSERVAÇÃO</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="(p, i) in loteImpressao.pneus" :key="p.id" :class="i % 2 === 0 ? 'pm-tr-even' : ''">
-            <td><strong>{{ p.numero_fogo }}</strong></td>
-            <td>{{ p.marca }} {{ p.modelo }}</td>
-            <td>{{ p.medida || '—' }}</td>
-            <td></td>
-          </tr>
-        </tbody>
-      </table>
-
-      <div class="pm-signatures">
-        <div class="pm-sig-block">
-          <div class="pm-sig-line"></div>
-          <p class="pm-sig-label">Responsável Gritsch — Expedição</p>
-          <p class="pm-sig-sub">Nome / Matrícula</p>
-        </div>
-        <div class="pm-sig-block">
-          <div class="pm-sig-line"></div>
-          <p class="pm-sig-label">Responsável Recicladora — Recebimento</p>
-          <p class="pm-sig-sub">Nome Legível / RG</p>
-        </div>
-      </div>
-
-      <div class="pm-footer">
-        Documento gerado em {{ new Date().toLocaleString('pt-BR') }} — Sistema Torre de Controle Gritsch
-      </div>
-    </div>
-
     <!-- TAB: RELATÓRIO NF -->
     <RelatorioNFView
       v-if="tab === 'relatorio_nf'"
@@ -1531,6 +994,11 @@ import DashboardView from '../components/views/DashboardView.vue'
 import SolicitacoesView from '../components/views/SolicitacoesView.vue'
 import RelatorioNFView from './RelatorioNFView.vue'
 import UsuariosView from './UsuariosView.vue'
+import HistoricoView from '../components/views/HistoricoView.vue'
+import FinanceiroView from '../components/views/FinanceiroView.vue'
+import SucataView from '../components/views/SucataView.vue'
+import ReciclagemView from '../components/views/ReciclagemView.vue'
+import FiliaisView from '../components/views/FiliaisView.vue'
 
 const props = defineProps(['user'])
 const emit = defineEmits(['logout'])
@@ -2041,7 +1509,10 @@ async function loadAll() {
   loadPneusGeral()
   loadMovs()
 }
-async function loadVeiculos() { 
+async function loadFiliais() {
+  try { filiais.value = await fetchFiliais() } catch(e) { console.error(e) }
+}
+async function loadVeiculos() {
   try { 
     const v = await fetchVeiculos({ filial_id: filtroFilialV.value })
     // Filtra apenas veículos que possuem frota preenchida para manter a lista limpa
@@ -2581,13 +2052,7 @@ async function mandarPneuParaSucata(p) {
 }
 
 watch(tab, (t) => {
-  if (t === 'historico') loadMovs()
   if (t === 'sucata') loadPneusGeral()
-  if (t === 'recicladora') loadLotes()
-  if (t === 'financeiro') loadFinanceiro()
-})
-watch([filtroMesFinanceiro, filtroFilialFinanceiro], () => {
-  if (tab.value === 'financeiro') loadFinanceiro()
 })
 
 watch(() => removerForm.value.destino, (val) => {
