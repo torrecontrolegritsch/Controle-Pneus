@@ -185,14 +185,17 @@ onMounted(loadFinanceiro)
 </script>
 
 <style scoped>
-.fin-kpis { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; margin-bottom: 28px; }
-.fin-kpi { background: var(--surface-1); border: 1px solid var(--ink-200); border-radius: 12px; padding: 20px; display: flex; align-items: center; gap: 16px; box-shadow: var(--shadow-sm); }
-.fin-kpi-green { background: var(--status-ok-bg); border-color: var(--status-ok); }
-.fin-kpi-blue  { background: #dbeafe; border-color: #3b82f6; }
-.fin-kpi-purple { background: #e0e7ff; border-color: #6366f1; }
-.fin-kpi-icon { width: 44px; height: 44px; border-radius: 50%; background: rgba(255,255,255,0.7); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.fin-kpi-num { display: block; font-size: 22px; font-weight: 800; color: var(--ink-900); }
-.fin-kpi-lbl { display: block; font-size: 11px; font-weight: 600; color: var(--ink-600); text-transform: uppercase; letter-spacing: 0.04em; margin-top: 2px; }
+.fin-kpis { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; margin-bottom: 14px; }
+.fin-kpi { background: var(--surface-0); border: 1px solid var(--ink-200); border-radius: 6px; padding: 12px 14px; display: flex; align-items: center; gap: 12px; }
+.fin-kpi-green  { border-top: 3px solid var(--status-ok); }
+.fin-kpi-blue   { border-top: 3px solid #3b82f6; }
+.fin-kpi-purple { border-top: 3px solid #6366f1; }
+.fin-kpi-icon { width: 38px; height: 38px; border-radius: 6px; background: var(--surface-2); display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: var(--ink-600); }
+.fin-kpi-green  .fin-kpi-icon { background: var(--status-ok-bg); color: var(--status-ok); }
+.fin-kpi-blue   .fin-kpi-icon { background: #dbeafe; color: #1d4ed8; }
+.fin-kpi-purple .fin-kpi-icon { background: #e0e7ff; color: #4338ca; }
+.fin-kpi-num { display: block; font-size: 20px; font-weight: 600; color: var(--ink-900); font-variant-numeric: tabular-nums; line-height: 1.2; }
+.fin-kpi-lbl { display: block; font-size: 10px; font-weight: 600; color: var(--ink-300); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 1px; }
 
 .fin-body { display: flex; flex-direction: column; gap: 24px; }
 .fin-box { background: var(--surface-0); border: 1px solid var(--ink-200); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow-sm); }
