@@ -797,7 +797,6 @@
                     <span class="t-desc">{{ p.marca }}</span>
                     <div style="display:flex;gap:4px;align-items:center;margin-top:2px;">
                       <span class="t-status">Vida: {{ p.vida }}ª | {{ p.sulco_atual }}mm</span>
-                      <span v-if="p.km_total > 0" class="vida-badge" style="background:#f1f5f9;color:#64748b;">USADO</span>
                     </div>
                   </div>
                   <div v-if="p.recebido === 0" class="pending-btn" title="Confirmar chegada">✓</div>
