@@ -22,7 +22,8 @@ try:
         enviar_para_recicladora, listar_lotes_reciclagem, listar_pneus_aguardando_lote,
         atualizar_valor_lote_reciclagem, obter_relatorio_financeiro_reciclagem,
         importar_pneus_lote, criar_lote_reciclagem,
-        criar_solicitacao, listar_solicitacoes, atualizar_solicitacao
+        criar_solicitacao, listar_solicitacoes, atualizar_solicitacao,
+        enviar_para_recap, listar_recap_lotes, confirmar_retorno_recap, listar_pneus_em_estoque_central
     )
 except ImportError:
     from db_gestao_pneus import (
@@ -33,7 +34,8 @@ except ImportError:
         enviar_para_recicladora, listar_lotes_reciclagem, listar_pneus_aguardando_lote,
         atualizar_valor_lote_reciclagem, obter_relatorio_financeiro_reciclagem,
         importar_pneus_lote, criar_lote_reciclagem,
-        criar_solicitacao, listar_solicitacoes, atualizar_solicitacao
+        criar_solicitacao, listar_solicitacoes, atualizar_solicitacao,
+        enviar_para_recap, listar_recap_lotes, confirmar_retorno_recap, listar_pneus_em_estoque_central
     )
 try:
     from backend.db_sqlserver import buscar_veiculo_por_placa, sincronizar_todos_do_sql
@@ -125,6 +127,17 @@ class TransferirIn(BaseModel):
     pneu_id: int
     filial_destino_id: int
     observacao: str = ""
+
+class RecapIn(BaseModel):
+    pneu_id: int
+    recauchutadora: str
+    data_envio: str
+    sulco_antes: Optional[float] = None
+
+class ConfirmarRetornoIn(BaseModel):
+    recap_id: int
+    sulco_novo: float
+    filial_central_id: int
 
 class SolicitacaoIn(BaseModel):
     medida: str
@@ -448,6 +461,40 @@ def post_criar_lote_reciclagem(body: dict, current_user: TokenData = Depends(get
 @router.get("/reciclagem/relatorio-financeiro")
 def get_relatorio_financeiro_reciclagem(mes: Optional[str] = Query(None), filial_id: Optional[int] = Query(None), current_user: TokenData = Depends(get_current_user)):
     return obter_relatorio_financeiro_reciclagem(mes=mes, filial_id=_filial_efetiva(current_user, filial_id))
+
+
+# ── RECAPAGEM ──────────────────────────────────────────────────────────────
+
+@router.get("/recap/lotes")
+def get_recap_lotes(status: Optional[str] = Query(None), current_user: TokenData = Depends(require_admin)):
+    return listar_recap_lotes(status_filtro=status)
+
+@router.get("/recap/estoque")
+def get_pneus_estoque_recap(current_user: TokenData = Depends(require_admin)):
+    return listar_pneus_em_estoque_central()
+
+@router.post("/recap/enviar")
+def post_enviar_recap(body: RecapIn, current_user: TokenData = Depends(require_admin)):
+    try:
+        return enviar_para_recap(
+            pneu_id=body.pneu_id,
+            recauchutadora=body.recauchutadora,
+            data_envio=body.data_envio,
+            sulco_antes=body.sulco_antes,
+        )
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.post("/recap/confirmar-retorno")
+def post_confirmar_retorno(body: ConfirmarRetornoIn, current_user: TokenData = Depends(require_admin)):
+    try:
+        return confirmar_retorno_recap(
+            recap_id=body.recap_id,
+            sulco_novo=body.sulco_novo,
+            filial_central_id=body.filial_central_id,
+        )
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 

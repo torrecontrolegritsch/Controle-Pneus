@@ -522,6 +522,9 @@
     <!-- TAB: RECICLADORA -->
     <ReciclagemView v-if="tab === 'recicladora'" @refresh="() => { loadPneusGeral(); refreshDash() }" />
 
+    <!-- TAB: RECAPAGEM -->
+    <RecapView v-if="tab === 'recap'" :filiais="filiais" @refresh="() => { loadPneusGeral(); refreshDash() }" />
+
     <!-- TAB: FINANCEIRO -->
     <FinanceiroView v-if="tab === 'financeiro'" :filiais="filiais" />
 
@@ -1004,6 +1007,7 @@ import HistoricoView from '../components/views/HistoricoView.vue'
 import FinanceiroView from '../components/views/FinanceiroView.vue'
 import SucataView from '../components/views/SucataView.vue'
 import ReciclagemView from '../components/views/ReciclagemView.vue'
+import RecapView from '../components/views/RecapView.vue'
 import FiliaisView from '../components/views/FiliaisView.vue'
 
 const props = defineProps(['user'])
@@ -1020,6 +1024,7 @@ const allTabs = [
   { id: 'financeiro',   label: 'Financeiro',          icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>` },
   { id: 'sucata',       label: 'Sucata',              icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>` },
   { id: 'recicladora',  label: 'Reciclagem',          icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 20V9c0-2 2-3 4-3s4 1 4 3v11"></path><path d="M14 20V5c0-2 2-3 4-3s4 1 4 3v15"></path><path d="M2 20h20"></path><path d="M22 7l-4-4-4 4"></path></svg>` },
+  { id: 'recap',        label: 'Recapagem',           icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>` },
   { id: 'historico',    label: 'Histórico',           icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>` },
   { id: 'relatorio_nf', label: 'Relatório NF',        icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>` },
   { id: 'solicitacoes', label: 'Solicitações',        icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>` }
@@ -2080,6 +2085,7 @@ const tabSubtitles = {
   historico:       'Registro cronológico de todas as operações',
   sucata:          'Validação e controle de pneus descartados',
   recicladora:     'Lotes de coleta e retorno financeiro',
+  recap:           'Pneus enviados para recauchutadora e retorno ao estoque',
   financeiro:      'Créditos por filial referente às carcaças',
   solicitacoes:    'Solicitações de pneus por filial',
   filiais:         'Configuração das unidades operacionais',

@@ -846,6 +846,79 @@ def obter_dashboard(filial_id=None):
             "por_vida": {}, "alertas_sulco": [], "alertas_vida": [], "alertas_rodizio": [],
         }
 
+# ── RECAPAGEM ──────────────────────────────────────────────────────────────
+
+def enviar_para_recap(pneu_id, recauchutadora, data_envio, sulco_antes):
+    _api_request("PATCH", "gp_pneus", params={"id": f"eq.{pneu_id}"}, payload={"status": "recapagem"})
+    payload = {
+        "pneu_id": int(pneu_id),
+        "recauchutadora": str(recauchutadora).strip(),
+        "data_envio": str(data_envio),
+        "sulco_antes": float(sulco_antes) if sulco_antes else None,
+        "status": "enviado",
+    }
+    res = _api_request("POST", "gp_recap_lotes", payload=payload)
+    _registrar_movimentacao(pneu_id, "envio_recap", observacao=f"Recauchutadora: {recauchutadora} | Data Envio: {data_envio}")
+    return res[0] if res and isinstance(res, list) else (res if res else {})
+
+def listar_recap_lotes(status_filtro=None):
+    params = {"select": "*", "order": "created_at.desc"}
+    if status_filtro:
+        params["status"] = f"eq.{status_filtro}"
+    recaps = _api_request("GET", "gp_recap_lotes", params=params)
+    if not recaps or not isinstance(recaps, list):
+        return []
+    filiais_list = _api_request("GET", "gp_filiais")
+    f_map = {f["id"]: f["nome"] for f in filiais_list} if isinstance(filiais_list, list) else {}
+    pneu_ids = list(set(r["pneu_id"] for r in recaps))
+    pneus_map = {}
+    if pneu_ids:
+        ids_str = ",".join(str(i) for i in pneu_ids)
+        pneus = _api_request("GET", "gp_pneus", params={"id": f"in.({ids_str})", "select": "*"})
+        if pneus and isinstance(pneus, list):
+            pneus_map = {p["id"]: p for p in pneus}
+    for r in recaps:
+        p = pneus_map.get(r["pneu_id"], {})
+        r["numero_fogo"] = p.get("numero_fogo", "")
+        r["marca"] = p.get("marca", "")
+        r["modelo"] = p.get("modelo", "")
+        r["medida"] = p.get("medida", "")
+        r["vida_atual"] = p.get("vida", 1)
+        r["filial_origem_nome"] = f_map.get(p.get("filial_origem_id"), "")
+    return recaps
+
+def confirmar_retorno_recap(recap_id, sulco_novo, filial_central_id):
+    import datetime as _dt
+    today = _dt.date.today().isoformat()
+    recaps = _api_request("GET", "gp_recap_lotes", params={"id": f"eq.{recap_id}", "select": "*"})
+    if not recaps or not isinstance(recaps, list) or len(recaps) == 0:
+        raise HTTPException(status_code=404, detail="Recap não encontrado")
+    recap = recaps[0]
+    pneu_id = recap["pneu_id"]
+    pneus = _api_request("GET", "gp_pneus", params={"id": f"eq.{pneu_id}", "select": "vida"})
+    vida_atual = 1
+    if pneus and isinstance(pneus, list) and pneus:
+        vida_atual = int(pneus[0].get("vida", 1) or 1)
+    _api_request("PATCH", "gp_pneus", params={"id": f"eq.{pneu_id}"}, payload={
+        "status": "estoque",
+        "sulco_atual": float(sulco_novo),
+        "vida": vida_atual + 1,
+        "filial_id": int(filial_central_id),
+        "recebido": 1,
+    })
+    _api_request("PATCH", "gp_recap_lotes", params={"id": f"eq.{recap_id}"}, payload={
+        "status": "retornado",
+        "data_retorno": today,
+        "sulco_depois": float(sulco_novo),
+    })
+    _registrar_movimentacao(pneu_id, "retorno_recap", observacao=f"Retorno recapagem | Sulco: {sulco_novo}mm | Vida: {vida_atual+1}")
+    return {"ok": True}
+
+def listar_pneus_em_estoque_central():
+    params = {"status": "eq.estoque", "select": "id,numero_fogo,marca,modelo,medida,sulco_atual,vida,filial_id", "order": "numero_fogo"}
+    pneus = _api_request("GET", "gp_pneus", params=params)
+    return pneus if isinstance(pneus, list) else []
+
 # ── SOLICITAÇÕES DE PNEUS ──────────────────────────────────────────────────
 
 def criar_solicitacao(filial_id, filial_nome, medida, quantidade, motivo, observacao, usuario_nome, usuario_email):

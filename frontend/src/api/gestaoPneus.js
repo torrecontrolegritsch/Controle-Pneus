@@ -167,6 +167,12 @@ export const createUsuario = (data) => post(U, data)
 export const updateUsuario = (id, data) => put(`${U}/${id}`, data)
 export const deleteUsuario = (id) => del(`${U}/${id}`)
 
+// Recapagem
+export const fetchRecapLotes = (params = {}) => get(`${P}/recap/lotes`, params)
+export const fetchPneusEstoqueRecap = () => get(`${P}/recap/estoque`)
+export const enviarParaRecap = (data) => post(`${P}/recap/enviar`, data)
+export const confirmarRetornoRecap = (data) => post(`${P}/recap/confirmar-retorno`, data)
+
 // Reciclagem e Financeiro
 export const fetchLotesReciclagem = (params = {}) => get(`${P}/reciclagem/lotes`, params)
 export const fetchPneusAguardandoLote = (params = {}) => get(`${P}/reciclagem/aguardando`, params)
