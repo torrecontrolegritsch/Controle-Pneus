@@ -2823,8 +2823,8 @@ const currentTabSubtitle = computed(() => tabSubtitles[tab.value] || 'Gestão ce
 .gt-new .gt-body { border-color: #22c55e; }
 /* Pendente chegada — borda dashed âmbar */
 .gt-pending .gt-body { border-color: var(--status-warn); border-style: dashed; }
-/* Usado — borda âmbar */
-.gt-used .gt-body { border-color: var(--status-warn); }
+/* Usado — borda vermelha */
+.gt-used .gt-body { border-color: var(--status-critical); }
 /* Desgastado — borda vermelha */
 .gt-worn .gt-body { border-color: var(--status-critical); }
 /* Sendo arrastado — fade sutil, sem contorno */
